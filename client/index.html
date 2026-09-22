@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta   name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Join Game</title>
+    <link rel="stylesheet" href="/src/style.css">
+    
+    <script type="module" src="/src/player.ts"></script>
+</head>
+
+<body>
+    <main>
+        
+        <!-- JOIN -->
+        <section id="join-view">
+            <h1>Join Game</h1>
+            
+            <form id="join-form">
+                <label for="name">Your name</label>
+                
+                <input
+                id="name"
+                type="text"
+                placeholder="Enter name"
+                maxlength="20"
+                required
+                >
+                
+                <button type="submit">
+                    Join
+                </button>
+            </form>
+            
+            <p id="status">Connecting...</p>
+        </section>
+        
+        
+        <!-- LOBBY -->
+        <section id="lobby-view" hidden>
+            <h1>You're in!</h1>
+            
+            <p id="joined-name"></p>
+            
+            <p>Waiting for the host...</p>
+        </section>
+        
+        
+        <!-- PLAYING -->
+        <section id="playing-view" hidden>
+            <p id="round-number"></p>
+            
+            <h1 id="prompt"></h1>
+            
+            <h2>Your answer</h2>
+            
+            <div id="answer">
+                <p id="answer-placeholder">
+                    Tap words below to build your answer
+                </p>
+            </div>
+            
+            <h2>Available words</h2>
+            
+            <div id="words"></div>
+            
+            <button id="submit-answer" disabled>
+                Submit Answer
+            </button>
+        </section>
+        
+        
+        <section id="submitted-view" hidden>
+            <h1>Answer submitted!</h1>
+            
+            <p>Your answer:</p>
+            
+            <div id="submitted-answer"></div>
+            
+            <p>Waiting for the other players...</p>
+        </section>
+        
+        
+        <section id="voting-view" hidden>
+            <p id="voting-round-number"></p>
+            
+            <h1>Choose the funniest answer</h1>
+            
+            <p>
+                Pick your favourite. Choose wisely.
+            </p>
+
+            <p id="option1">option1</p>
+            <p id="option2">option2</p>
+        </section>
+        
+    </main>
+    
+    <script
+    type="module"
+    src="/src/player.ts"
+    ></script>
+</body>

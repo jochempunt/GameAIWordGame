@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    
+    <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+    >
+    
+    <title>Game Host</title>
+    
+    <link rel="stylesheet" href="/src/style.css">
+    
+    <script
+    type="module"
+    src="/src/host.ts"
+    ></script>
+</head>
+
+<body>
+    <main>
+        <h1>Game Host</h1>
+        
+        <p id="status">Connecting...</p>
+        
+        
+        <!-- Lobby controls -->
+        <section id="host-lobby">
+            <button id="start-round">
+                Start Round
+            </button>
+        </section>
+        
+        
+        <!-- Current round -->
+        <section id="host-playing" hidden>
+            <p id="host-round-number"></p>
+            
+            <h2 id="host-prompt"></h2>
+        </section>
+        
+        
+        <!-- Keep players visible -->
+        <section>
+            <h2>Players</h2>
+            
+            <ul id="players"></ul>
+        </section>
+        
+        
+        <section id="host-voting" hidden>
+            <h1>Vote now!</h1>
+            <p>Choose your favourite answer on your phone.</p>
+        </section>
+    </main>
+</body>
+
+</html>

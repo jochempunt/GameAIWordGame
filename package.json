@@ -1,0 +1,27 @@
+{
+  "name": "jackbox-test-01",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n SERVER,VITE,QR \"pnpm dev:server\" \"pnpm dev:client\" \"pnpm dev:qr\"",
+    "dev:server": "tsx watch server/server.ts",
+    "dev:client": "vite",
+    "dev:qr": "node scripts/qr.cjs"
+  },
+  "packageManager": "pnpm@11.17.0",
+  "dependencies": {
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.1",
+    "concurrently": "^10.0.5",
+    "qrcode-terminal": "^0.12.0",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  }
+}
