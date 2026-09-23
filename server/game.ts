@@ -9,28 +9,28 @@ import type {
 
 export class Game {
     state: GameState = {
-        phase: "LOBBY",
+        phase: "lobby",
         round: 0,
         rounds: new Map<number, RoundState>(),
+        totals: new Map<string, number>()
     };
     
     
     startRound(): boolean {
-        if (this.state.phase !== "LOBBY") {
+        if (this.state.phase !== "lobby") {
             return false;
         }
         
-        this.state.round++;
         
         const round: RoundState = {
             prompt: this.randomPrompt(),
             words: this.randomWords(20),
             answers: [],
-            votes: [],
+            rankings: new Map<string, string[]>(),
         };
         
         this.state.rounds.set(this.state.round, round);
-        this.state.phase = "PLAYING";
+        this.state.phase = "answering";
         
         return true;
     }
@@ -40,7 +40,7 @@ export class Game {
         playerId: string,
         words: string[],
     ): Answer | undefined {
-        if (this.state.phase !== "PLAYING") {
+        if (this.state.phase !== "answering") {
             return undefined;
         }
         

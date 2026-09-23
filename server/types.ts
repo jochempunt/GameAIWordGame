@@ -15,24 +15,23 @@ export type Answer = {
     words: string[];
 };
 
-export type Vote = {
-    playerId: PlayerId;
-    answerId: AnswerId;
-};
+
+type Ranking = string[];   
 
 export type RoundState = {
     prompt: string;
     words: string[];
-
-    answers: Answer[];
-    votes: Vote[];
-
-    winnerId?: AnswerId;
+    answers: Answer[];                      
+    rankings: Map<string, Ranking>;           
+    scores?: Map<string, number>;             
 };
 
+type Phase = "lobby" | "answering" | "ranking" | "results" | "ended";
 export type GameState = {
-    phase: "LOBBY" | "PLAYING" | "VOTING" | "RESULTS";
+    phase: Phase;
     round: number;
-
     rounds: Map<number, RoundState>;
+    totals: Map<string, number>;          
 };
+
+

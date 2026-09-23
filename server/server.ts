@@ -81,7 +81,7 @@ function joinPlayer(
         error?: string;
     }) => void,
 ): void {
-    if (game.state.phase !== "LOBBY") {
+    if (game.state.phase !== "lobby") {
         acknowledge({
             ok: false,
             error: "Round already started",
@@ -300,7 +300,7 @@ function startRound(socket: Socket): void {
 
 
 function tryStartVoting(): void {
-    if (game.state.phase !== "PLAYING") {
+    if (game.state.phase !== "answering") {
         return;
     }
 
@@ -323,10 +323,10 @@ function tryStartVoting(): void {
         return;
     }
 
-    game.state.phase = "VOTING";
+    game.state.phase = "ranking";
 
     console.log("Everyone answered");
-    console.log("Starting voting");
+    console.log("Starting ranking phase");
 
     for (const player of connectedPlayers) {
         io.to(player.socketId).emit(
