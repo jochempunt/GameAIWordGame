@@ -35,3 +35,22 @@ export type GameState = {
 };
 
 
+type playerViews = {name:string} & (
+    | {view:"lobby"}
+    | {view:"answering"; round:number; prompt:string; words:string[]}
+    | {view:"ranking"; round:number; prompt:string; answers:Answer[]}
+);
+
+
+type HostView = {
+    phase: Phase; 
+    round: number; 
+    prompt: string | null; 
+    players: { 
+        playerInfo: Player;
+        answered: boolean; 
+        ranked: boolean; 
+        score: number 
+    }[];
+    answers: { id: string; words: string[] }[];      
+};
