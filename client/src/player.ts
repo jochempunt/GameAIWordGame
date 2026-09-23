@@ -124,7 +124,6 @@ function showSubmitted(answer: string[]) {
         
         wordElement.textContent = word;
         wordElement.classList.add("submitted-word");
-        
         submittedAnswer.appendChild(wordElement);
     }
 }
@@ -265,6 +264,7 @@ function renderAvailableWords() {
         
         button.textContent = word;
         button.classList.add("word");
+         button.classList.add("chip");
         
         if (selectedWords.includes(word)) {
             button.disabled = true;

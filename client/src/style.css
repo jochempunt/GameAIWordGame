@@ -1,3 +1,27 @@
+:root {
+    /* Main */
+    --green: #489457;
+    --cream: #F4E7D8;
+    --cream-light: #FFF8F0;
+    
+    /* Text */
+    --ink: #323E2F;
+    --muted-ink: #6F7569;
+    
+    /* Buttons */
+    --blue: #2180D9;
+    --blue-dark: #1768B5;
+    
+    /* Tile bgs */
+    --tile: #F4E7D8;
+    --tile-border: #D7BE98;
+    --tile-shadow: #C7AD87;
+    
+    /* Status */
+    --success: #267A3A;
+    --error: #B52F35;
+}
+
 * {
     box-sizing: border-box;
 }
@@ -5,11 +29,11 @@
 body {
     margin: 0;
     min-height: 100vh;
-
+    
     font-family: system-ui, sans-serif;
-
-    background: #18181b;
-    color: #f4f4f5;
+    
+    background: var(--green);
+    color: var(--ink);
 }
 
 main {
@@ -22,14 +46,16 @@ h1 {
     margin-top: 0;
     font-size: 2.2rem;
     line-height: 1.1;
+    color: var(--cream-light);
 }
 
 h2 {
     margin-top: 2rem;
+    color: var(--cream);
 }
 
 p {
-    color: #a1a1aa;
+    color: var(--ink);
 }
 
 form {
@@ -45,39 +71,58 @@ label {
 input {
     width: 100%;
     padding: 1rem;
-
-    border: 1px solid #3f3f46;
+    
+    border: 1px solid var(--tile-border);
     border-radius: 0.75rem;
-
-    background: #27272a;
-    color: white;
-
+    
+    background: var(--cream);
+    color: var(--ink);
+    text-align: center;
+    
     font: inherit;
     font-size: 1.1rem;
+    
+    box-shadow: 0 3px 8px rgb(50 62 47 / 14%);
+}
+
+input::placeholder {
+    color: var(--muted-ink);
 }
 
 input:focus {
-    outline: 2px solid #a1a1aa;
+    outline: 2px solid var(--ink);
     outline-offset: 2px;
 }
 
 
 button {
     padding: 1rem;
-
+    
     border: none;
     border-radius: 0.75rem;
-
+    
     font: inherit;
     font-size: 1.1rem;
     font-weight: 600;
-
+    color: var(--cream-light);
+    background-color: var(--blue);
     cursor: pointer;
+    
+    box-shadow: 0 4px 0 var(--blue-dark);
 }
 
 button:disabled {
     cursor: default;
     opacity: 0.5;
+    box-shadow: none;
+}
+
+label{
+    color: var(--cream-light);
+}
+
+#name{
+    margin-top: 2px;
 }
 
 form button,
@@ -86,49 +131,60 @@ form button,
     width: 100%;
 }
 
+#playerNameLabel{
+    margin-bottom: 0px;
+}
 
 
 #round-number {
     margin-bottom: 0.5rem;
-
+    
     font-size: 0.9rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-
-    color: #a1a1aa;
+    
+    color: var(--cream-light);
 }
 
 #prompt {
     margin-top: 0;
     margin-bottom: 2rem;
-
+    
     font-size: clamp(1.8rem, 8vw, 2.7rem);
     line-height: 1.1;
+}
+
+#host-prompt {
+    display: inline-block;
+    border: 2px dashed var(--tile-border);
+    padding: 0.2rem 0.5rem;
 }
 
 
 
 #answer {
     min-height: 5rem;
-
+    
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.65rem;
-
+    
     margin-bottom: 2rem;
     padding: 1rem;
-
-    border: 2px dashed #52525b;
+    
+    border: 2px dashed var(--tile-border);
     border-radius: 0.75rem;
-
-    background: #27272a;
+    
+    background: var(--cream-light);
+    
+    box-shadow: 0 4px 10px rgb(50 62 47 / 16%);
 }
 
 #answer-placeholder {
     margin: 0;
-    color: #71717a;
+    color: var(--muted-ink);
 }
 
 #submit-answer {
@@ -143,31 +199,62 @@ form button,
     gap: 0.65rem;
 }
 
+.host {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    
+    text-align: center;
+}
+
 .word {
     width: auto;
     padding: 0.7rem 0.9rem;
-
-    border: 2px solid #d4d4d8;
+    
+    border: 1px solid var(--tile-border);
     border-radius: 0.35rem;
-
-    background: #fafafa;
-    color: #18181b;
-
+    
+    background: var(--tile);
+    color: var(--ink);
+    
     font-size: 1rem;
     font-weight: 600;
-
-    box-shadow: 0 3px 0 #71717a;
-
+    
+    box-shadow:
+    0 3px 0 var(--tile-shadow),
+    0 5px 8px rgb(50 62 47 / 12%);
+    
     touch-action: manipulation;
 }
 
+.word {
+    --a: 0deg;
+    --b: 0deg;
+    --c: 0deg;
+    
+    transform: rotate(calc(var(--a) + var(--b) + var(--c)));
+}
+
+.word:nth-child(3n + 1) { --a: -1.5deg; }
+.word:nth-child(3n + 2) { --a:  0.5deg; }
+.word:nth-child(3n)     { --a:  1.5deg; }
+.word:nth-child(5n + 1) { --b:  2deg; }
+.word:nth-child(5n + 2) { --b: -1deg; }
+.word:nth-child(5n + 3) { --b:  1deg; }
+.word:nth-child(5n + 4) { --b: -2deg; }
+.word:nth-child(7n + 1) { --c: -1deg; }
+.word:nth-child(7n + 3) { --c:  1deg; }
+.word:nth-child(7n + 5) { --c: -0.5deg; }
+
 .word:active:not(:disabled) {
     transform: translateY(2px);
-    box-shadow: 0 1px 0 #71717a;
+    box-shadow: 0 1px 0 var(--tile-shadow);
 }
 
 .selected-word {
-    background: #e4e4e7;
+    background: var(--cream-light);
 }
 
 .word-used {
@@ -185,59 +272,79 @@ form button,
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.6rem;
-
+    
     margin: 2rem 0;
 }
 
 .submitted-word {
     padding: 0.65rem 0.85rem;
-
+    
+    border: 1px solid var(--tile-border);
     border-radius: 0.35rem;
-
-    background: #fafafa;
-    color: #18181b;
-
+    
+    background: var(--tile);
+    color: var(--ink);
+    
     font-weight: 600;
-
-    box-shadow: 0 3px 0 #71717a;
+    
+    box-shadow:
+    0 3px 0 var(--tile-shadow),
+    0 5px 8px rgb(50 62 47 / 12%);
 }
 
 #players {
     padding-left: 1.5rem;
-
+    list-style: none;
     font-size: 1.3rem;
     line-height: 1.8;
-}
-
-.answered {
-    color: #04d22a;
-}
-
-.status-error {
-    color: #ef4444;
-    font-weight: 600;
-}
-
-@media (max-width: 500px) {
-    main {
-        width: 100%;
-        padding: 1.5rem 1rem;
-    }
-
-    h1 {
-        font-size: 2rem;
-    }
-
-    #prompt {
-        margin-bottom: 1.5rem;
-        font-size: 1.8rem;
-    }
-
-    #words {
-        gap: 0.55rem;
-    }
-
-    .word {
-        padding: 0.65rem 0.8rem;
+    
+    li{
+        background-color: var(--cream);
+        border: 1px solid var(--tile-border);
+        border-radius: 1rem;
+        padding:5px 13px;
+        
+        display: block;
+        width: 200px;
+        margin: 5px auto;
+        text-align: center;
     }
 }
+    
+    
+    
+    .answered {
+        color: var(--success);
+    }
+    
+    .status-error {
+        color: var(--error);
+        font-weight: 600;
+    }
+    
+    
+    
+    
+    @media (max-width: 500px) {
+        main {
+            width: 100%;
+            padding: 1.5rem 1rem;
+        }
+        
+        h1 {
+            font-size: 2rem;
+        }
+        
+        #prompt {
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+        
+        #words {
+            gap: 0.55rem;
+        }
+        
+        .word {
+            padding: 0.65rem 0.8rem;
+        }
+    }

@@ -99,7 +99,7 @@ socket.on(
         document.createElement("li");
         
         item.id = `player-${player.id}`;
-        item.textContent = player.name;
+        item.textContent = "👤 " +player.name;
         
         playerList.appendChild(item);
     }
