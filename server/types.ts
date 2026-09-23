@@ -26,7 +26,7 @@ export type RoundState = {
     scores?: Map<string, number>;             
 };
 
-type Phase = "lobby" | "answering" | "ranking" | "results" | "ended";
+type Phase = "lobby" | "answering" | "ranking" ;
 export type GameState = {
     phase: Phase;
     round: number;
@@ -35,14 +35,14 @@ export type GameState = {
 };
 
 
-type playerViews = {name:string} & (
-    | {view:"lobby"}
-    | {view:"answering"; round:number; prompt:string; words:string[]}
-    | {view:"ranking"; round:number; prompt:string; answers:Answer[]}
+export type PlayerView = {name:string} & (
+    | {phase:"lobby"}
+    | {phase:"answering"; round:number; prompt:string; words:string[], submitted:string[] | null}
+    | {phase:"ranking"; round:number; prompt:string; answers:Answer[]}
 );
 
 
-type HostView = {
+export type HostView = {
     phase: Phase; 
     round: number; 
     prompt: string | null; 

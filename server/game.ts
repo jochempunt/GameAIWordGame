@@ -16,11 +16,16 @@ export class Game {
     };
     
     
+    currentRound(): RoundState | undefined {
+        return this.state.rounds.get(this.state.round);
+    }
+    
     startRound(): boolean {
         if (this.state.phase !== "lobby") {
             return false;
         }
         
+        this.state.round++;
         
         const round: RoundState = {
             prompt: this.randomPrompt(),
@@ -35,7 +40,7 @@ export class Game {
         return true;
     }
     
-   
+    
     submitAnswer(
         playerId: string,
         words: string[],
@@ -86,12 +91,12 @@ export class Game {
         .find(answer => answer.playerId === playerId);
     }
     
-  
+    
     getAnswers(roundNumber: number): Answer[] {
         return this.state.rounds.get(roundNumber)?.answers ?? [];
     }
     
-   
+    
     private validateWords(
         submittedWords: string[],
         availableWords: string[],
@@ -128,9 +133,9 @@ export class Game {
         .sort(() => Math.random() - 0.5)
         .slice(0, count);
     }
-
-
-
-
+    
+    
+    
+    
     
 }

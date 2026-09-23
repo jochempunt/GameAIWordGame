@@ -161,7 +161,9 @@ form button,
     padding: 0.2rem 0.5rem;
 }
 
-
+#players li.disconnected {
+    opacity: 0.4;
+}
 
 #answer {
     min-height: 5rem;
@@ -310,41 +312,41 @@ form button,
         text-align: center;
     }
 }
-    
-    
-    
-    .answered {
-        color: var(--success);
+
+
+
+.answered {
+    color: var(--success);
+}
+
+.status-error {
+    color: var(--error);
+    font-weight: 600;
+}
+
+
+
+
+@media (max-width: 500px) {
+    main {
+        width: 100%;
+        padding: 1.5rem 1rem;
     }
     
-    .status-error {
-        color: var(--error);
-        font-weight: 600;
+    h1 {
+        font-size: 2rem;
     }
     
-    
-    
-    
-    @media (max-width: 500px) {
-        main {
-            width: 100%;
-            padding: 1.5rem 1rem;
-        }
-        
-        h1 {
-            font-size: 2rem;
-        }
-        
-        #prompt {
-            margin-bottom: 1.5rem;
-            font-size: 1.8rem;
-        }
-        
-        #words {
-            gap: 0.55rem;
-        }
-        
-        .word {
-            padding: 0.65rem 0.8rem;
-        }
+    #prompt {
+        margin-bottom: 1.5rem;
+        font-size: 1.8rem;
     }
+    
+    #words {
+        gap: 0.55rem;
+    }
+    
+    .word {
+        padding: 0.65rem 0.8rem;
+    }
+}

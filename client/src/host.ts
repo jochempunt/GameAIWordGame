@@ -1,181 +1,59 @@
 import { io } from "socket.io-client";
-import { RoundState } from "../../server/types.js";
-
-
-type Player = {
-    id: string;
-    name: string;
-};
-
-type HostRoundStarted = {
-    round: number;
-    prompt: string;
-};
-
+import { HostView } from "../../server/types.js";
 
 const socket = io();
+socket.onAny((event, ...args) => console.log("host got:", event, args));
 
+const statusText = document.querySelector<HTMLParagraphElement>("#status")!;
 
-// ─────────────────────────────
-// Elements
-// ─────────────────────────────
+const playerList =document.querySelector<HTMLUListElement>("#players")!;
 
-const statusText =
-document.querySelector<HTMLParagraphElement>(
-    "#status"
-)!;
+const startRoundButton =document.querySelector<HTMLButtonElement>("#start-round")!;
 
-const playerList =
-document.querySelector<HTMLUListElement>(
-    "#players"
-)!;
+const hostLobby = document.querySelector<HTMLElement>("#host-lobby")!;
 
-const startRoundButton =
-document.querySelector<HTMLButtonElement>(
-    "#start-round"
-)!;
+const hostPlaying =document.querySelector<HTMLElement>("#host-playing")!;
 
-const hostLobby =
-document.querySelector<HTMLElement>(
-    "#host-lobby"
-)!;
+const roundNumber =document.querySelector<HTMLElement>("#host-round-number")!;
 
-const hostPlaying =
-document.querySelector<HTMLElement>(
-    "#host-playing"
-)!;
+const promptText =document.querySelector<HTMLElement>("#host-prompt")!;
 
-const roundNumber =
-document.querySelector<HTMLElement>(
-    "#host-round-number"
-)!;
+const hostVoting =document.querySelector<HTMLElement>("#host-voting")!;
 
-const promptText =
-document.querySelector<HTMLElement>(
-    "#host-prompt"
-)!;
-
-const hostVoting =
-document.querySelector<HTMLElement>(
-    "#host-voting"
-)!;
-
-
-
-const option1 = document.querySelector<HTMLElement>(
-    "#option1"
-)!;
-
-const option2 = document.querySelector<HTMLElement>(
-    "#option2"
-)!;
-
-
-// ─────────────────────────────
-// Connection
-// ─────────────────────────────
 
 socket.on("connect", () => {
-    console.log(
-        "Host connected:",
-        socket.id
-    );
-    
-    statusText.textContent =
-    "Connected as host";
-    
+    statusText.textContent = "Connected as host";
     socket.emit("registerHost");
 });
 
 
-// ─────────────────────────────
-// Players
-// ─────────────────────────────
+socket.on("state", render);
 
-socket.on(
-    "playerJoined",
-    (player: Player) => {
-        const item =
-        document.createElement("li");
-        
-        item.id = `player-${player.id}`;
-        item.textContent = "👤 " +player.name;
-        
+function render(view: HostView): void {
+    hostLobby.hidden = view.phase !== "lobby";
+    hostPlaying.hidden = view.phase !== "answering";
+    hostVoting.hidden = view.phase !== "ranking";
+    
+    roundNumber.textContent = `Round ${view.round}`;
+    promptText.textContent = view.prompt ?? "";
+    
+    renderPlayers(view.players);
+}
+
+
+function renderPlayers(players: HostView["players"]): void {
+    playerList.replaceChildren();
+ 
+    for (const player of players) {
+        const item = document.createElement("li");
+ 
+        item.textContent = "👤 " + player.playerInfo.name;
+        item.classList.toggle("answered", player.answered);
+        item.classList.toggle("disconnected", !player.playerInfo.connected);
+ 
         playerList.appendChild(item);
     }
-);
-
-socket.on(
-    "playerLeft",
-    (playerId: string) => {
-        const item =
-        document.getElementById(
-            `player-${playerId}`
-        );
-        
-        item?.remove();
-    }
-);
-
-
-// ─────────────────────────────
-// Start round
-// ─────────────────────────────
-
-startRoundButton.addEventListener(
-    "click",
-    () => {
-        socket.emit("startRound");
-    }
-);
-
-
-
-
-// ─────────────────────────────
-// Game events
-// ─────────────────────────────
-
-socket.on(
-    "roundStartedForHost",
-    (round: HostRoundStarted) => {
-        hostLobby.hidden = true;
-        hostPlaying.hidden = false;
-        hostVoting.hidden = true;
-        
-        roundNumber.textContent =
-        `Round ${round.round}`;
-        
-        promptText.textContent =
-        round.prompt;
-    }
-);
-
-
-socket.on(
-    "answerReceived",
-    ({ playerId, playerName, answer }: { playerId: string; playerName: string; answer: string[] }) => {
-        console.log("Answer received:", playerName, answer);
-        
-        const item = document.getElementById(
-            `player-${playerId}`
-        );
-        
-        if (!item) {
-            console.log(
-                "Could not find player element:",
-                playerId
-            );
-            return;
-        }
-        
-        item.classList.add("answered");
-        
-        console.log(
-            `Player ${playerId} answered`
-        );
-    }
-);
+}
 
 startRoundButton.addEventListener(
     "click",
@@ -185,10 +63,3 @@ startRoundButton.addEventListener(
     }
 );
 
-socket.on("votingStarted", ({ round }: { round: RoundState }) => {
-    console.log("Voting started");
-    console.log("Round data:", round);
-    hostLobby.hidden = true;
-    hostPlaying.hidden = true;
-    hostVoting.hidden = false;
-});
