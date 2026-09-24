@@ -52,7 +52,7 @@
         <section id="playing-view" hidden>
             <p id="round-number"></p>
             
-            <h1 id="prompt"></h1>
+            <h1 class="prompt"></h1>
             
             <h2>Your answer</h2>
             
@@ -74,7 +74,7 @@
         
         <section id="submitted-view" hidden>
             <h1>Answer submitted!</h1>
-            
+             <h2 class="prompt"></h2>
             <p>Your answer:</p>
             
             <div id="submitted-answer"></div>
@@ -83,23 +83,21 @@
         </section>
         
         
-        <section id="voting-view" hidden>
-            <p id="voting-round-number"></p>
+        <section id="ranking-view" hidden>
+            <p id="ranking-round-number"></p>
             
-            <h1>Choose the funniest answer</h1>
+
+            <h1>Rank by funny-ness</h1>
+            <h2 class="prompt"></h2>
             
-            <p>
-                Pick your favourite. Choose wisely.
-            </p>
-            
-            <p id="option1">option1</p>
-            <p id="option2">option2</p>
+           <ul id="answers-to-rank"></ul>
+        
+            <button id="submit-ranking" disabled>
+                Submit Ranking
+            </button>
         </section>
         
     </main>
     
-    <script
-    type="module"
-    src="/src/player.ts"
-    ></script>
+    <script type="module" src="/src/player.ts" ></script>
 </body>

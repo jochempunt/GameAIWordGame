@@ -14,14 +14,15 @@ const joinView = document.querySelector<HTMLElement>("#join-view")!;
 const lobbyView = document.querySelector<HTMLElement>("#lobby-view")!;
 const playingView = document.querySelector<HTMLElement>("#playing-view")!;
 const submittedView = document.querySelector<HTMLElement>("#submitted-view")!;
-const votingView = document.querySelector<HTMLElement>("#voting-view")!;
+const rankingView = document.querySelector<HTMLElement>("#ranking-view")!;
 
 const joinedName = document.querySelector<HTMLElement>("#joined-name")!;
 
 const roundNumber = document.querySelector<HTMLElement>("#round-number")!;
-const promptText = document.querySelector<HTMLElement>("#prompt")!;
+let promptText = document.getElementsByClassName("prompt")[0] as HTMLElement;
 const wordsContainer = document.querySelector<HTMLElement>("#words")!;
 const answerContainer = document.querySelector<HTMLElement>("#answer")!;
+const answersToRankContainer = document.querySelector<HTMLElement>("#answers-to-rank")!;
 const answerSubmitButton =
 document.querySelector<HTMLButtonElement>("#submit-answer")!;
 
@@ -66,18 +67,24 @@ function render(view: PlayerView): void {
         break;
         
         case "ranking":
-        renderRanking();
+        renderRanking(view);
         break;
     }
 }
 
+
+function setPrompt(text: string): void {
+    for (const el of document.querySelectorAll<HTMLElement>(".prompt")) {
+        el.textContent = text;
+    }
+}
 
 const allViews = [
     joinView,
     lobbyView,
     playingView,
     submittedView,
-    votingView,
+    rankingView,
 ];
 
 function hideAll(): void {
@@ -136,7 +143,7 @@ function renderAnswering(view: ViewOf<"answering">): void {
     
     playingView.hidden = false;
     roundNumber.textContent = `Round ${view.round}`;
-    promptText.textContent = view.prompt;
+    setPrompt(view.prompt);
     
     // only reset on a new round, so other players updates dont remove picks
     if (view.round !== currentRound) {
@@ -162,8 +169,22 @@ function renderSubmitted(answer: string[]): void {
     }
 }
 
-function renderRanking(): void {
-    votingView.hidden = false;
+function renderRanking(view: ViewOf<"ranking">): void {
+    rankingView.hidden = false;
+    
+    setPrompt(view.prompt);
+    answersToRankContainer.replaceChildren();
+    
+    for(const answer of view.answers) {
+        if(answer.playerId === localStorage.getItem("playerId")) {
+            continue; // skip own answer
+        }
+        
+        const answerElement = document.createElement("li");
+        answerElement.classList.add("rankable");
+        answerElement.textContent = answer.words.join(" ");
+        answersToRankContainer.appendChild(answerElement);
+    }   
 }
 
 function renderAvailableWords(): void {

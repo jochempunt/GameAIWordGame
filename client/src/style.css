@@ -189,6 +189,30 @@ form button,
     color: var(--muted-ink);
 }
 
+
+#answers-to-rank {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+
+    li{
+        list-style: none;  
+    }
+}
+
+.rankable{
+    background-color: var(--cream);
+    border: 1px solid var(--tile-border);
+    border-radius: 0.75rem;
+    height:3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 8px rgb(50 62 47 / 14%);
+}
+
+
 #submit-answer {
     margin-top: 2rem;
 }
