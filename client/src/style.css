@@ -348,6 +348,31 @@ form button,
     font-weight: 600;
 }
 
+.prompt {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.prompt-enter {
+  animation: promptIn 0.35s ease-out;
+}
+
+@keyframes promptIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prompt-enter {
+    animation: none;
+  }
+}
 
 
 
@@ -374,3 +399,6 @@ form button,
         padding: 0.65rem 0.8rem;
     }
 }
+
+
+

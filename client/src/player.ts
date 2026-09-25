@@ -35,6 +35,9 @@ let selectedWords: string[] = [];
 let availableWords: string[] = [];
 let currentRound = 0;
 
+let hasRenderedOnce = false;
+let skipNextPromptAnimation = false;
+
 
 socket.on("connect", () => {
     const playerId = localStorage.getItem("playerId");
@@ -43,6 +46,8 @@ socket.on("connect", () => {
         showJoin();
         return;
     }
+    
+    skipNextPromptAnimation = true;
     
     socket.emit("rejoin", playerId, (res: { ok: boolean }) => {
         if (!res.ok) {
@@ -57,27 +62,44 @@ socket.on("state", render);
 function render(view: PlayerView): void {
     hideAll();
     
+    
+    const skipAnimation = skipNextPromptAnimation;
+    skipNextPromptAnimation = false;
+    
     switch (view.phase) {
         case "lobby":
         renderLobby(view);
         break;
         
         case "answering":
-        renderAnswering(view);
+        renderAnswering(view, skipAnimation);
         break;
         
         case "ranking":
         renderRanking(view);
         break;
     }
+    
+    hasRenderedOnce = true;
 }
 
 
-function setPrompt(text: string): void {
+function setPrompt(text: string,animate = false): void {
+    
     for (const el of document.querySelectorAll<HTMLElement>(".prompt")) {
         el.textContent = text;
+        
+        if (animate) {
+            el.classList.remove("prompt-enter");
+            void el.offsetWidth; 
+            el.classList.add("prompt-enter");
+        } else {
+            el.classList.remove("prompt-enter");
+        }
     }
 }
+
+
 
 const allViews = [
     joinView,
@@ -134,7 +156,7 @@ function renderLobby(view: ViewOf<"lobby">): void {
     joinedName.textContent = view.name;
 }
 
-function renderAnswering(view: ViewOf<"answering">): void {
+function renderAnswering(view: ViewOf<"answering">, skipAnimation: boolean): void {
     if (view.submitted) {
         submittedView.hidden = false;
         renderSubmitted(view.submitted);
@@ -143,7 +165,12 @@ function renderAnswering(view: ViewOf<"answering">): void {
     
     playingView.hidden = false;
     roundNumber.textContent = `Round ${view.round}`;
-    setPrompt(view.prompt);
+    
+    
+    const isNewRound = view.round !== currentRound;
+    const shouldAnimate = isNewRound && hasRenderedOnce && !skipAnimation;
+    
+    setPrompt(view.prompt, shouldAnimate);
     
     // only reset on a new round, so other players updates dont remove picks
     if (view.round !== currentRound) {

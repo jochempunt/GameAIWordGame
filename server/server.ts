@@ -251,7 +251,6 @@ function disconnectPlayer(socket: Socket): void {
     player.connected = false;
     console.log(`Player disconnected: ${player.name}`);
     
-    tryStartVoting();
     pushState();
 }
 function startRound(socket: Socket): void {
