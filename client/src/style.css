@@ -190,28 +190,110 @@ form button,
 }
 
 
+#ranking-hint {
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+    border-radius: 0.65rem;
+    background: rgb(50 62 47 / 18%);
+    color: var(--cream-light);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
 #answers-to-rank {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 2rem;
+    gap: 1.1rem;
+    margin: 1.25rem 0 2rem;
+    padding: 0;
+    list-style: none;
+    
+    touch-action: manipulation;
 
-    li{
-        list-style: none;  
+}
+
+.rankable {
+    --rank-accent: #F5C86A;
+    background-color: var(--cream);
+    border: 1px solid var(--tile-border);
+    border-radius: 1.1rem 0.65rem 1.1rem 0.65rem;
+    min-height: 3.5rem;
+    padding: 0.75rem 1rem;
+
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+      box-shadow: 0 3px 8px rgb(50 62 47 / 14%);
+
+    touch-action: manipulation;
+
+
+    cursor: grab;
+    user-select: none;
+
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.rankable:nth-child(3n + 2) {
+    border-radius: 0.65rem 1.1rem 0.65rem 1.1rem;
+}
+
+@media (hover: hover) {
+    .rankable:hover {
+        background-color: var(--cream-light);
     }
 }
 
-.rankable{
-    background-color: var(--cream);
-    border: 1px solid var(--tile-border);
-    border-radius: 0.75rem;
-    height:3rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 3px 8px rgb(50 62 47 / 14%);
+.rankable:active {
+    cursor: grabbing;
 }
 
+.rankable.dragging {
+    opacity: 0.45;
+    transform: scale(0.98);
+}
+
+.rankable.drag-over {
+    border-color: var(--blue);
+    outline: 2px dashed var(--blue);
+    outline-offset: 2px;
+}
+
+.rank-number {
+    display: grid;
+    place-items: center;
+    flex: 0 0 2.25rem;
+    height: 2.25rem;
+    border: 2px solid var(--ink);
+    border-radius: 50% 45% 50% 40%;
+    background: var(--rank-accent);
+    box-shadow: 2px 2px 0 var(--ink);
+    transform: rotate(-8deg);
+    font-size: 1.1rem;
+    font-weight: 800;
+    text-align: center;
+    color: var(--ink);
+}
+
+.rank-text {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: left;
+}
+
+.rankable.selected {
+    border-color: var(--blue);
+    box-shadow: 0 5px 0 var(--blue), 0 0 0 3px rgb(33 128 217 / 20%);
+    transform: translateY(-2px);
+}
 
 #submit-answer {
     margin-top: 2rem;
@@ -399,6 +481,3 @@ form button,
         padding: 0.65rem 0.8rem;
     }
 }
-
-
-

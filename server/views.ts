@@ -1,7 +1,8 @@
 import type { Game } from "./game.js";
 import type { HostView, Player, PlayerView } from "./types.js";
 
-export function viewForPlayer(game: Game, player: Player): PlayerView {
+export function viewForPlayer(game: Game, player: Player, players: Iterable<Player>): PlayerView {
+    const roundPlayers = [...players];
     const name = player.name;
     const round = game.currentRound();
     
@@ -20,10 +21,27 @@ export function viewForPlayer(game: Game, player: Player): PlayerView {
                 prompt: round.prompt,
                 words: round.words,
                 submitted: mine?.words ?? null,
+                answeredCount: roundPlayers.filter(p => round.answers.some(a => a.playerId === p.id)).length,
+                playerCount: roundPlayers.length,
             };
         }
         case "ranking":
-        return { name, phase: "ranking", round: game.state.round, prompt: round?.prompt ?? "", answers: round?.answers ?? [] };
+        
+        const hasRanked = round?.rankings.has(player.id) ?? false;
+        return {
+            name,
+            phase: "ranking",
+            round: game.state.round,
+            prompt: round?.prompt ?? "",
+            answers: round?.answers ?? [],
+            hasRanked: hasRanked,
+            rankedCount: roundPlayers.filter(p => round?.rankings.has(p.id)).length,
+            playerCount: roundPlayers.length,
+        };
+        
+        case "results":
+        return { name, phase: "results", round: game.state.round, prompt: round?.prompt ?? "" };
+
         case "lobby":
         return { name, phase: "lobby" };
     }

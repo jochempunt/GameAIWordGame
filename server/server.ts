@@ -40,7 +40,7 @@ function pushState(): void {
     for (const player of getConnectedPlayers()) {
         io.to(player.socketId).emit(
             "state",
-            viewForPlayer(game, player),
+            viewForPlayer(game, player, players.values()),
         );
     }
 }
@@ -76,6 +76,14 @@ io.on("connection", (socket) => {
     
     socket.on("submitAnswer", (words, acknowledge) => {
         submitAnswer(socket, words, safeAcknowledge(acknowledge));
+    });
+    
+    socket.on("submitRanking", (rankedAnswerIds, acknowledge) => {
+        submitRanking(
+            socket,
+            rankedAnswerIds,
+            safeAcknowledge(acknowledge),
+        );
     });
     
     socket.on("disconnect", () => {
@@ -234,6 +242,105 @@ function submitAnswer(
     tryStartVoting();
     pushState();
 }
+function submitRanking(
+    socket: Socket,
+    rankedAnswerIds: string[],
+    acknowledge: (response: {
+        ok: boolean;
+        error?: string;
+    }) => void,
+): void {
+    const player = getPlayerBySocketId(socket.id);
+    
+    if (!player) {
+        acknowledge({
+            ok: false,
+            error: "Player not found",
+        });
+        
+        return;
+    }
+    
+    const round = game.currentRound();
+    
+    if (!round || game.state.phase !== "ranking") {
+        acknowledge({
+            ok: false,
+            error: "Ranking is not active",
+        });
+        
+        return;
+    }
+    
+    if (round.rankings.has(player.id)) {
+        acknowledge({
+            ok: false,
+            error: "You have already submitted your ranking",
+        });
+        
+        return;
+    }
+    
+    const otherAnswers = round.answers.filter(
+        answer => answer.playerId !== player.id,
+    );
+    if (rankedAnswerIds.length !== otherAnswers.length) {
+        acknowledge({
+            ok: false,
+            error: "You must rank all answers",
+        });
+        
+        return;
+    }
+    
+    // Prevent duplicate answers.
+    if (
+        new Set(rankedAnswerIds).size !== rankedAnswerIds.length
+    ) {
+        acknowledge({
+            ok: false,
+            error: "Duplicate answer in ranking",
+        });
+        
+        return;
+    }
+    
+    const validAnswerIds = new Set(
+        otherAnswers.map(answer => answer.id),
+    );
+    
+    // Make sure every submitted ID belongs to another player's answer.
+    if (
+        rankedAnswerIds.some(
+            answerId => !validAnswerIds.has(answerId),
+        )
+    ) {
+        acknowledge({
+            ok: false,
+            error: "Invalid answer in ranking",
+        });
+        
+        return;
+    }
+    
+    // Save this player's ranking.
+    round.rankings.set(
+        player.id,
+        rankedAnswerIds,
+    );
+    
+    console.log(
+        `Ranking submitted by ${player.name}:`,
+        rankedAnswerIds,
+    );
+    
+    acknowledge({
+        ok: true,
+    });
+    
+    tryFinishRanking();
+    pushState();
+}
 
 function disconnectPlayer(socket: Socket): void {
     if (socket.id === hostSocketId) {
@@ -253,6 +360,7 @@ function disconnectPlayer(socket: Socket): void {
     
     pushState();
 }
+
 function startRound(socket: Socket): void {
     if (socket.id !== hostSocketId) {
         return;
@@ -286,13 +394,13 @@ function tryStartVoting(): void {
     }
     
     const round = game.currentRound();
-    const connectedPlayers = getConnectedPlayers();
+    const roundPlayers = [...players.values()];
     
-    if (!round || connectedPlayers.length === 0) {
+    if (!round || roundPlayers.length === 0) {
         return;
     }
     
-    const everyoneAnswered = connectedPlayers.every(
+    const everyoneAnswered = roundPlayers.every(
         (player) =>
             round.answers.some(
             (answer) =>
@@ -310,6 +418,48 @@ function tryStartVoting(): void {
     console.log("Starting ranking phase");
 }
 
+function tryFinishRanking(): void {
+    if (game.state.phase !== "ranking") {
+        return;
+    }
+    
+    const round = game.currentRound();
+    
+    if (!round) {
+        return;
+    }
+    
+    const roundPlayers = [...players.values()];
+    
+    if (roundPlayers.length === 0) {
+        return;
+    }
+
+    const everyoneRanked = roundPlayers.every(
+        player => round.rankings.has(player.id),
+    );
+    
+    console.log(
+        `Rankings: ${round.rankings.size}/${roundPlayers.length}`,
+    );
+    
+    if (!everyoneRanked) {
+        return;
+    }
+    
+    console.log("Everyone ranked!");
+    
+    for (const [playerId, ranking] of round.rankings) {
+        console.log(
+            `Ranking from ${playerId}:`,
+            ranking,
+        );
+    }
+    
+    game.state.phase = "results";
+
+    // scoring will go here
+}
 //  ---- Helpers ----
 
 

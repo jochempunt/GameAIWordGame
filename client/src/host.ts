@@ -18,6 +18,8 @@ const roundNumber =document.querySelector<HTMLElement>("#host-round-number")!;
 
 const promptText =document.querySelector<HTMLElement>("#host-prompt")!;
 
+const hostResults = document.querySelector<HTMLElement>("#host-results")!;
+
 const hostVoting =document.querySelector<HTMLElement>("#host-voting")!;
 
 
@@ -33,6 +35,7 @@ function render(view: HostView): void {
     hostLobby.hidden = view.phase !== "lobby";
     hostPlaying.hidden = view.phase !== "answering";
     hostVoting.hidden = view.phase !== "ranking";
+    hostResults.hidden = view.phase !== "results";
     
     roundNumber.textContent = `Round ${view.round}`;
     promptText.textContent = view.prompt ?? "";

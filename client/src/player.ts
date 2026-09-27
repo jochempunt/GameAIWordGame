@@ -15,24 +15,32 @@ const lobbyView = document.querySelector<HTMLElement>("#lobby-view")!;
 const playingView = document.querySelector<HTMLElement>("#playing-view")!;
 const submittedView = document.querySelector<HTMLElement>("#submitted-view")!;
 const rankingView = document.querySelector<HTMLElement>("#ranking-view")!;
+const resultsView = document.querySelector<HTMLElement>("#results-view")!;
+const rankingHint = document.querySelector<HTMLElement>("#ranking-hint")!;
+
+const rankedView = document.querySelector<HTMLElement>("#ranked-view")!;
 
 const joinedName = document.querySelector<HTMLElement>("#joined-name")!;
-
 const roundNumber = document.querySelector<HTMLElement>("#round-number")!;
 let promptText = document.getElementsByClassName("prompt")[0] as HTMLElement;
+
 const wordsContainer = document.querySelector<HTMLElement>("#words")!;
 const answerContainer = document.querySelector<HTMLElement>("#answer")!;
 const answersToRankContainer = document.querySelector<HTMLElement>("#answers-to-rank")!;
-const answerSubmitButton =
-document.querySelector<HTMLButtonElement>("#submit-answer")!;
+const answerSubmitButton = document.querySelector<HTMLButtonElement>("#submit-answer")!;
+const submittedAnswer = document.querySelector<HTMLElement>("#submitted-answer")!;
 
-const submittedAnswer =
-document.querySelector<HTMLElement>("#submitted-answer")!;
+const answeredCount = document.querySelector<HTMLElement>("#answered-count")!;
+const rankedCount = document.querySelector<HTMLElement>("#ranked-count")!;
 
-
+const rankingSubmitButton = document.querySelector<HTMLButtonElement>("#submit-ranking")!;
 
 let selectedWords: string[] = [];
 let availableWords: string[] = [];
+let rankedAnswers: string[] = [];
+let currentRankingView: ViewOf<"ranking"> | null = null;
+let selectedAnswerId: string | null = null;
+let rankingRound = 0;
 let currentRound = 0;
 
 let hasRenderedOnce = false;
@@ -78,6 +86,10 @@ function render(view: PlayerView): void {
         case "ranking":
         renderRanking(view);
         break;
+
+        case "results":
+        renderResults(view);
+        break;
     }
     
     hasRenderedOnce = true;
@@ -107,6 +119,8 @@ const allViews = [
     playingView,
     submittedView,
     rankingView,
+    rankedView,
+    resultsView,
 ];
 
 function hideAll(): void {
@@ -159,6 +173,8 @@ function renderLobby(view: ViewOf<"lobby">): void {
 function renderAnswering(view: ViewOf<"answering">, skipAnimation: boolean): void {
     if (view.submitted) {
         submittedView.hidden = false;
+        setPrompt(view.prompt);
+        answeredCount.textContent = `${view.answeredCount}/${view.playerCount} players answered`;
         renderSubmitted(view.submitted);
         return;
     }
@@ -196,22 +212,264 @@ function renderSubmitted(answer: string[]): void {
     }
 }
 
-function renderRanking(view: ViewOf<"ranking">): void {
-    rankingView.hidden = false;
-    
+function renderResults(view: ViewOf<"results">): void {
+    resultsView.hidden = false;
     setPrompt(view.prompt);
+}
+
+function renderRanking(view: ViewOf<"ranking">): void {
+    
+    if (view.hasRanked) {
+        rankedView.hidden = false;
+        setPrompt(view.prompt);
+        rankedCount.textContent = `${view.rankedCount}/${view.playerCount} players ranked`;
+        return;
+    }
+    
+    rankingView.hidden = false;
+    setPrompt(view.prompt);
+    
+    const localPlayerId = localStorage.getItem("playerId");
+    
+    currentRankingView = view;
+    
+    if (rankingRound !== view.round) {
+        rankingRound = view.round;
+        
+        rankedAnswers = view.answers
+        .filter(answer => answer.playerId !== localPlayerId)
+        .map(answer => answer.id);
+        
+        selectedAnswerId = null;
+    }
+    
     answersToRankContainer.replaceChildren();
     
-    for(const answer of view.answers) {
-        if(answer.playerId === localStorage.getItem("playerId")) {
-            continue; // skip own answer
+    const answersById = new Map(
+        view.answers.map(answer => [answer.id, answer]),
+    );
+
+    const answerColors = new Map(
+        view.answers.map((answer, index) => [
+            answer.id,
+            `hsl(${(40 + index * 137.508) % 360} 75% 78%)`,
+        ]),
+    );
+    
+    rankedAnswers.forEach((answerId, index) => {
+        const answer = answersById.get(answerId);
+        
+        if (!answer) {
+            return;
         }
         
         const answerElement = document.createElement("li");
+        
         answerElement.classList.add("rankable");
-        answerElement.textContent = answer.words.join(" ");
+        answerElement.style.setProperty("--rank-accent", answerColors.get(answer.id)!);
+        
+        answerElement.dataset.answerId = answer.id;
+        
+        answerElement.draggable = true;
+        
+        if (selectedAnswerId === answer.id) {
+            answerElement.classList.add("selected");
+        }
+        
+        answerElement.innerHTML = `
+            <span class="rank-number">
+                ${index + 1}
+            </span>
+        
+            <span class="rank-text">
+                ${answer.words.join(" ")}
+            </span>
+        `;
+        
+        // Mouse / touch selection
+        answerElement.addEventListener(
+            "click",
+            handleAnswerClick,
+        );
+        
+        // Desktop drag & drop
+        answerElement.addEventListener(
+            "dragstart",
+            handleDragStart,
+        );
+        
+        answerElement.addEventListener(
+            "dragover",
+            handleDragOver,
+        );
+        
+        answerElement.addEventListener("dragleave", handleDragLeave);
+
+        answerElement.addEventListener(
+            "drop",
+            handleDrop,
+        );
+        
+        answerElement.addEventListener(
+            "dragend",
+            handleDragEnd,
+        );
+        
         answersToRankContainer.appendChild(answerElement);
-    }   
+    });
+    
+    rankingSubmitButton.disabled =
+    rankedAnswers.length === 0;
+}
+
+
+let draggedAnswerId: string | null = null;
+
+function handleDragStart(event: DragEvent): void {
+    const element = event.currentTarget as HTMLElement;
+    
+    draggedAnswerId =
+    element.dataset.answerId ?? null;
+    
+    element.classList.add("dragging");
+    
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", draggedAnswerId ?? "");
+    }
+}
+
+function handleDragOver(event: DragEvent): void {
+    event.preventDefault();
+    
+    const element = event.currentTarget as HTMLElement;
+    
+    for (const item of answersToRankContainer.children) {
+        item.classList.toggle("drag-over", item === element && !!draggedAnswerId && element.dataset.answerId !== draggedAnswerId);
+    }
+    
+    if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "move";
+    }
+}
+
+function handleDragLeave(event: DragEvent): void {
+    const element = event.currentTarget as HTMLElement;
+    if (event.relatedTarget instanceof Node && element.contains(event.relatedTarget)) {
+        return;
+    }
+    element.classList.remove("drag-over");
+}
+
+function handleDrop(event: DragEvent): void {
+    event.preventDefault();
+    
+    const targetElement =
+    event.currentTarget as HTMLElement;
+    
+    targetElement.classList.remove("drag-over");
+    
+    const targetAnswerId =
+    targetElement.dataset.answerId;
+    
+    if (!draggedAnswerId || !targetAnswerId) {
+        return;
+    }
+    
+    if (draggedAnswerId === targetAnswerId) {
+        return;
+    }
+    
+    const draggedIndex =
+    rankedAnswers.indexOf(draggedAnswerId);
+    
+    const targetIndex =
+    rankedAnswers.indexOf(targetAnswerId);
+    
+    if (
+        draggedIndex === -1 ||
+        targetIndex === -1
+    ) {
+        return;
+    }
+    
+    [rankedAnswers[draggedIndex], rankedAnswers[targetIndex]] =
+        [rankedAnswers[targetIndex], rankedAnswers[draggedIndex]];
+    
+    draggedAnswerId = null;
+    selectedAnswerId = null;
+    
+    renderRanking(currentRankingView!);
+}
+
+function handleDragEnd(event: DragEvent): void {
+    const element =
+    event.currentTarget as HTMLElement;
+    
+    element.classList.remove("dragging");
+    
+    for (
+        const item
+        of answersToRankContainer.children
+    ) {
+        item.classList.remove("drag-over");
+    }
+    
+    draggedAnswerId = null;
+}
+function handleAnswerClick(event: MouseEvent): void {
+    const element = event.currentTarget as HTMLElement;
+    
+    const answerId = element.dataset.answerId;
+    
+    if (!answerId) {
+        return;
+    }
+    
+    // Nothing selected yet
+    if (!selectedAnswerId) {
+        selectedAnswerId = answerId;
+        
+        renderRanking(currentRankingView!);
+        
+        return;
+    }
+    
+    // Clicked the same answer again
+    if (selectedAnswerId === answerId) {
+        selectedAnswerId = null;
+        
+        renderRanking(currentRankingView!);
+        
+        return;
+    }
+    
+    // Swap the two answers
+    const firstIndex =
+    rankedAnswers.indexOf(selectedAnswerId);
+    
+    const secondIndex =
+    rankedAnswers.indexOf(answerId);
+    
+    if (
+        firstIndex === -1 ||
+        secondIndex === -1
+    ) {
+        selectedAnswerId = null;
+        return;
+    }
+    
+    [
+        rankedAnswers[firstIndex],
+        rankedAnswers[secondIndex],
+    ] = [
+        rankedAnswers[secondIndex],
+        rankedAnswers[firstIndex],
+    ];
+    
+    selectedAnswerId = null;
+    
+    renderRanking(currentRankingView!);
 }
 
 function renderAvailableWords(): void {
@@ -308,6 +566,63 @@ answerSubmitButton.addEventListener("click", () => {
                 answerSubmitButton.disabled = false;
                 console.error(response.error ?? "Submission failed");
             }
+        },
+    );
+});
+
+rankingSubmitButton.addEventListener("click", () => {
+    if (!currentRankingView) {
+        return;
+    }
+    
+    const localPlayerId = localStorage.getItem("playerId");
+    
+    if (!localPlayerId) {
+        return;
+    }
+    
+    const answerCount = currentRankingView.answers.filter(
+        answer => answer.playerId !== localPlayerId,
+    ).length;
+    
+    // Make sure every answer has been ranked.
+    if (rankedAnswers.length !== answerCount) {
+        return;
+    }
+    
+    console.log(
+        "[CLIENT] Submitting ranking:",
+        rankedAnswers,
+    );
+    
+    rankingSubmitButton.disabled = true;
+    
+    socket.emit(
+        "submitRanking",
+        rankedAnswers,
+        (response: {
+            ok: boolean;
+            error?: string;
+        }) => {
+            console.log(
+                "[CLIENT] Ranking response:",
+                response,
+            );
+            
+            if (!response.ok) {
+                rankingSubmitButton.disabled = false;
+                
+                console.error(
+                    "Ranking failed:",
+                    response.error,
+                );
+                
+                return;
+            }
+            
+            console.log(
+                "[CLIENT] Ranking submitted successfully",
+            );
         },
     );
 });

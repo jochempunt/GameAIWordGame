@@ -55,7 +55,6 @@ export class Game {
             return undefined;
         }
         
-        // Don't allow the same player to answer twice.
         const existingAnswer = round.answers.find(
             answer => answer.playerId === playerId,
         );
@@ -64,7 +63,6 @@ export class Game {
             return undefined;
         }
         
-        // Make sure the submitted words belong to this round.
         if (!this.validateWords(words, round.words)) {
             return undefined;
         }
@@ -80,7 +78,6 @@ export class Game {
         return answer;
     }
     
-    // Get a player's answer from a specific round.
     getSpecificAnswer(
         roundNumber: number,
         playerId: string,
@@ -95,7 +92,6 @@ export class Game {
     getAnswers(roundNumber: number): Answer[] {
         return this.state.rounds.get(roundNumber)?.answers ?? [];
     }
-    
     
     private validateWords(
         submittedWords: string[],
@@ -116,7 +112,6 @@ export class Game {
             
             remainingWords.splice(index, 1);
         }
-        
         return true;
     }
     
@@ -133,9 +128,4 @@ export class Game {
         .sort(() => Math.random() - 0.5)
         .slice(0, count);
     }
-    
-    
-    
-    
-    
 }
