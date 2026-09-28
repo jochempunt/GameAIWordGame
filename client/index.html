@@ -74,10 +74,11 @@
         
         <section id="submitted-view" hidden>
             <h1>Answer submitted!</h1>
-             <h2 class="prompt"></h2>
+            <h2 class="prompt"></h2>
             <p>Your answer:</p>
             
             <div id="submitted-answer"></div>
+            <p id="answered-count" aria-live="polite"></p>
             
             <p>Waiting for the other players...</p>
         </section>
@@ -86,15 +87,31 @@
         <section id="ranking-view" hidden>
             <p id="ranking-round-number"></p>
             
-
-            <h1>Rank by funny-ness</h1>
+            
+            <h1>Rank the answers from funniest to least funny.</h1>
             <h2 class="prompt"></h2>
             
-           <ul id="answers-to-rank"></ul>
-        
+            <p id="ranking-hint">Drag and drop an answer onto another, or tap two answers to swap their rankings.</p>
+            <ul id="answers-to-rank" aria-describedby="ranking-hint"></ul>
+            
             <button id="submit-ranking" disabled>
                 Submit Ranking
             </button>
+        </section>
+        
+        
+        <section id="ranked-view" hidden>
+            <h1>Ranking submitted!</h1>
+            <p id="ranked-count" aria-live="polite"></p>
+            <h2 class="prompt"></h2>
+            
+            <p>Waiting for the other players...</p>
+        </section>
+        
+        <section id="results-view" hidden>
+            <h1>Round complete!</h1>
+            <h2 class="prompt"></h2>
+            <p>Everyone has submitted their rankings.</p>
         </section>
         
     </main>
