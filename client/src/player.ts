@@ -17,6 +17,13 @@ const submittedView = document.querySelector<HTMLElement>("#submitted-view")!;
 const rankingView = document.querySelector<HTMLElement>("#ranking-view")!;
 const resultsView = document.querySelector<HTMLElement>("#results-view")!;
 const rankingHint = document.querySelector<HTMLElement>("#ranking-hint")!;
+const roundResultsContainer = document.querySelector<HTMLElement>("#round-results")!;
+
+const leaderboardContainer = document.querySelector<HTMLElement>("#leaderboard")!;
+
+const readyButton = document.querySelector<HTMLButtonElement>("#ready-button")!;
+
+const readyCount = document.querySelector<HTMLElement>("#ready-count")!;
 
 const rankedView = document.querySelector<HTMLElement>("#ranked-view")!;
 
@@ -214,7 +221,108 @@ function renderSubmitted(answer: string[]): void {
 
 function renderResults(view: ViewOf<"results">): void {
     resultsView.hidden = false;
+
     setPrompt(view.prompt);
+
+    renderRoundResults(view);
+    renderLeaderboard(view);
+
+    readyCount.textContent =
+        `${view.readyCount}/${view.playerCount}`;
+
+    readyButton.textContent =
+        view.isReady ? "Ready ✓" : "Ready";
+
+    readyButton.disabled = view.isReady;
+}
+
+function renderRoundResults(
+    view: ViewOf<"results">
+): void {
+
+    roundResultsContainer.replaceChildren();
+
+    for (const [index, result] of view.roundResults.entries()) {
+
+        const resultElement =
+            document.createElement("div");
+
+        resultElement.classList.add("round-result");
+
+        const position =
+            document.createElement("span");
+
+        position.classList.add("result-position");
+
+        position.textContent =
+            `${index + 1}.`;
+
+        const answer =
+            document.createElement("span");
+
+        answer.classList.add("result-answer");
+
+        answer.textContent =
+            result.words.join(" ");
+
+        const score =
+            document.createElement("span");
+
+        score.classList.add("result-score");
+
+        score.textContent =
+            `${result.score} pts`;
+
+        resultElement.append(
+            position,
+            answer,
+            score,
+        );
+
+        roundResultsContainer.appendChild(
+            resultElement
+        );
+    }
+}
+
+function renderLeaderboard(
+    view: ViewOf<"results">
+): void {
+
+    leaderboardContainer.replaceChildren();
+
+    for (const player of view.leaderboard) {
+
+        const playerElement =
+            document.createElement("div");
+
+        playerElement.classList.add("leaderboard-player");
+
+        const rank =
+            document.createElement("span");
+
+        rank.classList.add("leaderboard-rank");
+
+        rank.textContent =
+            `${player.rank}.`;
+
+        const name =
+            document.createElement("span");
+
+        name.classList.add("leaderboard-name");
+
+        name.textContent =
+            player.playerName;
+
+        playerElement.append(
+            rank,
+            name,
+        );
+
+        leaderboardContainer.appendChild(
+            playerElement
+        );
+    }
 }
 
 function renderRanking(view: ViewOf<"ranking">): void {
@@ -623,6 +731,27 @@ rankingSubmitButton.addEventListener("click", () => {
             console.log(
                 "[CLIENT] Ranking submitted successfully",
             );
+        },
+    );
+});
+
+
+readyButton.addEventListener("click", () => {
+    readyButton.disabled = true;
+
+    socket.emit(
+        "readyForNextRound",
+        (response: {
+            ok: boolean;
+            error?: string;
+        }) => {
+            if (!response.ok) {
+                readyButton.disabled = false;
+
+                console.error(
+                    response.error ?? "Could not mark player as ready",
+                );
+            }
         },
     );
 });

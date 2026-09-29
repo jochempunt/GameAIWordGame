@@ -37,7 +37,22 @@ export type GameState = {
 
 export type PlayerView = {name:string} & (
     | {phase:"lobby"}
-    | {phase:"results"; round:number; prompt:string}
+| {
+    phase: "results";
+    round: number;
+    prompt: string;
+    roundResults: {
+        words: string[];
+        score: number;
+    }[];
+    leaderboard: {
+        playerName: string;
+        rank: number;
+    }[];
+    readyCount: number;
+    playerCount: number;
+    isReady: boolean;
+}
     | {phase:"answering"; round:number; prompt:string; words:string[], submitted:string[] | null; answeredCount:number; playerCount:number}
     | {phase:"ranking"; round:number; prompt:string; answers:Answer[],hasRanked:boolean; rankedCount:number; playerCount:number}
 );

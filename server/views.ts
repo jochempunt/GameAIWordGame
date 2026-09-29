@@ -1,7 +1,12 @@
 import type { Game } from "./game.js";
 import type { HostView, Player, PlayerView } from "./types.js";
 
-export function viewForPlayer(game: Game, player: Player, players: Iterable<Player>): PlayerView {
+export function viewForPlayer(
+    game: Game,
+    player: Player,
+    players: Iterable<Player>,
+    readyPlayers: Set<string>,
+): PlayerView {
     const roundPlayers = [...players];
     const name = player.name;
     const round = game.currentRound();
@@ -25,7 +30,7 @@ export function viewForPlayer(game: Game, player: Player, players: Iterable<Play
                 playerCount: roundPlayers.length,
             };
         }
-        case "ranking":
+        case "ranking": {
         
         const hasRanked = round?.rankings.has(player.id) ?? false;
         return {
@@ -38,10 +43,49 @@ export function viewForPlayer(game: Game, player: Player, players: Iterable<Play
             rankedCount: roundPlayers.filter(p => round?.rankings.has(p.id)).length,
             playerCount: roundPlayers.length,
         };
+    }
         
-        case "results":
-        return { name, phase: "results", round: game.state.round, prompt: round?.prompt ?? "" };
+case "results": {
+    if (!round) {
+        return {
+            name,
+            phase: "lobby"
+        };
+    }
 
+    const roundResults = round.answers
+        .map(answer => ({
+            words: answer.words,
+            score:
+                round.scores?.get(answer.id) ?? 0,
+        }))
+        .sort((a, b) => b.score - a.score);
+
+    const leaderboard = roundPlayers
+        .map(player => ({
+            playerName: player.name,
+            totalScore:
+                game.state.totals.get(player.id) ?? 0,
+        }))
+        .sort((a, b) => b.totalScore - a.totalScore)
+        .map((player, index) => ({
+            playerName: player.playerName,
+            rank: index + 1,
+        }));
+
+    return {
+        name,
+        phase: "results",
+        round: game.state.round,
+        prompt: round.prompt,
+        roundResults,
+        leaderboard,
+
+        readyCount: readyPlayers.size,
+        playerCount: roundPlayers.length,
+        isReady: readyPlayers.has(player.id),
+    };
+}
         case "lobby":
         return { name, phase: "lobby" };
     }

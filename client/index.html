@@ -108,11 +108,56 @@
             <p>Waiting for the other players...</p>
         </section>
         
-        <section id="results-view" hidden>
-            <h1>Round complete!</h1>
-            <h2 class="prompt"></h2>
-            <p>Everyone has submitted their rankings.</p>
+<section id="results-view" hidden>
+
+    <h1>Round complete!</h1>
+
+    <h2 class="prompt"></h2>
+
+    <div class="results-layout">
+
+        <!-- THIS ROUND -->
+        <section class="results-panel">
+
+            <h2>This Round</h2>
+
+            <div id="round-results"></div>
+
         </section>
+
+
+        <!-- LEADERBOARD -->
+        <section class="results-panel">
+
+            <h2>Leaderboard</h2>
+
+            <div id="leaderboard"></div>
+
+        </section>
+
+    </div>
+
+
+    <!-- READY FOR NEXT ROUND -->
+    <section id="ready-section">
+
+        <h2>Ready for next round?</h2>
+
+        <div id="ready-controls">
+
+            <button id="ready-button">
+                Ready
+            </button>
+
+            <span id="ready-count">
+                0/0
+            </span>
+
+        </div>
+
+    </section>
+
+</section>
         
     </main>
     

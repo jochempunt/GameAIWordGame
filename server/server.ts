@@ -19,6 +19,8 @@ const io = new Server(httpServer);
 const game = new Game();
 const players = new Map<string, Player>();
 
+const readyPlayers = new Set<string>();
+
 let hostSocketId: string | null = null;
 
 type Ack<T> = (response: T) => void;
@@ -40,7 +42,12 @@ function pushState(): void {
     for (const player of getConnectedPlayers()) {
         io.to(player.socketId).emit(
             "state",
-            viewForPlayer(game, player, players.values()),
+            viewForPlayer(
+            game,
+            player,
+            players.values(),
+            readyPlayers,
+        ),
         );
     }
 }
@@ -83,6 +90,13 @@ io.on("connection", (socket) => {
             socket,
             rankedAnswerIds,
             safeAcknowledge(acknowledge),
+        );
+    });
+
+    socket.on("readyForNextRound", (acknowledge) => {
+    readyForNextRound(
+        socket,
+        safeAcknowledge(acknowledge),
         );
     });
     
@@ -342,6 +356,91 @@ function submitRanking(
     pushState();
 }
 
+function readyForNextRound(
+    socket: Socket,
+    acknowledge: (response: {
+        ok: boolean;
+        error?: string;
+    }) => void,
+): void {
+    const player = getPlayerBySocketId(socket.id);
+
+    if (!player) {
+        acknowledge({
+            ok: false,
+            error: "Player not found",
+        });
+
+        return;
+    }
+
+    if (game.state.phase !== "results") {
+        acknowledge({
+            ok: false,
+            error: "Ready is not available",
+        });
+
+        return;
+    }
+
+    // Already ready
+    if (readyPlayers.has(player.id)) {
+        acknowledge({
+            ok: true,
+        });
+
+        return;
+    }
+
+    readyPlayers.add(player.id);
+
+    console.log(
+        `Player ready for next round: ${player.name} (${readyPlayers.size}/${players.size})`,
+    );
+
+    acknowledge({
+        ok: true,
+    });
+
+    const roundPlayers = getConnectedPlayers();
+
+    const everyoneReady =
+        roundPlayers.length > 0 &&
+        roundPlayers.every(
+            player => readyPlayers.has(player.id),
+        );
+
+    if (everyoneReady) {
+        startNextRound();
+        return;
+    }
+
+    pushState();
+}
+
+function startNextRound(): void {
+    readyPlayers.clear();
+
+    if (!game.startRound()) {
+        console.error("Could not start next round");
+        pushState();
+        return;
+    }
+
+    const round = game.currentRound();
+
+    if (!round) {
+        console.error("Next round was started but no round exists");
+        pushState();
+        return;
+    }
+
+    console.log(`Round ${game.state.round} started`);
+    console.log("Prompt:", round.prompt);
+    console.log("Words:", round.words);
+
+    pushState();
+}
 function disconnectPlayer(socket: Socket): void {
     if (socket.id === hostSocketId) {
         hostSocketId = null;
@@ -456,9 +555,22 @@ function tryFinishRanking(): void {
         );
     }
     
-    game.state.phase = "results";
+    game.calculateScores();
 
-    // scoring will go here
+    for (const answer of round.answers) {
+    const score = round.scores?.get(answer.id) ?? 0;
+
+    const currentTotal =
+        game.state.totals.get(answer.playerId) ?? 0;
+
+    game.state.totals.set(
+        answer.playerId,
+        currentTotal + score,
+        );
+    }
+
+    readyPlayers.clear();
+    game.state.phase = "results";
 }
 //  ---- Helpers ----
 

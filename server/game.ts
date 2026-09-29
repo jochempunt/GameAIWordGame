@@ -20,25 +20,28 @@ export class Game {
         return this.state.rounds.get(this.state.round);
     }
     
-    startRound(): boolean {
-        if (this.state.phase !== "lobby") {
-            return false;
-        }
-        
-        this.state.round++;
-        
-        const round: RoundState = {
-            prompt: this.randomPrompt(),
-            words: this.randomWords(20),
-            answers: [],
-            rankings: new Map<string, string[]>(),
-        };
-        
-        this.state.rounds.set(this.state.round, round);
-        this.state.phase = "answering";
-        
-        return true;
+startRound(): boolean {
+    if (
+        this.state.phase !== "lobby" &&
+        this.state.phase !== "results"
+    ) {
+        return false;
     }
+
+    this.state.round++;
+
+    const round: RoundState = {
+        prompt: this.randomPrompt(),
+        words: this.randomWords(20),
+        answers: [],
+        rankings: new Map<string, string[]>(),
+    };
+
+    this.state.rounds.set(this.state.round, round);
+    this.state.phase = "answering";
+
+    return true;
+}
     
     
     submitAnswer(
@@ -92,6 +95,37 @@ export class Game {
     getAnswers(roundNumber: number): Answer[] {
         return this.state.rounds.get(roundNumber)?.answers ?? [];
     }
+
+    calculateScores(): void {
+    const round = this.currentRound();
+
+    if (!round) {
+        return;
+    }
+
+    const scores = new Map<string, number>();
+
+    for (const answer of round.answers) {
+        scores.set(answer.id, 0);
+    }
+
+    for (const ranking of round.rankings.values()) {
+        const totalAnswers = ranking.length;
+
+        ranking.forEach((answerId, index) => {
+            const points = totalAnswers - index;
+
+            const currentScore = scores.get(answerId) ?? 0;
+
+            scores.set(
+                answerId,
+                currentScore + points,
+            );
+        });
+    }
+
+    round.scores = scores;
+}
     
     private validateWords(
         submittedWords: string[],

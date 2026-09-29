@@ -481,3 +481,172 @@ form button,
         padding: 0.65rem 0.8rem;
     }
 }
+
+
+.results-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+
+    width: 100%;
+    max-width: 1000px;
+
+    margin: 2rem auto;
+}
+
+
+.results-panel {
+    padding: 1.25rem;
+
+    border: 1px solid var(--tile-border);
+    border-radius: 1rem;
+
+    background: rgb(244 231 216 / 18%);
+}
+
+
+/* ---- This round ---- */
+
+.round-result {
+    display: grid;
+    grid-template-columns: 2.25rem 7rem 1fr auto;
+
+    gap: 0.75rem;
+    align-items: center;
+
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.75rem;
+
+    border: 1px solid var(--tile-border);
+    border-radius: 1rem 0.65rem 1rem 0.65rem;
+
+    background: var(--cream);
+
+    box-shadow:
+        0 3px 0 var(--tile-shadow),
+        0 5px 8px rgb(50 62 47 / 12%);
+}
+
+
+.round-result:nth-child(3n + 2) {
+    border-radius: 0.65rem 1rem 0.65rem 1rem;
+}
+
+
+.result-position {
+    display: grid;
+    place-items: center;
+
+    width: 2.25rem;
+    height: 2.25rem;
+
+    border: 2px solid var(--ink);
+    border-radius: 50% 45% 50% 40%;
+
+    background: var(--cream-light);
+
+    box-shadow: 2px 2px 0 var(--ink);
+
+    font-weight: 800;
+}
+
+
+.result-player {
+    font-weight: 800;
+}
+
+
+.result-answer {
+    min-width: 0;
+
+    overflow-wrap: anywhere;
+
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+
+.result-score {
+    white-space: nowrap;
+
+    font-weight: 800;
+    color: var(--success);
+}
+
+
+/* ---- Leaderboard ---- */
+
+.leaderboard-player {
+    display: flex;
+
+    gap: 0.75rem;
+    align-items: center;
+
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.65rem;
+
+    border: 1px solid var(--tile-border);
+    border-radius: 0.75rem;
+
+    background: var(--cream);
+
+    box-shadow: 0 3px 0 var(--tile-shadow);
+}
+
+
+.leaderboard-rank {
+    display: grid;
+    place-items: center;
+
+    flex: 0 0 2rem;
+
+    width: 2rem;
+    height: 2rem;
+
+    border-radius: 50%;
+
+    background: var(--cream-light);
+
+    font-weight: 800;
+}
+
+
+.leaderboard-name {
+    min-width: 0;
+
+    overflow-wrap: anywhere;
+
+    font-weight: 700;
+}
+
+
+/* ---- Mobile ---- */
+
+@media (max-width: 700px) {
+
+    .results-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .results-panel {
+        padding: 1rem;
+    }
+
+    .round-result {
+        grid-template-columns: 2.25rem 1fr auto;
+    }
+
+    .result-player {
+        grid-column: 2;
+    }
+
+    .result-answer {
+        grid-column: 2 / -1;
+        grid-row: 2;
+    }
+
+    .result-score {
+        grid-column: 3;
+        grid-row: 1;
+    }
+}
