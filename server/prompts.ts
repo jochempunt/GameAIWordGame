@@ -1,24 +1,17 @@
 export const PROMPTS = [
-    "Why were you late?",
-    "What should you never say on a first date?",
-    "What is the worst thing to find under your bed?",
-    "Why did you get fired?",
-    "What actually happened to the dinosaurs?",
-    "What is the government's biggest secret?",
-    "What should you never bring to a wedding?",
-    "What is hiding in your basement?",
-    "Why is the police at your door?",
-    "What did you do last night?",
+    // --- who/what questions
+  "What is the government hiding from us?",
+  "Who is secretly ruining the weather in the netherlands?",
+  "What are birds actually for?",
+  "What actually happened to the dinosaurs?",
+  "What purpose do mosquitos have?",
+  "What happens to deleted files?",
+  "What should you never say at a funeral?",
 
-    "Describe the world's worst superhero.",
-    "Describe your dream vacation.",
-    "Describe the perfect boss.",
-    "Describe a suspicious neighbor.",
-    "Describe the future of humanity.",
-
-    "Invent a terrible new law.",
-    "Give a name to a terrible restaurant.",
-    "Write the worst possible warning label.",
-    "Create a slogan for a very bad product.",
-    "Give humanity one piece of advice.",
+  // --- why/how questions
+  "Why is the sky actually blue, according to the government?",
+  "Why is the ocean salty?",
+  "How was gravity actually invented?",
+  "How can someone tell a first date is going badly?",
+  "Describe the future of humanity.",
 ];

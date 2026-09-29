@@ -42,6 +42,7 @@ export type PlayerView = {name:string} & (
     round: number;
     prompt: string;
     roundResults: {
+        playerName: string;
         words: string[];
         score: number;
     }[];

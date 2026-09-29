@@ -28,7 +28,6 @@ const readyCount = document.querySelector<HTMLElement>("#ready-count")!;
 const rankedView = document.querySelector<HTMLElement>("#ranked-view")!;
 
 const joinedName = document.querySelector<HTMLElement>("#joined-name")!;
-const roundNumber = document.querySelector<HTMLElement>("#round-number")!;
 let promptText = document.getElementsByClassName("prompt")[0] as HTMLElement;
 
 const wordsContainer = document.querySelector<HTMLElement>("#words")!;
@@ -93,7 +92,7 @@ function render(view: PlayerView): void {
         case "ranking":
         renderRanking(view);
         break;
-
+        
         case "results":
         renderResults(view);
         break;
@@ -103,10 +102,10 @@ function render(view: PlayerView): void {
 }
 
 
-function setPrompt(text: string,animate = false): void {
+function setPrompt(text: string, round: number, animate = false): void {
     
     for (const el of document.querySelectorAll<HTMLElement>(".prompt")) {
-        el.textContent = text;
+        el.textContent = text ? `RQ${round}: ${text}` : "";
         
         if (animate) {
             el.classList.remove("prompt-enter");
@@ -180,20 +179,19 @@ function renderLobby(view: ViewOf<"lobby">): void {
 function renderAnswering(view: ViewOf<"answering">, skipAnimation: boolean): void {
     if (view.submitted) {
         submittedView.hidden = false;
-        setPrompt(view.prompt);
+        setPrompt(view.prompt, view.round);
         answeredCount.textContent = `${view.answeredCount}/${view.playerCount} players answered`;
         renderSubmitted(view.submitted);
         return;
     }
     
     playingView.hidden = false;
-    roundNumber.textContent = `Round ${view.round}`;
     
     
     const isNewRound = view.round !== currentRound;
     const shouldAnimate = isNewRound && hasRenderedOnce && !skipAnimation;
     
-    setPrompt(view.prompt, shouldAnimate);
+    setPrompt(view.prompt, view.round, shouldAnimate);
     
     // only reset on a new round, so other players updates dont remove picks
     if (view.round !== currentRound) {
@@ -208,77 +206,88 @@ function renderAnswering(view: ViewOf<"answering">, skipAnimation: boolean): voi
 }
 
 function renderSubmitted(answer: string[]): void {
-    submittedAnswer.replaceChildren();
-    
-    for (const word of answer) {
-        const wordElement = document.createElement("span");
-        
-        wordElement.textContent = word;
-        wordElement.classList.add("submitted-word");
-        submittedAnswer.appendChild(wordElement);
-    }
+    submittedAnswer.textContent = answer.join(" ");
 }
 
 function renderResults(view: ViewOf<"results">): void {
     resultsView.hidden = false;
-
-    setPrompt(view.prompt);
-
+    
+    setPrompt(view.prompt, view.round);
+    
     renderRoundResults(view);
     renderLeaderboard(view);
-
+    
     readyCount.textContent =
-        `${view.readyCount}/${view.playerCount}`;
-
+    `${view.readyCount}/${view.playerCount}`;
+    
     readyButton.textContent =
-        view.isReady ? "Ready ✓" : "Ready";
-
+    view.isReady ? "Ready ✓" : "Ready";
+    
     readyButton.disabled = view.isReady;
 }
 
 function renderRoundResults(
     view: ViewOf<"results">
 ): void {
-
+    
     roundResultsContainer.replaceChildren();
-
+    const winningScore = Math.max(...view.roundResults.map(result => result.score));
+    
     for (const [index, result] of view.roundResults.entries()) {
-
-        const resultElement =
-            document.createElement("div");
-
+        
+        const resultElement =  document.createElement("div");
         resultElement.classList.add("round-result");
-
-        const position =
-            document.createElement("span");
-
+        
+        const position = document.createElement("span");
         position.classList.add("result-position");
-
-        position.textContent =
-            `${index + 1}.`;
-
-        const answer =
-            document.createElement("span");
-
+        position.textContent =`${index + 1}.`;
+        
+        const content = document.createElement("div");
+        content.classList.add("result-content");
+        
+        const playerName = document.createElement("span");
+        playerName.classList.add("result-player");
+        playerName.textContent = `[${index + 1}] ${result.playerName}`;
+        playerName.setAttribute("aria-label", `Source ${index + 1}: ${result.playerName}`);
+        
+        const answer = document.createElement("span");
         answer.classList.add("result-answer");
-
-        answer.textContent =
-            result.words.join(" ");
-
-        const score =
-            document.createElement("span");
-
+        answer.textContent = result.words.join(" ");
+        const citation = document.createElement("sup");
+        citation.classList.add("result-citation");
+        citation.textContent = `[${index + 1}]`;
+        citation.setAttribute("aria-hidden", "true");
+        answer.appendChild(citation);
+        
+        const score = document.createElement("span");
+        
         score.classList.add("result-score");
-
-        score.textContent =
-            `${result.score} pts`;
-
+        
+        score.textContent = `${result.score} pts`;
+        
+        content.append(answer, playerName);
+        
         resultElement.append(
             position,
-            answer,
+            content,
             score,
         );
-
+        
+        if (result.score === winningScore) {
+            resultElement.classList.add("round-result-winner");
+            position.setAttribute("aria-label", `${index + 1}. Winning answer`);
+            
+            const border = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            border.classList.add("winner-border");
+            border.setAttribute("aria-hidden", "true");
+            border.setAttribute("focusable", "false");
+            
+            const outline = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            border.appendChild(outline);
+            
+            resultElement.append(border);
+        }
+        
         roundResultsContainer.appendChild(
             resultElement
         );
@@ -288,37 +297,37 @@ function renderRoundResults(
 function renderLeaderboard(
     view: ViewOf<"results">
 ): void {
-
+    
+    // The leaderboard markup is temporarily commented out.
+    if (!leaderboardContainer) return;
+    
     leaderboardContainer.replaceChildren();
-
+    
     for (const player of view.leaderboard) {
-
+        
         const playerElement =
-            document.createElement("div");
-
+        document.createElement("div");
+        
         playerElement.classList.add("leaderboard-player");
-
-        const rank =
-            document.createElement("span");
-
+        
+        const rank =document.createElement("span");
+        
         rank.classList.add("leaderboard-rank");
-
+        
         rank.textContent =
-            `${player.rank}.`;
-
-        const name =
-            document.createElement("span");
-
+        `${player.rank}.`;
+        
+        const name = document.createElement("span");
+        
         name.classList.add("leaderboard-name");
-
-        name.textContent =
-            player.playerName;
-
+        
+        name.textContent = player.playerName;
+        
         playerElement.append(
             rank,
             name,
         );
-
+        
         leaderboardContainer.appendChild(
             playerElement
         );
@@ -329,13 +338,13 @@ function renderRanking(view: ViewOf<"ranking">): void {
     
     if (view.hasRanked) {
         rankedView.hidden = false;
-        setPrompt(view.prompt);
+        setPrompt(view.prompt, view.round);
         rankedCount.textContent = `${view.rankedCount}/${view.playerCount} players ranked`;
         return;
     }
     
     rankingView.hidden = false;
-    setPrompt(view.prompt);
+    setPrompt(view.prompt, view.round);
     
     const localPlayerId = localStorage.getItem("playerId");
     
@@ -356,7 +365,7 @@ function renderRanking(view: ViewOf<"ranking">): void {
     const answersById = new Map(
         view.answers.map(answer => [answer.id, answer]),
     );
-
+    
     const answerColors = new Map(
         view.answers.map((answer, index) => [
             answer.id,
@@ -412,7 +421,7 @@ function renderRanking(view: ViewOf<"ranking">): void {
         );
         
         answerElement.addEventListener("dragleave", handleDragLeave);
-
+        
         answerElement.addEventListener(
             "drop",
             handleDrop,
@@ -502,7 +511,7 @@ function handleDrop(event: DragEvent): void {
     }
     
     [rankedAnswers[draggedIndex], rankedAnswers[targetIndex]] =
-        [rankedAnswers[targetIndex], rankedAnswers[draggedIndex]];
+    [rankedAnswers[targetIndex], rankedAnswers[draggedIndex]];
     
     draggedAnswerId = null;
     selectedAnswerId = null;
@@ -738,7 +747,7 @@ rankingSubmitButton.addEventListener("click", () => {
 
 readyButton.addEventListener("click", () => {
     readyButton.disabled = true;
-
+    
     socket.emit(
         "readyForNextRound",
         (response: {
@@ -747,7 +756,7 @@ readyButton.addEventListener("click", () => {
         }) => {
             if (!response.ok) {
                 readyButton.disabled = false;
-
+                
                 console.error(
                     response.error ?? "Could not mark player as ready",
                 );

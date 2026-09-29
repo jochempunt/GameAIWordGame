@@ -11,6 +11,9 @@
 
 <body>
     <main>
+        <header class="game-brand">
+            <p class="game-wordmark">Scientists <span class="wordmark-highlight">Confirm<sup class="wordmark-citation" aria-hidden="true">[1]</sup></span></p>
+        </header>
         
         <!-- JOIN -->
         <section id="join-view">
@@ -50,11 +53,10 @@
         
         <!-- PLAYING -->
         <section id="playing-view" hidden>
-            <p id="round-number"></p>
             
             <h1 class="prompt"></h1>
             
-            <h2>Your answer</h2>
+            <h2 id="answer-label">Your answer</h2>
             
             <div id="answer">
                 <p id="answer-placeholder">
@@ -75,20 +77,21 @@
         <section id="submitted-view" hidden>
             <h1>Answer submitted!</h1>
             <h2 class="prompt"></h2>
-            <p>Your answer:</p>
-            
-            <div id="submitted-answer"></div>
-            <p id="answered-count" aria-live="polite"></p>
-            
-            <p>Waiting for the other players...</p>
+            <div class="submission-card">
+                <p class="submission-label">Your answer</p>
+                <p id="submitted-answer"></p>
+            </div>
+            <div class="submission-progress">
+                <p id="answered-count" aria-live="polite"></p>
+                <p>Waiting for the other players…</p>
+            </div>
         </section>
         
         
         <section id="ranking-view" hidden>
-            <p id="ranking-round-number"></p>
             
             
-            <h1>Rank the answers from funniest to least funny.</h1>
+            <h1>Rank the answers on funniness <sup class="upper" aria-hidden="true">*</sup></h1>
             <h2 class="prompt"></h2>
             
             <p id="ranking-hint">Drag and drop an answer onto another, or tap two answers to swap their rankings.</p>
@@ -97,6 +100,7 @@
             <button id="submit-ranking" disabled>
                 Submit Ranking
             </button>
+            <p id="easter-egg" aria-hidden="true" >*Funniness is totally an empirical measure, based on a sample size of one (you).</p>
         </section>
         
         
@@ -108,56 +112,47 @@
             <p>Waiting for the other players...</p>
         </section>
         
-<section id="results-view" hidden>
-
-    <h1>Round complete!</h1>
-
-    <h2 class="prompt"></h2>
-
-    <div class="results-layout">
-
-        <!-- THIS ROUND -->
-        <section class="results-panel">
-
-            <h2>This Round</h2>
-
-            <div id="round-results"></div>
-
+        <section id="results-view" hidden>        
+            <div class="results-layout">
+                <h2 class="review-stamp">Results:</h2>
+                
+                <section class="results-panel">
+                    
+                    <h2 class="prompt"></h2>
+                    
+                    <div id="round-results"></div>
+                </section>
+                
+                <!-- leaderbord (temporarily disabled)
+                <section class="results-panel">
+                    
+                    <h2>Leaderboard</h2>
+                    
+                    <div id="leaderboard"></div>
+                    
+                </section>
+                -->
+            </div>
+            
+            
+            <section id="ready-section">
+                
+                <h2>Ready for next round?</h2>
+                
+                <div id="ready-controls">
+                    
+                    <button id="ready-button">
+                        Ready
+                    </button>
+                    
+                    <span id="ready-count">
+                        0/0
+                    </span>
+                </div>
+                
+            </section>
+            
         </section>
-
-
-        <!-- LEADERBOARD -->
-        <section class="results-panel">
-
-            <h2>Leaderboard</h2>
-
-            <div id="leaderboard"></div>
-
-        </section>
-
-    </div>
-
-
-    <!-- READY FOR NEXT ROUND -->
-    <section id="ready-section">
-
-        <h2>Ready for next round?</h2>
-
-        <div id="ready-controls">
-
-            <button id="ready-button">
-                Ready
-            </button>
-
-            <span id="ready-count">
-                0/0
-            </span>
-
-        </div>
-
-    </section>
-
-</section>
         
     </main>
     

@@ -14,7 +14,6 @@ const hostLobby = document.querySelector<HTMLElement>("#host-lobby")!;
 
 const hostPlaying =document.querySelector<HTMLElement>("#host-playing")!;
 
-const roundNumber =document.querySelector<HTMLElement>("#host-round-number")!;
 
 const promptText =document.querySelector<HTMLElement>("#host-prompt")!;
 
@@ -37,8 +36,7 @@ function render(view: HostView): void {
     hostVoting.hidden = view.phase !== "ranking";
     hostResults.hidden = view.phase !== "results";
     
-    roundNumber.textContent = `Round ${view.round}`;
-    promptText.textContent = view.prompt ?? "";
+    promptText.textContent = view.prompt ? `RQ${view.round}: ${view.prompt}` : "";
     
     renderPlayers(view.players);
 }
@@ -65,4 +63,3 @@ startRoundButton.addEventListener(
         socket.emit("startRound");
     }
 );
-

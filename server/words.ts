@@ -166,6 +166,11 @@ export const WORDS = [
     "posted",
     "tweeted",
     "promised",
+    "go",
+    "will",
+    "fly",
+    "sing",
+    "fight",
 
     // Descriptions
     "big",

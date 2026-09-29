@@ -55,6 +55,7 @@ case "results": {
 
     const roundResults = round.answers
         .map(answer => ({
+            playerName: roundPlayers.find(player => player.id === answer.playerId)?.name ?? "Unknown player",
             words: answer.words,
             score:
                 round.scores?.get(answer.id) ?? 0,

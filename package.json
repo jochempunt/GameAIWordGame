@@ -4,6 +4,7 @@
   "description": "",
   "type": "module",
   "scripts": {
+    "build": "vite build",
     "dev": "concurrently -n SERVER,VITE,QR \"pnpm dev:server\" \"pnpm dev:client\" \"pnpm dev:qr\"",
     "dev:server": "tsx watch server/server.ts",
     "dev:client": "vite",
@@ -11,6 +12,8 @@
   },
   "packageManager": "pnpm@11.17.0",
   "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource/paytone-one": "^5.3.0",
     "express": "^5.2.1",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
