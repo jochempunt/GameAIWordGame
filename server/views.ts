@@ -105,8 +105,8 @@ export function viewForHost(
         players: [...players].map((p) => ({
             playerInfo: p,
             answered: round?.answers.some((a) => a.playerId === p.id) ?? false,
-            ranked: false,
-            score: 0,
+            ranked: round?.rankings.has(p.id) ?? false,
+            score: game.state.totals.get(p.id) ?? 0,
         })),
         answers: []
     };

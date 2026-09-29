@@ -265,7 +265,10 @@ function renderRoundResults(
         
         score.textContent = `${result.score} pts`;
         
-        content.append(answer, playerName);
+        const attribution = document.createElement("div");
+        attribution.classList.add("result-attribution");
+        attribution.appendChild(playerName);
+        content.append(answer, attribution);
         
         resultElement.append(
             position,
@@ -276,6 +279,10 @@ function renderRoundResults(
         if (result.score === winningScore) {
             resultElement.classList.add("round-result-winner");
             position.setAttribute("aria-label", `${index + 1}. Winning answer`);
+            const finding = document.createElement("span");
+            finding.classList.add("confirmed-finding");
+            finding.textContent = "Confirmed Finding";
+            attribution.appendChild(finding);
             
             const border = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             border.classList.add("winner-border");

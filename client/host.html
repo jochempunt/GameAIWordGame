@@ -26,11 +26,24 @@
         </header>
         <h1>Game Host</h1>
         
-        <p id="status">Connecting...</p>
+        
         
         
         <!-- Lobby controls -->
         <section id="host-lobby">
+            <div class="host-lobby-layout">
+            <div class="join-card">
+                <h2>Join the Game</h2>
+                <p>Scan with your phone on the same Wi-Fi.</p>
+                <canvas id="join-qr" hidden aria-label="QR code to join the game" role="img"></canvas>
+                <a id="join-url" hidden></a>
+                <p id="join-qr-status" aria-live="polite">Preparing join code…</p>
+            </div>
+            <section class="lobby-roster">
+                <h2>Joined players</h2>
+                <ul id="lobby-players" aria-live="polite"></ul>
+            </section>
+            </div>
             <button id="start-round">
                 Start Round
             </button>
@@ -44,9 +57,10 @@
         </section>
         
         
-        <!-- Keep players visible -->
-        <section>
-            <h3>Current Players:</h3>
+        <!-- Standings appear once play begins. -->
+        <section id="host-standings" hidden>
+            <h2>Our Lead Researchers</h2>
+            <p class="standings-caption">Total points across all rounds</p>
             
             <ul id="players"></ul>
         </section>
@@ -61,6 +75,7 @@
             <p>Everyone has submitted their rankings.</p>
         </section>
     </main>
+    <p id="status">Connecting...</p>
 </body>
 
 </html>

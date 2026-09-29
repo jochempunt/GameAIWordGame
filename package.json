@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "concurrently -n SERVER,VITE,QR \"pnpm dev:server\" \"pnpm dev:client\" \"pnpm dev:qr\"",
+    "dev": "concurrently -n SERVER,VITE \"pnpm dev:server\" \"pnpm dev:client\"",
     "dev:server": "tsx watch server/server.ts",
     "dev:client": "vite",
     "dev:qr": "node scripts/qr.cjs"
@@ -15,6 +15,7 @@
     "@fontsource-variable/manrope": "^5.3.0",
     "@fontsource/paytone-one": "^5.3.0",
     "express": "^5.2.1",
+    "qrcode": "^1.5.4",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
   },
@@ -22,6 +23,7 @@
     "@eslint/js": "^10.0.1",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.1",
+    "@types/qrcode": "^1.5.6",
     "concurrently": "^10.0.5",
     "eslint": "^10.11.0",
     "qrcode-terminal": "^0.12.0",

@@ -1,4 +1,5 @@
 import express from "express";
+import { networkInterfaces } from "node:os";
 import { createServer } from "node:http";
 import { Server, Socket } from "socket.io";
 
@@ -57,6 +58,11 @@ function pushState(): void {
 
 
 io.on("connection", (socket) => {
+    socket.on("getJoinAddress", (acknowledge) => {
+        const address = Object.values(networkInterfaces()).flat()
+            .find(info => info?.family === "IPv4" && !info.internal)?.address;
+        safeAcknowledge<{ address: string | null }>(acknowledge)({ address: address ?? null });
+    });
     console.log("\nNew connection");
     console.log("Socket ID:", socket.id);
     console.log("IP:", socket.handshake.address);
