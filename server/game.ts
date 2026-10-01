@@ -7,6 +7,9 @@ import type {
     RoundState,
 } from "./types.js";
 
+const WORD_COUNT = 30;
+
+
 export class Game {
     state: GameState = {
         phase: "lobby",
@@ -32,7 +35,7 @@ startRound(): boolean {
 
     const round: RoundState = {
         prompt: this.randomPrompt(),
-        words: this.randomWords(20),
+        words: this.randomWords(WORD_COUNT),
         answers: [],
         rankings: new Map<string, string[]>(),
     };
