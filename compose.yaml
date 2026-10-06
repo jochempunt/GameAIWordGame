@@ -5,3 +5,11 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: gameaiwordgame-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - game
