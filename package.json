@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "start": "tsx server/server.ts",
     "dev": "concurrently -n SERVER,VITE \"pnpm dev:server\" \"pnpm dev:client\"",
     "dev:server": "tsx watch server/server.ts",
     "dev:client": "vite",

@@ -1,0 +1,7 @@
+services:
+  game:
+    build: .
+    container_name: gameaiwordgame
+    restart: unless-stopped
+    ports:
+      - "3000:3000"

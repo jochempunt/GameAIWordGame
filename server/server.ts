@@ -2,6 +2,7 @@ import express from "express";
 import { networkInterfaces } from "node:os";
 import { createServer } from "node:http";
 import { Server, Socket } from "socket.io";
+import { fileURLToPath } from "node:url";
 
 import { Game } from "./game.js";
 import type { Player } from "./types.js";
@@ -14,6 +15,11 @@ const PORT = 3000;
 const HOST = "0.0.0.0";
 
 const app = express();
+const clientDist = fileURLToPath(
+    new URL("../client/dist", import.meta.url),
+);
+
+app.use(express.static(clientDist));
 const httpServer = createServer(app);
 const io = new Server(httpServer);
 
