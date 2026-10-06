@@ -7,6 +7,7 @@ dist/
 # Environment variables
 .env
 .env.*
+!.env.example
 
 # Logs
 *.log
@@ -19,5 +20,6 @@ pnpm-debug.log*
 Thumbs.db
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/extensions.json
 .idea/
