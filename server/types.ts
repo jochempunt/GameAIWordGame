@@ -1,6 +1,7 @@
 type PlayerId = string;
 type AnswerId = string;
 
+import type { Game } from "./game.js"
 
 export type Player = {
     id: string;
@@ -16,58 +17,66 @@ export type Answer = {
 };
 
 
-type Ranking = string[];   
+type Ranking = string[];
 
 export type RoundState = {
     prompt: string;
     words: string[];
-    answers: Answer[];                      
-    rankings: Map<string, Ranking>;           
-    scores?: Map<string, number>;             
+    answers: Answer[];
+    rankings: Map<string, Ranking>;
+    scores?: Map<string, number>;
 };
 
-type Phase = "lobby" | "answering" | "ranking" | "results" ;
+type Phase = "lobby" | "answering" | "ranking" | "results";
 export type GameState = {
     phase: Phase;
     round: number;
     rounds: Map<number, RoundState>;
-    totals: Map<string, number>;          
+    totals: Map<string, number>;
 };
 
 
-export type PlayerView = {name:string} & (
-    | {phase:"lobby"}
-| {
-    phase: "results";
-    round: number;
-    prompt: string;
-    roundResults: {
-        playerName: string;
-        words: string[];
-        score: number;
-    }[];
-    leaderboard: {
-        playerName: string;
-        rank: number;
-    }[];
-    readyCount: number;
-    playerCount: number;
-    isReady: boolean;
-}
-    | {phase:"answering"; round:number; prompt:string; words:string[], submitted:string[] | null; answeredCount:number; playerCount:number}
-    | {phase:"ranking"; round:number; prompt:string; answers:Answer[],hasRanked:boolean; rankedCount:number; playerCount:number}
+export type PlayerView = { name: string } & (
+    | { phase: "lobby" }
+    | {
+        phase: "results";
+        round: number;
+        prompt: string;
+        roundResults: {
+            playerName: string;
+            words: string[];
+            score: number;
+        }[];
+        leaderboard: {
+            playerName: string;
+            rank: number;
+        }[];
+        readyCount: number;
+        playerCount: number;
+        isReady: boolean;
+    }
+    | { phase: "answering"; round: number; prompt: string; words: string[], submitted: string[] | null; answeredCount: number; playerCount: number }
+    | { phase: "ranking"; round: number; prompt: string; answers: Answer[], hasRanked: boolean; rankedCount: number; playerCount: number }
 );
 
 
 export type HostView = {
-    phase: Phase; 
-    round: number; 
-    prompt: string | null; 
-    players: { 
+    phase: Phase;
+    round: number;
+    prompt: string | null;
+    players: {
         playerInfo: Player;
-        answered: boolean; 
-        ranked: boolean; 
-        score: number 
+        answered: boolean;
+        ranked: boolean;
+        score: number
     }[];
-    answers: { id: string; words: string[] }[];      
+    answers: { id: string; words: string[] }[];
 };
+
+export type Room = {
+    id: string;
+    game: Game;
+    players: Map<string, Player>;
+    readyPlayers: Set<string>;
+    hostSocketId: string | null;
+}
