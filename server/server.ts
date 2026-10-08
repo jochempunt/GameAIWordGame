@@ -98,8 +98,8 @@ io.on("connection", (socket) => {
     //     registerHost(socket);
     // });
 
-    socket.on("join", (name, acknowledge) => {
-        joinPlayer(socket, name, safeAcknowledge(acknowledge));
+    socket.on("join", (roomId, name, acknowledge) => {
+        joinPlayer(socket, roomId, name, safeAcknowledge(acknowledge));
     });
 
     socket.on("rejoin", (playerId, acknowledge) => {
@@ -244,7 +244,7 @@ function rejoinPlayer(
 
     acknowledge({
         ok: true,
-        name: player.name,
+        name: foundPlayer.name,
     });
 }
 
@@ -445,7 +445,7 @@ function readyForNextRound(
     }
 
     // Already ready
-    if (readyPlayers.has(player.id)) {
+    if (room.readyPlayers.has(player.id)) {
         acknowledge({
             ok: true,
         });
@@ -453,22 +453,22 @@ function readyForNextRound(
         return;
     }
 
-    readyPlayers.add(player.id);
+    room.readyPlayers.add(player.id);
 
     console.log(
-        `Player ready for next round: ${player.name} (${readyPlayers.size}/${players.size})`,
+        `Player ready for next round: ${player.name} (${room.readyPlayers.size}/${room.players.size})`,
     );
 
     acknowledge({
         ok: true,
     });
 
-    const roundPlayers = getConnectedPlayers();
+    const roundPlayers = [...room.players.values()].filter((p) => p.connected);
 
     const everyoneReady =
         roundPlayers.length > 0 &&
         roundPlayers.every(
-            player => readyPlayers.has(player.id),
+            (player) => room.readyPlayers.has(player.id),
         );
 
     if (everyoneReady) {
@@ -476,7 +476,7 @@ function readyForNextRound(
         return;
     }
 
-    pushState();
+    pushState(room);
 }
 
 function startNextRound(room: Room): void {
