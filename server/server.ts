@@ -71,6 +71,7 @@ function pushState(room: Room): void {
                 player,
                 room.players.values(),
                 room.readyPlayers,
+                player.socketId === room.hostSocketId
             ),
         );
     }

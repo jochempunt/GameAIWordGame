@@ -10,6 +10,11 @@ const joinForm = document.querySelector<HTMLFormElement>("#join-form")!;
 const nameInput = document.querySelector<HTMLInputElement>("#name")!;
 const statusText = document.querySelector<HTMLParagraphElement>("#status")!;
 
+const roomCards = document.querySelectorAll<HTMLButtonElement>(".room-card");
+const selectedRoomInput = document.querySelector<HTMLInputElement>("#selected-room")!;
+const joinSubmitButton = document.querySelector<HTMLButtonElement>("#join-submit")!;
+const startRoundButton = document.querySelector<HTMLButtonElement>("#start-round")!;
+
 const joinView = document.querySelector<HTMLElement>("#join-view")!;
 const lobbyView = document.querySelector<HTMLElement>("#lobby-view")!;
 const playingView = document.querySelector<HTMLElement>("#playing-view")!;
@@ -143,18 +148,29 @@ function showJoin(): void {
     statusText.classList.remove("status-error");
 }
 
+for (const card of roomCards) {
+    card.addEventListener("click", () => {
+        for (const c of roomCards) c.classList.remove("selected");
+        card.classList.add("selected");
+        selectedRoomInput.value = card.dataset.roomId!;
+        joinSubmitButton.disabled = false;
+    });
+}
+
 joinForm.addEventListener("submit", (event) => {
     event.preventDefault();
     
     const name = nameInput.value.trim();
+    const roomId = selectedRoomInput.value;
     
-    if (!name) return;
+    if (!name || !roomId) return;
     
     statusText.classList.remove("status-error");
-    statusText.textContent = "Joining...";
+    statusText.textContent = `Joining Room ${roomId}...`;
     
     socket.emit(
         "join",
+        roomId,
         name,
         (response: { ok: boolean; playerId?: string; error?: string }) => {
             if (!response.ok || !response.playerId) {
@@ -174,7 +190,12 @@ joinForm.addEventListener("submit", (event) => {
 function renderLobby(view: ViewOf<"lobby">): void {
     lobbyView.hidden = false;
     joinedName.textContent = view.name;
+    startRoundButton.hidden = !view.isHost;
 }
+
+startRoundButton.addEventListener("click", () => {
+    socket.emit("startRound");
+});
 
 function renderAnswering(view: ViewOf<"answering">, skipAnimation: boolean): void {
     if (view.submitted) {

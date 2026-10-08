@@ -6,6 +6,7 @@ export function viewForPlayer(
     player: Player,
     players: Iterable<Player>,
     readyPlayers: Set<string>,
+    isHost: boolean,
 ): PlayerView {
     const roundPlayers = [...players];
     const name = player.name;
@@ -13,7 +14,7 @@ export function viewForPlayer(
     
     switch (game.state.phase) {
         case "answering": {
-            if (!round) return { name, phase: "lobby" };
+            if (!round) return { name, phase: "lobby", isHost };
             
             const mine = round.answers.find(
                 (a) => a.playerId === player.id,
@@ -49,7 +50,8 @@ case "results": {
     if (!round) {
         return {
             name,
-            phase: "lobby"
+            phase: "lobby",
+            isHost
         };
     }
 
@@ -88,7 +90,7 @@ case "results": {
     };
 }
         case "lobby":
-        return { name, phase: "lobby" };
+        return { name, phase: "lobby", isHost };
     }
 }
 

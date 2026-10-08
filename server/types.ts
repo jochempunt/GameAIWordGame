@@ -37,7 +37,7 @@ export type GameState = {
 
 
 export type PlayerView = { name: string } & (
-    | { phase: "lobby" }
+    | { phase: "lobby"; isHost: boolean }
     | {
         phase: "results";
         round: number;

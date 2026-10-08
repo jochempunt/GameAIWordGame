@@ -32,7 +32,18 @@
                     >
                 </div>
                 
-                <button type="submit">
+                <div class="room-list">
+                    <p class="room-list-label">Select a Room:</p>
+                    <div class="room-cards">
+                        <button type="button" class="room-card" data-room-id="AAAA">Room 1 (AAAA)</button>
+                        <button type="button" class="room-card" data-room-id="BBBB">Room 2 (BBBB)</button>
+                        <button type="button" class="room-card" data-room-id="CCCC">Room 3 (CCCC)</button>
+                        <button type="button" class="room-card" data-room-id="DDDD">Room 4 (DDDD)</button>
+                    </div>
+                </div>
+                <input type="hidden" id="selected-room" required>
+                
+                <button type="submit" id="join-submit" disabled>
                     Join
                 </button>
             </form>
@@ -48,6 +59,10 @@
             <p id="joined-name"></p>
             
             <p>Waiting for the host...</p>
+            
+            <button id="start-round" hidden>
+                Start Game!
+            </button>
         </section>
         
         
