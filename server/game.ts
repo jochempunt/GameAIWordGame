@@ -11,6 +11,8 @@ const WORD_COUNT = 30;
 
 
 export class Game {
+    constructor(public readonly id: string = crypto.randomUUID()) {}
+
     state: GameState = {
         phase: "lobby",
         round: 0,

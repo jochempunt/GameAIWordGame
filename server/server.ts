@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 import { Game } from "./game.js";
 import type { Player } from "./types.js";
 import { viewForHost, viewForPlayer } from "./views.js";
-
+import { connectToDatabase, disconnectFromDatabase } from "./database/db.js";
+import { getGame, saveGame } from "./database/gameRepository.js";
 
 // ---- Setup ----
 
@@ -36,13 +37,53 @@ function safeAcknowledge<T>(fn: unknown): Ack<T> {  // if something passes non f
     return typeof fn === "function" ? (fn as Ack<T>) : () => undefined;
 }
 
+//--- Initialise Server ----
+async function startServer() {
+    await connectToDatabase();
+    
+    await saveGame(game);
+    
+    httpServer.listen(PORT, HOST, () => {
+        console.log("Server running");
+    });
+}
+
+startServer().catch((error) => {
+    console.error("Server startup failed:", error);
+    process.exit(1);
+});
+
+
+
+// ---- Shutdown handling ----
+
+let shuttingDown = false;
+
+async function shutdown() {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    
+    console.log("Shutting down server...");
+    
+    try {
+        await disconnectFromDatabase();
+        console.log("Shutdown complete");
+        process.exit(0);
+    } catch (error) {
+        console.error("Shutdown failed:", error);
+        process.exit(1);
+    }
+}
+
+process.once("SIGINT", shutdown);
+process.once("SIGTERM", shutdown);
 
 // ---- server state ----
 function pushState(): void {
     if (hostSocketId) {
         io.to(hostSocketId).emit(
             "state",
-            viewForHost(game, players.values()),
+            viewForHost(game, [...players.values()]),
         );
     }
     
@@ -50,11 +91,11 @@ function pushState(): void {
         io.to(player.socketId).emit(
             "state",
             viewForPlayer(
-            game,
-            player,
-            players.values(),
-            readyPlayers,
-        ),
+                game,
+                player,
+                [...players.values()],
+                readyPlayers,
+            ),
         );
     }
 }
@@ -66,7 +107,7 @@ function pushState(): void {
 io.on("connection", (socket) => {
     socket.on("getJoinAddress", (acknowledge) => {
         const address = Object.values(networkInterfaces()).flat()
-            .find(info => info?.family === "IPv4" && !info.internal)?.address;
+        .find(info => info?.family === "IPv4" && !info.internal)?.address;
         safeAcknowledge<{ address: string | null }>(acknowledge)({ address: address ?? null });
     });
     console.log("\nNew connection");
@@ -88,28 +129,28 @@ io.on("connection", (socket) => {
     socket.on("rejoin", (playerId, acknowledge) => {
         rejoinPlayer(socket, playerId, safeAcknowledge(acknowledge));
     });
-    
+    // --- game actions ---
     socket.on("startRound", () => {
-        startRound(socket);
+        runGameAction(startRound(socket));
     });
     
     socket.on("submitAnswer", (words, acknowledge) => {
-        submitAnswer(socket, words, safeAcknowledge(acknowledge));
+        runGameAction(submitAnswer(socket, words, safeAcknowledge(acknowledge)));
     });
     
     socket.on("submitRanking", (rankedAnswerIds, acknowledge) => {
-        submitRanking(
+        runGameAction(submitRanking(
             socket,
             rankedAnswerIds,
             safeAcknowledge(acknowledge),
-        );
+        ));
     });
-
+    
     socket.on("readyForNextRound", (acknowledge) => {
-    readyForNextRound(
-        socket,
-        safeAcknowledge(acknowledge),
-        );
+        runGameAction(readyForNextRound(
+            socket,
+            safeAcknowledge(acknowledge),
+        ));
     });
     
     socket.on("disconnect", () => {
@@ -119,6 +160,12 @@ io.on("connection", (socket) => {
 
 
 // ---- handlers ---- 
+
+function runGameAction(action: Promise<void>): void {
+    void action.catch((error) => {
+        console.error("Game action failed:", error);
+    });
+}
 function registerHost(socket: Socket): void {
     hostSocketId = socket.id;
     console.log("Host registered:", socket.id);
@@ -209,14 +256,14 @@ function rejoinPlayer(
 }
 
 
-function submitAnswer(
+async function submitAnswer(
     socket: Socket,
     words: string[],
     acknowledge: (response: {
         ok: boolean;
         error?: string;
     }) => void,
-): void {
+):  Promise<void>  {
     const player = getPlayerBySocketId(socket.id);
     
     if (!player) {
@@ -253,7 +300,7 @@ function submitAnswer(
             error: "Answer could not be submitted",
         });
         
-        return;
+        return ;
     }
     
     console.log(
@@ -261,21 +308,25 @@ function submitAnswer(
         answer.words,
     );
     
+    
+    tryStartVoting();
+    
+    await saveGame(game);
+    
     acknowledge({
         ok: true,
     });
     
-    tryStartVoting();
     pushState();
 }
-function submitRanking(
+async function submitRanking(
     socket: Socket,
     rankedAnswerIds: string[],
     acknowledge: (response: {
         ok: boolean;
         error?: string;
     }) => void,
-): void {
+): Promise<void> {
     const player = getPlayerBySocketId(socket.id);
     
     if (!player) {
@@ -360,97 +411,102 @@ function submitRanking(
         rankedAnswerIds,
     );
     
+    
+    tryFinishRanking();
+    
+    await saveGame(game);
+    
     acknowledge({
         ok: true,
     });
     
-    tryFinishRanking();
+    
     pushState();
 }
 
-function readyForNextRound(
+async function readyForNextRound(
     socket: Socket,
     acknowledge: (response: {
         ok: boolean;
         error?: string;
     }) => void,
-): void {
+): Promise<void> {
     const player = getPlayerBySocketId(socket.id);
-
+    
     if (!player) {
         acknowledge({
             ok: false,
             error: "Player not found",
         });
-
+        
         return;
     }
-
+    
     if (game.state.phase !== "results") {
         acknowledge({
             ok: false,
             error: "Ready is not available",
         });
-
+        
         return;
     }
-
+    
     // Already ready
     if (readyPlayers.has(player.id)) {
         acknowledge({
             ok: true,
         });
-
+        
         return;
     }
-
+    
     readyPlayers.add(player.id);
-
+    
     console.log(
         `Player ready for next round: ${player.name} (${readyPlayers.size}/${players.size})`,
     );
-
+    
     acknowledge({
         ok: true,
     });
-
+    
     const roundPlayers = getConnectedPlayers();
-
+    
     const everyoneReady =
-        roundPlayers.length > 0 &&
-        roundPlayers.every(
-            player => readyPlayers.has(player.id),
-        );
-
+    roundPlayers.length > 0 &&
+    roundPlayers.every(
+        player => readyPlayers.has(player.id),
+    );
+    
     if (everyoneReady) {
-        startNextRound();
+        await  startNextRound();
         return;
     }
-
+    
     pushState();
 }
 
-function startNextRound(): void {
+async function startNextRound(): Promise<void> {
     readyPlayers.clear();
-
+    
     if (!game.startRound()) {
         console.error("Could not start next round");
         pushState();
         return;
     }
-
+    
     const round = game.currentRound();
-
+    
     if (!round) {
         console.error("Next round was started but no round exists");
         pushState();
         return;
     }
-
+    
     console.log(`Round ${game.state.round} started`);
     console.log("Prompt:", round.prompt);
     console.log("Words:", round.words);
-
+    await saveGame(game);
     pushState();
 }
 function disconnectPlayer(socket: Socket): void {
@@ -472,7 +528,7 @@ function disconnectPlayer(socket: Socket): void {
     pushState();
 }
 
-function startRound(socket: Socket): void {
+async function startRound(socket: Socket): Promise<void> {
     if (socket.id !== hostSocketId) {
         return;
     }
@@ -492,6 +548,7 @@ function startRound(socket: Socket): void {
     console.log("Words:", round.words);
     
     
+    await saveGame(game);
     pushState();
 }
 
@@ -545,7 +602,7 @@ function tryFinishRanking(): void {
     if (roundPlayers.length === 0) {
         return;
     }
-
+    
     const everyoneRanked = roundPlayers.every(
         player => round.rankings.has(player.id),
     );
@@ -568,19 +625,19 @@ function tryFinishRanking(): void {
     }
     
     game.calculateScores();
-
+    
     for (const answer of round.answers) {
-    const score = round.scores?.get(answer.id) ?? 0;
-
-    const currentTotal =
+        const score = round.scores?.get(answer.id) ?? 0;
+        
+        const currentTotal =
         game.state.totals.get(answer.playerId) ?? 0;
-
-    game.state.totals.set(
-        answer.playerId,
-        currentTotal + score,
+        
+        game.state.totals.set(
+            answer.playerId,
+            currentTotal + score,
         );
     }
-
+    
     readyPlayers.clear();
     game.state.phase = "results";
 }
@@ -602,9 +659,3 @@ function getPlayerBySocketId(
 }
 
 
-//  ---- Start server ----
-httpServer.listen(PORT, HOST, () => {
-    console.log(
-        `Game server running on port ${PORT}`,
-    );
-});
