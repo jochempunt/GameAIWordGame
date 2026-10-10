@@ -179,8 +179,7 @@ function joinPlayer(
     socket.join(room.id);
 
     if (!room.hostPlayerId) {
-        room.hostPlayerId = player.id;
-        console.log(`Player ${player.name} is now the host of ${room.id}`);
+        transferHost(room, player.id);
     }
 
     console.log(
@@ -228,7 +227,7 @@ function rejoinPlayer(
     socket.join(foundRoom.id);
 
     if (!foundRoom.hostPlayerId) {
-        foundRoom.hostPlayerId = foundPlayer.id;
+        transferHost(foundRoom, foundPlayer.id);
     }
 
     console.log(`Player rejoined: ${foundPlayer.name} (${foundPlayer.id}) in room ${foundRoom.id}`);
@@ -301,7 +300,10 @@ function submitAnswer(
         ok: true,
     });
 
-    tryStartVoting(room);
+    if (advanceRoomAfterMembershipChange(room)) {
+        return;
+    }
+
     pushState(room);
 }
 function submitRanking(
@@ -456,16 +458,7 @@ function readyForNextRound(
         ok: true,
     });
 
-    const roundPlayers = [...room.players.values()].filter((p) => p.connected);
-
-    const everyoneReady =
-        roundPlayers.length > 0 &&
-        roundPlayers.every(
-            (player) => room.readyPlayers.has(player.id),
-        );
-
-    if (everyoneReady) {
-        startNextRound(room);
+    if (tryStartNextRoundIfReady(room)) {
         return;
     }
 
@@ -516,6 +509,11 @@ function leaveGame(
     console.log(`Player left room ${room.id}: ${player.name}`);
 
     acknowledge({ ok: true });
+
+    if (advanceRoomAfterMembershipChange(room)) {
+        return;
+    }
+
     pushState(room);
 }
 
@@ -524,6 +522,8 @@ function removePlayerFromRoom(
     room: Room,
     player: Player,
 ): void {
+    const wasHost = room.hostPlayerId === player.id;
+
     socketToRoom.delete(socket.id);
     socket.leave(room.id);
     room.readyPlayers.delete(player.id);
@@ -536,12 +536,28 @@ function removePlayerFromRoom(
         return;
     }
 
-    if (room.hostPlayerId === player.id) {
-        const nextHost = [...room.players.values()]
-            .find(candidate => candidate.connected);
-
-        room.hostPlayerId = nextHost?.id ?? null;
+    if (wasHost) {
+        transferHost(room);
     }
+}
+
+function transferHost(
+    room: Room,
+    nextHostPlayerId?: string,
+): Player | undefined {
+    const nextHost = nextHostPlayerId
+        ? room.players.get(nextHostPlayerId)
+        : [...room.players.values()].find(candidate => candidate.connected);
+
+    if (!nextHost || !nextHost.connected) {
+        room.hostPlayerId = null;
+        console.log(`Room ${room.id} has no connected host candidate`);
+        return undefined;
+    }
+
+    room.hostPlayerId = nextHost.id;
+    console.log(`Player ${nextHost.name} is now the host of room ${room.id}`);
+    return nextHost;
 }
 function disconnectPlayer(socket: Socket): void {
     const result = getPlayerBySocketId(socket.id);
@@ -553,9 +569,13 @@ function disconnectPlayer(socket: Socket): void {
     socketToRoom.delete(socket.id);
     console.log(`Player disconnected: ${player.name} from room ${room.id}`);
 
-    //host disconnected logic
     if (player.id === room.hostPlayerId) {
         console.log(`Host disconnected from room ${room.id}`);
+        transferHost(room);
+    }
+
+    if (advanceRoomAfterMembershipChange(room)) {
+        return;
     }
 
     pushState(room);
@@ -592,7 +612,7 @@ function tryStartVoting(room: Room): void {
     if (room.game.state.phase !== "answering") return;
 
     const round = room.game.currentRound();
-    const roundPlayers = [...room.players.values()];
+    const roundPlayers = getConnectedRoomPlayers(room);
 
     if (!round || roundPlayers.length === 0) return;
 
@@ -619,12 +639,14 @@ function tryFinishRanking(room: Room): void {
 
     if (!round) return;
 
-    const roundPlayers = [...room.players.values()];
+    const roundPlayers = getConnectedRoomPlayers(room);
 
     if (roundPlayers.length === 0) return;
 
     const everyoneRanked = roundPlayers.every(
-        player => round.rankings.has(player.id),
+        player =>
+            round.rankings.has(player.id) ||
+            !round.answers.some(answer => answer.playerId !== player.id),
     );
 
     console.log(
@@ -658,6 +680,35 @@ function tryFinishRanking(room: Room): void {
 
     room.readyPlayers.clear();
     room.game.state.phase = "results";
+}
+function advanceRoomAfterMembershipChange(room: Room): boolean {
+    tryStartVoting(room);
+    tryFinishRanking(room);
+
+    return tryStartNextRoundIfReady(room);
+}
+
+function tryStartNextRoundIfReady(room: Room): boolean {
+    if (room.game.state.phase !== "results") {
+        return false;
+    }
+
+    const roundPlayers = getConnectedRoomPlayers(room);
+
+    const everyoneReady =
+        roundPlayers.length > 0 &&
+        roundPlayers.every(player => room.readyPlayers.has(player.id));
+
+    if (!everyoneReady) {
+        return false;
+    }
+
+    startNextRound(room);
+    return true;
+}
+
+function getConnectedRoomPlayers(room: Room): Player[] {
+    return [...room.players.values()].filter(player => player.connected);
 }
 //  ---- Helpers ----
 
