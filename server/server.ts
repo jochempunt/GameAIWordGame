@@ -25,13 +25,6 @@ const httpServer = createServer(app);
 const io = new Server(httpServer);
 
 
-// old game code, remove if irrelevant -----------------------------------------------------------------------------------------------
-// const game = new Game();
-// const players = new Map<string, Player>();
-
-// const readyPlayers = new Set<string>();
-
-// let hostSocketId: string | null = null;
 
 const rooms = new Map<string, Room>();
 const socketToRoom = new Map<string, string>();
@@ -56,6 +49,7 @@ function safeAcknowledge<T>(fn: unknown): Ack<T> {  // if something passes non f
 
 // ---- server state ----
 function pushState(room: Room): void {
+
     for (const player of [...room.players.values()].filter(p => p.connected)) {
         io.to(player.socketId).emit(
             "state",
@@ -123,6 +117,13 @@ io.on("connection", (socket) => {
         );
     });
 
+    socket.on("leaveGame", (acknowledge) => {
+        leaveGame(
+            socket,
+            safeAcknowledge(acknowledge),
+        );
+    });
+
     socket.on("disconnect", () => {
         disconnectPlayer(socket);
     });
@@ -130,12 +131,6 @@ io.on("connection", (socket) => {
 
 
 // ---- handlers ---- 
-// old code
-// function registerHost(socket: Socket): void {
-//     hostSocketId = socket.id;
-//     console.log("Host registered:", socket.id);
-//     pushState();
-// }
 
 function joinPlayer(
     socket: Socket,
@@ -231,6 +226,10 @@ function rejoinPlayer(
     foundPlayer.connected = true;
     socketToRoom.set(socket.id, foundRoom.id);
     socket.join(foundRoom.id);
+
+    if (!foundRoom.hostPlayerId) {
+        foundRoom.hostPlayerId = foundPlayer.id;
+    }
 
     console.log(`Player rejoined: ${foundPlayer.name} (${foundPlayer.id}) in room ${foundRoom.id}`);
 
@@ -495,6 +494,54 @@ function startNextRound(room: Room): void {
     console.log("Words:", round.words);
 
     pushState(room);
+}
+function leaveGame(
+    socket: Socket,
+    acknowledge: (response: {
+        ok: boolean;
+        error?: string;
+    }) => void,
+): void {
+    const result = getPlayerBySocketId(socket.id);
+
+    if (!result) {
+        acknowledge({ ok: true });
+        return;
+    }
+
+    const { player, room } = result;
+
+    removePlayerFromRoom(socket, room, player);
+
+    console.log(`Player left room ${room.id}: ${player.name}`);
+
+    acknowledge({ ok: true });
+    pushState(room);
+}
+
+function removePlayerFromRoom(
+    socket: Socket,
+    room: Room,
+    player: Player,
+): void {
+    socketToRoom.delete(socket.id);
+    socket.leave(room.id);
+    room.readyPlayers.delete(player.id);
+    room.players.delete(player.id);
+
+    if (room.players.size === 0) {
+        room.game = new Game();
+        room.readyPlayers.clear();
+        room.hostPlayerId = null;
+        return;
+    }
+
+    if (room.hostPlayerId === player.id) {
+        const nextHost = [...room.players.values()]
+            .find(candidate => candidate.connected);
+
+        room.hostPlayerId = nextHost?.id ?? null;
+    }
 }
 function disconnectPlayer(socket: Socket): void {
     const result = getPlayerBySocketId(socket.id);

@@ -19,6 +19,7 @@ const roomOverview = document.querySelector<HTMLElement>("#room-overview")!;
 const roomOverviewTitle = document.querySelector<HTMLElement>("#room-overview-title")!;
 const roomOverviewStatus = document.querySelector<HTMLElement>("#room-overview-status")!;
 const roomPlayers = document.querySelector<HTMLUListElement>("#room-players")!;
+const leaveRoomButton = document.querySelector<HTMLButtonElement>("#leave-room")!;
 
 const joinView = document.querySelector<HTMLElement>("#join-view")!;
 const lobbyView = document.querySelector<HTMLElement>("#lobby-view")!;
@@ -153,6 +154,29 @@ function showJoin(): void {
     roomOverview.hidden = true;
     statusText.textContent = "Connected";
     statusText.classList.remove("status-error");
+}
+
+function returnToRoomSelection(message = "Choose a room to join."): void {
+    localStorage.removeItem("playerId");
+    selectedWords = [];
+    availableWords = [];
+    rankedAnswers = [];
+    currentRankingView = null;
+    selectedAnswerId = null;
+    rankingRound = 0;
+    currentRound = 0;
+    hasRenderedOnce = false;
+    skipNextPromptAnimation = false;
+
+    selectedRoomInput.value = "";
+    joinSubmitButton.disabled = true;
+
+    for (const card of roomCards) {
+        card.classList.remove("selected");
+    }
+
+    showJoin();
+    statusText.textContent = message;
 }
 
 for (const card of roomCards) {
@@ -291,6 +315,24 @@ function renderLobby(view: ViewOf<"lobby">): void {
 
 startRoundButton.addEventListener("click", () => {
     socket.emit("startRound");
+});
+
+leaveRoomButton.addEventListener("click", () => {
+    leaveRoomButton.disabled = true;
+
+    socket.emit(
+        "leaveGame",
+        (response: { ok: boolean; error?: string }) => {
+            leaveRoomButton.disabled = false;
+
+            if (!response.ok) {
+                console.error(response.error ?? "Could not leave room");
+                return;
+            }
+
+            returnToRoomSelection();
+        },
+    );
 });
 
 function renderAnswering(view: ViewOf<"answering">, skipAnimation: boolean): void {
