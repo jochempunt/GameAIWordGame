@@ -30,6 +30,7 @@ const rooms = new Map<string, Room>();
 const socketToRoom = new Map<string, string>();
 
 const ROOM_CODES = ["AAAA", "BBBB", "CCCC", "DDDD"];
+const MIN_PLAYERS_TO_START = 3;
 for (const code of ROOM_CODES) {
     rooms.set(code, {
         id: code,
@@ -597,7 +598,7 @@ function startRound(socket: Socket): void {
     if (game.state.phase !== "lobby") return;
 
     setActivePlayersForLobby(room);
-    if (room.activePlayerIds.size === 0) return;
+    if (room.activePlayerIds.size < MIN_PLAYERS_TO_START) return;
 
     if (!game.startRound()) return;
 

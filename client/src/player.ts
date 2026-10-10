@@ -15,6 +15,7 @@ const roomCards = document.querySelectorAll<HTMLButtonElement>(".room-card");
 const selectedRoomInput = document.querySelector<HTMLInputElement>("#selected-room")!;
 const joinSubmitButton = document.querySelector<HTMLButtonElement>("#join-submit")!;
 const startRoundButton = document.querySelector<HTMLButtonElement>("#start-round")!;
+const startRoundRequirement = document.querySelector<HTMLElement>("#start-round-requirement")!;
 const roomOverview = document.querySelector<HTMLElement>("#room-overview")!;
 const roomOverviewTitle = document.querySelector<HTMLElement>("#room-overview-title")!;
 const roomOverviewStatus = document.querySelector<HTMLElement>("#room-overview-status")!;
@@ -327,7 +328,9 @@ function playerStatusText(player: PlayerSummary, phase: PlayerView["phase"]): st
 function renderLobby(view: ViewOf<"lobby">): void {
     lobbyView.hidden = false;
     joinedName.textContent = view.name;
-    startRoundButton.hidden = !view.canStartRound;
+    startRoundButton.hidden = !view.isHost;
+    startRoundButton.disabled = !view.canStartRound;
+    startRoundRequirement.hidden = !view.isHost || view.canStartRound;
 }
 
 startRoundButton.addEventListener("click", () => {

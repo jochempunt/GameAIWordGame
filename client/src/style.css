@@ -134,7 +134,8 @@ p {
 #status,
 #answered-count,
 #ranked-count,
-#ready-count {
+#ready-count,
+#start-round-requirement {
     display: inline-block;
     max-width: 100%;
     padding: 0.4rem 0.7rem;
@@ -1130,7 +1131,8 @@ h1.prompt {
     min-width: 8rem;
 }
 
-#ready-count {
+#ready-count,
+#start-round-requirement {
     flex-shrink: 0;
     color: var(--cream-light);
     font-weight: 600;
