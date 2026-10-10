@@ -4,6 +4,7 @@ import type { PlayerView } from "../../server/types.js";
 const socket = io();
 
 type ViewOf<P extends PlayerView["phase"]> = Extract<PlayerView, { phase: P }>;
+type PlayerSummary = PlayerView["players"][number];
 
 // ---- html elements ----
 const joinForm = document.querySelector<HTMLFormElement>("#join-form")!;
@@ -14,6 +15,10 @@ const roomCards = document.querySelectorAll<HTMLButtonElement>(".room-card");
 const selectedRoomInput = document.querySelector<HTMLInputElement>("#selected-room")!;
 const joinSubmitButton = document.querySelector<HTMLButtonElement>("#join-submit")!;
 const startRoundButton = document.querySelector<HTMLButtonElement>("#start-round")!;
+const roomOverview = document.querySelector<HTMLElement>("#room-overview")!;
+const roomOverviewTitle = document.querySelector<HTMLElement>("#room-overview-title")!;
+const roomOverviewStatus = document.querySelector<HTMLElement>("#room-overview-status")!;
+const roomPlayers = document.querySelector<HTMLUListElement>("#room-players")!;
 
 const joinView = document.querySelector<HTMLElement>("#join-view")!;
 const lobbyView = document.querySelector<HTMLElement>("#lobby-view")!;
@@ -80,6 +85,7 @@ socket.on("state", render);
 
 function render(view: PlayerView): void {
     hideAll();
+    renderRoomOverview(view);
     
     
     const skipAnimation = skipNextPromptAnimation;
@@ -144,6 +150,7 @@ function hideAll(): void {
 function showJoin(): void {
     hideAll();
     joinView.hidden = false;
+    roomOverview.hidden = true;
     statusText.textContent = "Connected";
     statusText.classList.remove("status-error");
 }
@@ -186,6 +193,95 @@ joinForm.addEventListener("submit", (event) => {
 
 
 // ---- view rendering ----
+
+function renderRoomOverview(view: PlayerView): void {
+    roomOverview.hidden = false;
+    roomOverviewTitle.textContent = view.isHost ? "You are hosting" : "Room Overview";
+    roomOverviewStatus.textContent = roomStatusText(view);
+    roomPlayers.replaceChildren();
+
+    const standings = [...view.players].sort((a, b) => b.score - a.score);
+
+    if (standings.length === 0) {
+        const empty = document.createElement("li");
+        empty.classList.add("standings-empty");
+        empty.textContent = "Waiting for our first researchers...";
+        roomPlayers.appendChild(empty);
+        return;
+    }
+
+    let rank = 1;
+
+    for (const [index, player] of standings.entries()) {
+        if (index > 0 && player.score !== standings[index - 1].score) {
+            rank = index + 1;
+        }
+
+        const item = document.createElement("li");
+        const position = document.createElement("span");
+        position.classList.add("leaderboard-rank");
+        position.textContent = `${rank}.`;
+
+        const identity = document.createElement("div");
+        identity.classList.add("researcher-identity");
+
+        const name = document.createElement("span");
+        name.classList.add("leaderboard-name");
+        name.textContent = player.name;
+        identity.appendChild(name);
+
+        const status = playerStatusText(player, view.phase);
+        if (status) {
+            const statusElement = document.createElement("span");
+            statusElement.classList.add("researcher-status");
+            statusElement.textContent = status;
+            identity.appendChild(statusElement);
+        }
+
+        const score = document.createElement("span");
+        score.classList.add("result-score");
+        score.textContent = `${player.score} pts`;
+
+        item.append(position, identity, score);
+        item.classList.toggle("disconnected", !player.connected);
+        roomPlayers.appendChild(item);
+    }
+}
+
+function roomStatusText(view: PlayerView): string {
+    switch (view.phase) {
+        case "lobby":
+            return view.isHost
+                ? "Start the game when everyone has joined."
+                : "Waiting for the host to start the game.";
+        case "answering":
+            return `${view.answeredCount}/${view.playerCount} players answered`;
+        case "ranking":
+            return `${view.rankedCount}/${view.playerCount} players ranked`;
+        case "results":
+            return `${view.readyCount}/${view.playerCount} ready for next round`;
+    }
+}
+
+function playerStatusText(player: PlayerSummary, phase: PlayerView["phase"]): string {
+    if (!player.connected) {
+        return "Disconnected";
+    }
+
+    const labels: string[] = [];
+
+    if (player.isHost) {
+        labels.push("Host");
+    }
+
+    if (phase === "answering") {
+        labels.push(player.answered ? "Answer submitted" : "Thinking...");
+    } else if (phase === "ranking") {
+        labels.push(player.ranked ? "Review submitted" : "Reviewing...");
+    }
+
+    return labels.join(" - ");
+}
 
 function renderLobby(view: ViewOf<"lobby">): void {
     lobbyView.hidden = false;

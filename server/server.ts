@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { Game } from "./game.js";
 import type { Player } from "./types.js";
-import { viewForHost, viewForPlayer } from "./views.js";
+import { viewForPlayer } from "./views.js";
 import type { Room } from "./types.js";
 
 
@@ -43,7 +43,7 @@ for (const code of ROOM_CODES) {
         game: new Game(),
         players: new Map<string, Player>(),
         readyPlayers: new Set<string>(),
-        hostSocketId: null,
+        hostPlayerId: null,
     });
 }
 
@@ -56,13 +56,6 @@ function safeAcknowledge<T>(fn: unknown): Ack<T> {  // if something passes non f
 
 // ---- server state ----
 function pushState(room: Room): void {
-    if (room.hostSocketId) {
-        io.to(room.hostSocketId).emit(
-            "state",
-            viewForHost(room.game, room.players.values()),
-        );
-    }
-
     for (const player of [...room.players.values()].filter(p => p.connected)) {
         io.to(player.socketId).emit(
             "state",
@@ -71,7 +64,7 @@ function pushState(room: Room): void {
                 player,
                 room.players.values(),
                 room.readyPlayers,
-                player.socketId === room.hostSocketId
+                room.hostPlayerId,
             ),
         );
     }
@@ -190,8 +183,8 @@ function joinPlayer(
     socketToRoom.set(socket.id, room.id);
     socket.join(room.id);
 
-    if (!room.hostSocketId) {
-        room.hostSocketId = socket.id;
+    if (!room.hostPlayerId) {
+        room.hostPlayerId = player.id;
         console.log(`Player ${player.name} is now the host of ${room.id}`);
     }
 
@@ -510,18 +503,12 @@ function disconnectPlayer(socket: Socket): void {
     const { player, room } = result;
 
     player.connected = false;
+    socketToRoom.delete(socket.id);
     console.log(`Player disconnected: ${player.name} from room ${room.id}`);
 
     //host disconnected logic
-    if (socket.id == room.hostSocketId) {
+    if (player.id === room.hostPlayerId) {
         console.log(`Host disconnected from room ${room.id}`);
-        room.hostSocketId = null;
-
-        const nextHost = [...room.players.values()].find(p => p.connected);
-        if (nextHost) {
-            room.hostSocketId = nextHost.socketId;
-            console.log(`Player ${nextHost.name} is the new host of room ${room.id}`);
-        }
     }
 
     pushState(room);
@@ -531,10 +518,10 @@ function startRound(socket: Socket): void {
     const result = getPlayerBySocketId(socket.id);
     if (!result) return;
 
-    const { room } = result;
+    const { player, room } = result;
     const game = room.game;
 
-    if (socket.id !== room.hostSocketId) return;
+    if (player.id !== room.hostPlayerId) return;
 
     if (!game.startRound()) return;
 

@@ -35,8 +35,20 @@ export type GameState = {
     totals: Map<string, number>;
 };
 
+export type PlayerSummary = {
+    name: string;
+    connected: boolean;
+    isHost: boolean;
+    answered: boolean;
+    ranked: boolean;
+    score: number;
+};
 
-export type PlayerView = { name: string } & (
+export type PlayerView = {
+    name: string;
+    isHost: boolean;
+    players: PlayerSummary[];
+} & (
     | { phase: "lobby"; isHost: boolean }
     | {
         phase: "results";
@@ -78,5 +90,5 @@ export type Room = {
     game: Game;
     players: Map<string, Player>;
     readyPlayers: Set<string>;
-    hostSocketId: string | null;
+    hostPlayerId: string | null;
 }

@@ -630,6 +630,62 @@ h1.prompt {
     font-size: 0.9rem;
 }
 
+#room-overview {
+    margin: 0 0 1.5rem;
+    padding: 1rem;
+    border: 1px solid rgb(255 248 240 / 22%);
+    border-radius: 1rem 0.75rem 1rem 0.75rem;
+    background: rgb(50 62 47 / 18%);
+}
+
+.room-overview-heading {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+}
+
+#room-overview-title {
+    margin: 0;
+    color: var(--cream);
+    font-size: 1.1rem;
+}
+
+#room-overview-status {
+    margin: 0;
+    color: var(--cream-light);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+#room-players {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#room-players li {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--tile-border);
+    border-radius: 1rem;
+    background-color: var(--cream);
+    box-shadow: 0 3px 0 var(--tile-shadow);
+    text-align: left;
+}
+
+#room-players li.disconnected {
+    opacity: 0.45;
+}
+
+#room-players .standings-empty {
+    display: block;
+    text-align: center;
+}
 #players {
     display: grid;
     gap: 0.75rem;
