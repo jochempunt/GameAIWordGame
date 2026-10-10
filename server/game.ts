@@ -8,6 +8,7 @@ import type {
 } from "./types.js";
 
 const WORD_COUNT = 30;
+export const MIN_PLAYERS_TO_START = 3;
 
 
 export class Game {
@@ -124,6 +125,18 @@ startRound(): boolean {
         });
     }
 
+    // An answer only scores if its author also ranked the others. Otherwise skipping the
+    // ranking would withhold points from everyone else at no cost.
+    for (const answer of round.answers) {
+        const hadAnswersToRank = round.answers.some(
+            other => other.playerId !== answer.playerId,
+        );
+
+        if (hadAnswersToRank && !round.rankings.has(answer.playerId)) {
+            scores.set(answer.id, 0);
+        }
+    }
+
     round.scores = scores;
 }
     
@@ -158,8 +171,15 @@ startRound(): boolean {
     }
     
     private randomWords(count: number): string[] {
-        return [...WORDS]
-        .sort(() => Math.random() - 0.5)
-        .slice(0, count);
+        const words = [...WORDS];
+
+        // Fisher-Yates shuffle, so every word is equally likely to be picked
+        for (let i = words.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+
+            [words[i], words[j]] = [words[j], words[i]];
+        }
+
+        return words.slice(0, count);
     }
 }

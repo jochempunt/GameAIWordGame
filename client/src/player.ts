@@ -21,6 +21,7 @@ const roomOverviewTitle = document.querySelector<HTMLElement>("#room-overview-ti
 const roomOverviewStatus = document.querySelector<HTMLElement>("#room-overview-status")!;
 const roomPlayers = document.querySelector<HTMLUListElement>("#room-players")!;
 const leaveRoomButton = document.querySelector<HTMLButtonElement>("#leave-room")!;
+const actionError = document.querySelector<HTMLElement>("#action-error")!;
 
 const joinView = document.querySelector<HTMLElement>("#join-view")!;
 const lobbyView = document.querySelector<HTMLElement>("#lobby-view")!;
@@ -81,8 +82,8 @@ socket.on("connect", () => {
 
     socket.emit("rejoin", sessionToken, (res: { ok: boolean }) => {
         if (!res.ok) {
-            localStorage.removeItem("sessionToken");
-            showJoin();
+            // also resets the picks and rankings left over from the game we were in
+            returnToRoomSelection();
         }
     });
 });
@@ -304,10 +305,21 @@ function renderRoomOverview(view: PlayerView): void {
     }
 }
 
+let actionErrorTimer: number | undefined;
+
+// tells the player why an action was refused, then clears itself
+function showActionError(message: string): void {
+    actionError.textContent = message;
+    window.clearTimeout(actionErrorTimer);
+    actionErrorTimer = window.setTimeout(() => {
+        actionError.textContent = "";
+    }, 4000);
+}
+
 function emitHostPlayerAction(event: "kickPlayer" | "transferHost", playerId: string): void {
     socket.emit(event, playerId, (response: { ok: boolean; error?: string }) => {
         if (!response.ok) {
-            console.error(response.error ?? "Host action failed");
+            showActionError(response.error ?? "Host action failed");
         }
     });
 }
@@ -380,7 +392,7 @@ leaveRoomButton.addEventListener("click", () => {
             leaveRoomButton.disabled = false;
 
             if (!response.ok) {
-                console.error(response.error ?? "Could not leave room");
+                showActionError(response.error ?? "Could not leave room");
                 return;
             }
 
@@ -640,15 +652,15 @@ function renderRanking(view: ViewOf<"ranking">): void {
             answerElement.classList.add("selected");
         }
         
-        answerElement.innerHTML = `
-            <span class="rank-number">
-                ${index + 1}
-            </span>
-        
-            <span class="rank-text">
-                ${answer.words.join(" ")}
-            </span>
-        `;
+        const rankNumber = document.createElement("span");
+        rankNumber.classList.add("rank-number");
+        rankNumber.textContent = `${index + 1}`;
+
+        const rankText = document.createElement("span");
+        rankText.classList.add("rank-text");
+        rankText.textContent = answer.words.join(" ");
+
+        answerElement.append(rankNumber, rankText);
         
         // Mouse / touch selection
         answerElement.addEventListener(
@@ -928,7 +940,7 @@ answerSubmitButton.addEventListener("click", () => {
         (response: { ok: boolean; error?: string }) => {
             if (!response.ok) {
                 answerSubmitButton.disabled = false;
-                console.error(response.error ?? "Submission failed");
+                showActionError(response.error ?? "Submission failed");
             }
         },
     );
@@ -966,10 +978,7 @@ rankingSubmitButton.addEventListener("click", () => {
             if (!response.ok) {
                 rankingSubmitButton.disabled = false;
                 
-                console.error(
-                    "Ranking failed:",
-                    response.error,
-                );
+                showActionError(response.error ?? "Ranking failed");
                 
                 return;
             }
@@ -994,9 +1003,7 @@ readyButton.addEventListener("click", () => {
             if (!response.ok) {
                 readyButton.disabled = false;
                 
-                console.error(
-                    response.error ?? "Could not mark player as ready",
-                );
+                showActionError(response.error ?? "Could not mark player as ready");
             }
         },
     );

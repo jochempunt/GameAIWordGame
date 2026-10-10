@@ -167,7 +167,6 @@ export const WORDS = [
     "tweeted",
     "promised",
     "go",
-    "will",
     "fly",
     "sing",
     "fight",

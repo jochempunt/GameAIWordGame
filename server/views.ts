@@ -1,7 +1,6 @@
+import { MIN_PLAYERS_TO_START } from "./game.js";
 import type { Game } from "./game.js";
 import type { HostView, Player, PlayerSummary, PlayerView } from "./types.js";
-
-const MIN_PLAYERS_TO_START = 3;
 
 export function viewForPlayer(
     game: Game,

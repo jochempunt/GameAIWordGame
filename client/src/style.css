@@ -135,6 +135,7 @@ p {
 #answered-count,
 #ranked-count,
 #ready-count,
+#action-error,
 #start-round-requirement {
     display: inline-block;
     max-width: 100%;
@@ -158,11 +159,13 @@ p {
 
 #status:empty,
 #answered-count:empty,
-#ranked-count:empty {
+#ranked-count:empty,
+#action-error:empty {
     display: none;
 }
 
-#status.status-error {
+#status.status-error,
+#action-error {
     background: var(--cream-light);
     border-color: var(--error);
     color: var(--error);

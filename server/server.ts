@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { Server, Socket } from "socket.io";
 import { fileURLToPath } from "node:url";
 
-import { Game } from "./game.js";
+import { Game, MIN_PLAYERS_TO_START } from "./game.js";
 import type { Player } from "./types.js";
 import { viewForPlayer } from "./views.js";
 import type { Room } from "./types.js";
@@ -29,7 +29,12 @@ const io = new Server(httpServer);
 const rooms = new Map<string, Room>();
 
 const ROOM_CODES = ["AAAA", "BBBB", "CCCC", "DDDD"];
-const MIN_PLAYERS_TO_START = 3;
+const MAX_PLAYERS_PER_ROOM = 20;
+const MAX_NAME_LENGTH = 20; // same as the maxlength of the name input
+const HOST_GRACE_MS = 15_000; // a host who drops keeps the role this long
+const DISCONNECT_PURGE_MS = 5 * 60_000; // disconnected players are removed after this long
+
+const disconnectTimers = new Map<string, NodeJS.Timeout[]>();
 for (const code of ROOM_CODES) {
     rooms.set(code, {
         id: code,
@@ -182,6 +187,20 @@ function joinPlayer(
             error: "Name cannot be empty",
         });
 
+        return;
+    }
+
+    if (name.trim().length > MAX_NAME_LENGTH) {
+        acknowledge({
+            ok: false,
+            error: "Name is too long",
+        });
+
+        return;
+    }
+
+    if (room.players.size >= MAX_PLAYERS_PER_ROOM) {
+        acknowledge({ ok: false, error: "Room is full" });
         return;
     }
 
@@ -633,6 +652,7 @@ function removePlayerFromRoom(
     if (socket?.data.playerId === player.id) {
         detachSocket(socket, room);
     }
+    clearDisconnectTimers(player.id);
     room.readyPlayers.delete(player.id);
     room.activePlayerIds.delete(player.id);
     room.players.delete(player.id);
@@ -659,6 +679,9 @@ function transferHost(
         : [...room.players.values()].find(candidate => candidate.connected);
 
     if (!nextHost || !nextHost.connected) {
+        // a failed transfer to a specific player keeps the current host
+        if (nextHostPlayerId) return undefined;
+
         room.hostPlayerId = null;
         console.log(`Room ${room.id} has no connected host candidate`);
         return undefined;
@@ -677,16 +700,60 @@ function disconnectPlayer(socket: Socket): void {
     player.connected = false;
     console.log(`Player disconnected: ${player.name} from room ${room.id}`);
 
-    if (player.id === room.hostPlayerId) {
-        console.log(`Host disconnected from room ${room.id}`);
-        transferHost(room);
-    }
+    scheduleDisconnectTimers(room, player);
 
     if (advanceRoomAfterMembershipChange(room)) {
         return;
     }
 
     pushState(room);
+}
+
+// Phones drop the connection whenever the screen locks, so a disconnect is not final:
+// the host keeps the role for a moment, and the player is only removed after a while.
+function scheduleDisconnectTimers(room: Room, player: Player): void {
+    clearDisconnectTimers(player.id);
+
+    const stillGone = () => room.players.get(player.id) === player && !player.connected;
+
+    const hostTimer = setTimeout(() => {
+        try {
+            if (!stillGone() || room.hostPlayerId !== player.id) return;
+
+            console.log(`Host did not come back to room ${room.id}`);
+            transferHost(room);
+            pushState(room);
+        } catch (error) {
+            console.error(`Error transferring host in room ${room.id}:`, error);
+        }
+    }, HOST_GRACE_MS);
+
+    const purgeTimer = setTimeout(() => {
+        try {
+            if (!stillGone()) return;
+
+            console.log(`Removing disconnected player ${player.name} from room ${room.id}`);
+            removePlayerFromRoom(room, player);
+
+            if (advanceRoomAfterMembershipChange(room)) {
+                return;
+            }
+
+            pushState(room);
+        } catch (error) {
+            console.error(`Error removing disconnected player from room ${room.id}:`, error);
+        }
+    }, DISCONNECT_PURGE_MS);
+
+    disconnectTimers.set(player.id, [hostTimer, purgeTimer]);
+}
+
+function clearDisconnectTimers(playerId: string): void {
+    for (const timer of disconnectTimers.get(playerId) ?? []) {
+        clearTimeout(timer);
+    }
+
+    disconnectTimers.delete(playerId);
 }
 
 function startRound(socket: Socket): void {
@@ -801,15 +868,20 @@ function advanceRoomAfterMembershipChange(room: Room): boolean {
 }
 
 function tryReturnToLobbyIfReady(room: Room): boolean {
-    if (room.game.state.phase !== "results") {
+    const phase = room.game.state.phase;
+
+    if (phase === "lobby") {
         return false;
     }
 
     const connectedPlayers = getConnectedRoomPlayers(room);
     const roundPlayers = getActiveConnectedRoomPlayers(room);
     const everyoneReady =
+        phase === "results" &&
         roundPlayers.length > 0 &&
         roundPlayers.every(player => room.readyPlayers.has(player.id));
+    // in any phase: nobody who was playing this round is still here, so the
+    // spectators waiting for the next round should not be stuck watching it
     const noActivePlayersConnected =
         roundPlayers.length === 0 && connectedPlayers.length > 0;
 
@@ -859,6 +931,7 @@ function getConnectedRoomPlayers(room: Room): Player[] {
 
 // socket.data remembers which player a socket controls
 function attachSocket(socket: Socket, room: Room, player: Player): void {
+    clearDisconnectTimers(player.id);
     player.socketId = socket.id;
     player.connected = true;
     socket.data.roomId = room.id;
