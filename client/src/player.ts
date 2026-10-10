@@ -27,12 +27,16 @@ const playingView = document.querySelector<HTMLElement>("#playing-view")!;
 const submittedView = document.querySelector<HTMLElement>("#submitted-view")!;
 const rankingView = document.querySelector<HTMLElement>("#ranking-view")!;
 const resultsView = document.querySelector<HTMLElement>("#results-view")!;
+const spectatorView = document.querySelector<HTMLElement>("#spectator-view")!;
+const spectatorTitle = document.querySelector<HTMLElement>("#spectator-title")!;
+const spectatorStatus = document.querySelector<HTMLElement>("#spectator-status")!;
 const rankingHint = document.querySelector<HTMLElement>("#ranking-hint")!;
 const roundResultsContainer = document.querySelector<HTMLElement>("#round-results")!;
 
 const leaderboardContainer = document.querySelector<HTMLElement>("#leaderboard")!;
 
 const readyButton = document.querySelector<HTMLButtonElement>("#ready-button")!;
+const readySection = document.querySelector<HTMLElement>("#ready-section")!;
 
 const readyCount = document.querySelector<HTMLElement>("#ready-count")!;
 
@@ -139,6 +143,7 @@ const allViews = [
     rankingView,
     rankedView,
     resultsView,
+    spectatorView,
 ];
 
 function hideAll(): void {
@@ -275,15 +280,25 @@ function renderRoomOverview(view: PlayerView): void {
 function roomStatusText(view: PlayerView): string {
     switch (view.phase) {
         case "lobby":
+            if (!view.canStartRound && view.lobbyCount < view.playerCount) {
+                return `${view.lobbyCount}/${view.playerCount} players back in the lobby`;
+            }
+
             return view.isHost
-                ? "Start the game when everyone has joined."
-                : "Waiting for the host to start the game.";
+                ? "Start the next round when everyone is ready."
+                : "Waiting for the host to start the next round.";
         case "answering":
-            return `${view.answeredCount}/${view.playerCount} players answered`;
+            return view.isSpectator
+                ? `${view.answeredCount}/${view.playerCount} players answered - you are spectating`
+                : `${view.answeredCount}/${view.playerCount} players answered`;
         case "ranking":
-            return `${view.rankedCount}/${view.playerCount} players ranked`;
+            return view.isSpectator
+                ? `${view.rankedCount}/${view.playerCount} players ranked - you are spectating`
+                : `${view.rankedCount}/${view.playerCount} players ranked`;
         case "results":
-            return `${view.readyCount}/${view.playerCount} ready for next round`;
+            return view.canReady
+                ? `${view.readyCount}/${view.playerCount} players back in the lobby`
+                : "You will join when the room returns to the lobby";
     }
 }
 
@@ -298,7 +313,9 @@ function playerStatusText(player: PlayerSummary, phase: PlayerView["phase"]): st
         labels.push("Host");
     }
 
-    if (phase === "answering") {
+    if (!player.isActive) {
+        labels.push("Spectating");
+    } else if (phase === "answering") {
         labels.push(player.answered ? "Answer submitted" : "Thinking...");
     } else if (phase === "ranking") {
         labels.push(player.ranked ? "Review submitted" : "Reviewing...");
@@ -310,7 +327,7 @@ function playerStatusText(player: PlayerSummary, phase: PlayerView["phase"]): st
 function renderLobby(view: ViewOf<"lobby">): void {
     lobbyView.hidden = false;
     joinedName.textContent = view.name;
-    startRoundButton.hidden = !view.isHost;
+    startRoundButton.hidden = !view.canStartRound;
 }
 
 startRoundButton.addEventListener("click", () => {
@@ -336,6 +353,16 @@ leaveRoomButton.addEventListener("click", () => {
 });
 
 function renderAnswering(view: ViewOf<"answering">, skipAnimation: boolean): void {
+    if (!view.canSubmit) {
+        renderSpectating(
+            "Watching this round",
+            view.prompt,
+            view.round,
+            `${view.answeredCount}/${view.playerCount} players answered`,
+        );
+        return;
+    }
+
     if (view.submitted) {
         submittedView.hidden = false;
         setPrompt(view.prompt, view.round);
@@ -364,6 +391,17 @@ function renderAnswering(view: ViewOf<"answering">, skipAnimation: boolean): voi
     renderAvailableWords();
 }
 
+function renderSpectating(
+    title: string,
+    prompt: string,
+    round: number,
+    status: string,
+): void {
+    spectatorView.hidden = false;
+    spectatorTitle.textContent = title;
+    spectatorStatus.textContent = status;
+    setPrompt(prompt, round);
+}
 function renderSubmitted(answer: string[]): void {
     submittedAnswer.textContent = answer.join(" ");
 }
@@ -376,15 +414,15 @@ function renderResults(view: ViewOf<"results">): void {
     renderRoundResults(view);
     renderLeaderboard(view);
     
+    readySection.hidden = !view.canReady;
     readyCount.textContent =
     `${view.readyCount}/${view.playerCount}`;
     
     readyButton.textContent =
-    view.isReady ? "Ready ✓" : "Ready";
+    view.isReady ? "In lobby" : "Ready";
     
-    readyButton.disabled = view.isReady;
+    readyButton.disabled = view.isReady || !view.canReady;
 }
-
 function renderRoundResults(
     view: ViewOf<"results">
 ): void {
@@ -501,6 +539,15 @@ function renderLeaderboard(
 }
 
 function renderRanking(view: ViewOf<"ranking">): void {
+    if (!view.canRank) {
+        renderSpectating(
+            "Watching the review",
+            view.prompt,
+            view.round,
+            `${view.rankedCount}/${view.playerCount} players ranked`,
+        );
+        return;
+    }
     
     if (view.hasRanked) {
         rankedView.hidden = false;

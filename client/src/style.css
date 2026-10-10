@@ -170,6 +170,7 @@ p {
 #lobby-view > p,
 #submitted-view > p,
 #ranked-view > p,
+#spectator-view > p,
 #host-voting > p,
 #host-results > p,
 .host h3 {
@@ -315,6 +316,7 @@ h1.prompt {
     font-size: 1rem;
 }
 
+#spectator-view > h1,
 #ranking-view > h1 {
     font-size: clamp(1.1rem, 3.5vw, 1.35rem);
     font-weight: 600;

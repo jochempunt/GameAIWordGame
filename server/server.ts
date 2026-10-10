@@ -36,6 +36,7 @@ for (const code of ROOM_CODES) {
         game: new Game(),
         players: new Map<string, Player>(),
         readyPlayers: new Set<string>(),
+        activePlayerIds: new Set<string>(),
         hostPlayerId: null,
     });
 }
@@ -58,6 +59,7 @@ function pushState(room: Room): void {
                 player,
                 room.players.values(),
                 room.readyPlayers,
+                room.activePlayerIds,
                 room.hostPlayerId,
             ),
         );
@@ -149,15 +151,6 @@ function joinPlayer(
         return;
     }
 
-    if (room.game.state.phase !== "lobby") {
-        acknowledge({
-            ok: false,
-            error: "Round already started",
-        });
-
-        return;
-    }
-
     if (typeof name !== "string" || !name.trim()) {
         acknowledge({
             ok: false,
@@ -175,6 +168,9 @@ function joinPlayer(
     };
 
     room.players.set(player.id, player);
+    if (room.game.state.phase === "lobby") {
+        room.activePlayerIds.add(player.id);
+    }
     socketToRoom.set(socket.id, room.id);
     socket.join(room.id);
 
@@ -186,14 +182,17 @@ function joinPlayer(
         `Player joined: ${player.name} (${player.id}) in room ${room.id}`,
     );
 
-    pushState(room);
-
     acknowledge({
         ok: true,
         playerId: player.id,
     });
-}
 
+    if (advanceRoomAfterMembershipChange(room)) {
+        return;
+    }
+
+    pushState(room);
+}
 function rejoinPlayer(
     socket: Socket,
     playerId: string,
@@ -223,6 +222,9 @@ function rejoinPlayer(
 
     foundPlayer.socketId = socket.id;
     foundPlayer.connected = true;
+    if (foundRoom.game.state.phase === "lobby") {
+        foundRoom.activePlayerIds.add(foundPlayer.id);
+    }
     socketToRoom.set(socket.id, foundRoom.id);
     socket.join(foundRoom.id);
 
@@ -232,12 +234,16 @@ function rejoinPlayer(
 
     console.log(`Player rejoined: ${foundPlayer.name} (${foundPlayer.id}) in room ${foundRoom.id}`);
 
-    pushState(foundRoom);
-
     acknowledge({
         ok: true,
         name: foundPlayer.name,
     });
+
+    if (advanceRoomAfterMembershipChange(foundRoom)) {
+        return;
+    }
+
+    pushState(foundRoom);
 }
 
 
@@ -262,6 +268,15 @@ function submitAnswer(
 
     const { player, room } = result;
     const game = room.game;
+
+    if (!room.activePlayerIds.has(player.id)) {
+        acknowledge({
+            ok: false,
+            error: "Spectators cannot submit answers",
+        });
+
+        return;
+    }
 
     if (
         !Array.isArray(words) ||
@@ -327,6 +342,15 @@ function submitRanking(
 
     const { player, room } = result;
     const game = room.game;
+
+    if (!room.activePlayerIds.has(player.id)) {
+        acknowledge({
+            ok: false,
+            error: "Spectators cannot submit rankings",
+        });
+
+        return;
+    }
 
     const round = game.currentRound();
 
@@ -439,52 +463,31 @@ function readyForNextRound(
         return;
     }
 
-    // Already ready
-    if (room.readyPlayers.has(player.id)) {
+    if (!room.activePlayerIds.has(player.id)) {
         acknowledge({
-            ok: true,
+            ok: false,
+            error: "Spectators join when the room returns to the lobby",
         });
 
+        return;
+    }
+
+    if (room.readyPlayers.has(player.id)) {
+        acknowledge({ ok: true });
         return;
     }
 
     room.readyPlayers.add(player.id);
 
     console.log(
-        `Player ready for next round: ${player.name} (${room.readyPlayers.size}/${room.players.size})`,
+        `Player returned to lobby: ${player.name} (${room.readyPlayers.size}/${getActiveConnectedRoomPlayers(room).length})`,
     );
 
-    acknowledge({
-        ok: true,
-    });
+    acknowledge({ ok: true });
 
-    if (tryStartNextRoundIfReady(room)) {
+    if (tryReturnToLobbyIfReady(room)) {
         return;
     }
-
-    pushState(room);
-}
-
-function startNextRound(room: Room): void {
-    room.readyPlayers.clear();
-
-    if (!room.game.startRound()) {
-        console.error("Could not start next round");
-        pushState(room);
-        return;
-    }
-
-    const round = room.game.currentRound();
-
-    if (!round) {
-        console.error("Next round was started but no round exists");
-        pushState(room);
-        return;
-    }
-
-    console.log(`Round ${room.game.state.round} started`);
-    console.log("Prompt:", round.prompt);
-    console.log("Words:", round.words);
 
     pushState(room);
 }
@@ -527,11 +530,13 @@ function removePlayerFromRoom(
     socketToRoom.delete(socket.id);
     socket.leave(room.id);
     room.readyPlayers.delete(player.id);
+    room.activePlayerIds.delete(player.id);
     room.players.delete(player.id);
 
     if (room.players.size === 0) {
         room.game = new Game();
         room.readyPlayers.clear();
+        room.activePlayerIds.clear();
         room.hostPlayerId = null;
         return;
     }
@@ -589,6 +594,10 @@ function startRound(socket: Socket): void {
     const game = room.game;
 
     if (player.id !== room.hostPlayerId) return;
+    if (game.state.phase !== "lobby") return;
+
+    setActivePlayersForLobby(room);
+    if (room.activePlayerIds.size === 0) return;
 
     if (!game.startRound()) return;
 
@@ -612,7 +621,7 @@ function tryStartVoting(room: Room): void {
     if (room.game.state.phase !== "answering") return;
 
     const round = room.game.currentRound();
-    const roundPlayers = getConnectedRoomPlayers(room);
+    const roundPlayers = getActiveConnectedRoomPlayers(room);
 
     if (!round || roundPlayers.length === 0) return;
 
@@ -639,7 +648,7 @@ function tryFinishRanking(room: Room): void {
 
     if (!round) return;
 
-    const roundPlayers = getConnectedRoomPlayers(room);
+    const roundPlayers = getActiveConnectedRoomPlayers(room);
 
     if (roundPlayers.length === 0) return;
 
@@ -685,26 +694,44 @@ function advanceRoomAfterMembershipChange(room: Room): boolean {
     tryStartVoting(room);
     tryFinishRanking(room);
 
-    return tryStartNextRoundIfReady(room);
+    return tryReturnToLobbyIfReady(room);
 }
 
-function tryStartNextRoundIfReady(room: Room): boolean {
+function tryReturnToLobbyIfReady(room: Room): boolean {
     if (room.game.state.phase !== "results") {
         return false;
     }
 
-    const roundPlayers = getConnectedRoomPlayers(room);
-
+    const connectedPlayers = getConnectedRoomPlayers(room);
+    const roundPlayers = getActiveConnectedRoomPlayers(room);
     const everyoneReady =
         roundPlayers.length > 0 &&
         roundPlayers.every(player => room.readyPlayers.has(player.id));
+    const noActivePlayersConnected =
+        roundPlayers.length === 0 && connectedPlayers.length > 0;
 
-    if (!everyoneReady) {
+    if (!everyoneReady && !noActivePlayersConnected) {
         return false;
     }
 
-    startNextRound(room);
+    room.game.state.phase = "lobby";
+    setActivePlayersForLobby(room);
+
+    console.log(`Room ${room.id} returned to lobby`);
+
+    pushState(room);
     return true;
+}
+
+function setActivePlayersForLobby(room: Room): void {
+    room.readyPlayers.clear();
+    room.activePlayerIds = new Set(
+        getConnectedRoomPlayers(room).map(player => player.id),
+    );
+}
+
+function getActiveConnectedRoomPlayers(room: Room): Player[] {
+    return getConnectedRoomPlayers(room).filter(player => room.activePlayerIds.has(player.id));
 }
 
 function getConnectedRoomPlayers(room: Room): Player[] {

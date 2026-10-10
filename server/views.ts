@@ -6,29 +6,52 @@ export function viewForPlayer(
     player: Player,
     players: Iterable<Player>,
     readyPlayers: Set<string>,
+    activePlayerIds: Set<string>,
     hostPlayerId: string | null,
 ): PlayerView {
-    const roundPlayers = [...players];
-    const name = player.name;
-    const round = game.currentRound();
+    const roomPlayers = [...players];
+    const connectedPlayers = roomPlayers.filter(player => player.connected);
     const isHost = player.id === hostPlayerId;
+    const isLobbyPhase = game.state.phase === "lobby";
+    const isActive = isLobbyPhase || activePlayerIds.has(player.id);
+    const isSpectator = !isLobbyPhase && !isActive;
+    const activeConnectedPlayers = isLobbyPhase
+        ? connectedPlayers
+        : connectedPlayers.filter(player => activePlayerIds.has(player.id));
+    const readyCount = activeConnectedPlayers.filter(player => readyPlayers.has(player.id)).length;
+    const round = game.currentRound();
     const playerSummaries = summarizePlayers(
         game,
-        roundPlayers,
+        roomPlayers,
+        activePlayerIds,
         hostPlayerId,
     );
     const base = {
-        name,
+        name: player.name,
         isHost,
+        isActive,
+        isSpectator,
         players: playerSummaries,
     };
+    const lobbyView = (): PlayerView => ({
+        ...base,
+        phase: "lobby",
+        isHost,
+        canStartRound: isHost && game.state.phase === "lobby" && connectedPlayers.length > 0,
+        lobbyCount: game.state.phase === "results" ? readyCount : connectedPlayers.length,
+        playerCount: game.state.phase === "results" ? activeConnectedPlayers.length : connectedPlayers.length,
+    });
+
+    if (game.state.phase === "results" && readyPlayers.has(player.id)) {
+        return lobbyView();
+    }
 
     switch (game.state.phase) {
         case "answering": {
-            if (!round) return { ...base, phase: "lobby" };
+            if (!round) return lobbyView();
 
             const mine = round.answers.find(
-                (a) => a.playerId === player.id,
+                (answer) => answer.playerId === player.id,
             );
 
             return {
@@ -38,8 +61,9 @@ export function viewForPlayer(
                 prompt: round.prompt,
                 words: round.words,
                 submitted: mine?.words ?? null,
-                answeredCount: roundPlayers.filter(p => round.answers.some(a => a.playerId === p.id)).length,
-                playerCount: roundPlayers.length,
+                answeredCount: activeConnectedPlayers.filter(player => round.answers.some(answer => answer.playerId === player.id)).length,
+                playerCount: activeConnectedPlayers.length,
+                canSubmit: isActive,
             };
         }
         case "ranking": {
@@ -50,33 +74,27 @@ export function viewForPlayer(
                 round: game.state.round,
                 prompt: round?.prompt ?? "",
                 answers: round?.answers ?? [],
-                hasRanked: hasRanked,
-                rankedCount: roundPlayers.filter(p => round?.rankings.has(p.id)).length,
-                playerCount: roundPlayers.length,
+                hasRanked,
+                rankedCount: activeConnectedPlayers.filter(player => round?.rankings.has(player.id)).length,
+                playerCount: activeConnectedPlayers.length,
+                canRank: isActive,
             };
         }
         case "results": {
-            if (!round) {
-                return {
-                    ...base,
-                    phase: "lobby",
-                };
-            }
+            if (!round) return lobbyView();
 
             const roundResults = round.answers
                 .map(answer => ({
-                    playerName: roundPlayers.find(player => player.id === answer.playerId)?.name ?? "Unknown player",
+                    playerName: roomPlayers.find(player => player.id === answer.playerId)?.name ?? "Unknown player",
                     words: answer.words,
-                    score:
-                        round.scores?.get(answer.id) ?? 0,
+                    score: round.scores?.get(answer.id) ?? 0,
                 }))
                 .sort((a, b) => b.score - a.score);
 
-            const leaderboard = roundPlayers
+            const leaderboard = roomPlayers
                 .map(player => ({
                     playerName: player.name,
-                    totalScore:
-                        game.state.totals.get(player.id) ?? 0,
+                    totalScore: game.state.totals.get(player.id) ?? 0,
                 }))
                 .sort((a, b) => b.totalScore - a.totalScore)
                 .map((player, index) => ({
@@ -91,27 +109,31 @@ export function viewForPlayer(
                 prompt: round.prompt,
                 roundResults,
                 leaderboard,
-                readyCount: readyPlayers.size,
-                playerCount: roundPlayers.length,
+                readyCount,
+                playerCount: activeConnectedPlayers.length,
                 isReady: readyPlayers.has(player.id),
+                canReady: isActive,
             };
         }
         case "lobby":
-            return { ...base, phase: "lobby" };
+            return lobbyView();
     }
 }
 
 function summarizePlayers(
     game: Game,
     players: Player[],
+    activePlayerIds: Set<string>,
     hostPlayerId: string | null,
 ): PlayerSummary[] {
     const round = game.currentRound();
+    const isLobbyPhase = game.state.phase === "lobby";
 
     return players.map((player) => ({
         name: player.name,
         connected: player.connected,
         isHost: player.id === hostPlayerId,
+        isActive: isLobbyPhase || activePlayerIds.has(player.id),
         answered: round?.answers.some((answer) => answer.playerId === player.id) ?? false,
         ranked: round?.rankings.has(player.id) ?? false,
         score: game.state.totals.get(player.id) ?? 0,
@@ -121,18 +143,21 @@ function summarizePlayers(
 export function viewForHost(
     game: Game,
     players: Iterable<Player>,
+    activePlayerIds: Set<string>,
 ): HostView {
     const round = game.currentRound();
+    const isLobbyPhase = game.state.phase === "lobby";
 
     return {
         phase: game.state.phase,
         round: game.state.round,
         prompt: round?.prompt ?? null,
-        players: [...players].map((p) => ({
-            playerInfo: p,
-            answered: round?.answers.some((a) => a.playerId === p.id) ?? false,
-            ranked: round?.rankings.has(p.id) ?? false,
-            score: game.state.totals.get(p.id) ?? 0,
+        players: [...players].map((player) => ({
+            playerInfo: player,
+            isActive: isLobbyPhase || activePlayerIds.has(player.id),
+            answered: round?.answers.some((answer) => answer.playerId === player.id) ?? false,
+            ranked: round?.rankings.has(player.id) ?? false,
+            score: game.state.totals.get(player.id) ?? 0,
         })),
         answers: []
     };

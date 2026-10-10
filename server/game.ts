@@ -24,10 +24,7 @@ export class Game {
     }
     
 startRound(): boolean {
-    if (
-        this.state.phase !== "lobby" &&
-        this.state.phase !== "results"
-    ) {
+    if (this.state.phase !== "lobby") {
         return false;
     }
 

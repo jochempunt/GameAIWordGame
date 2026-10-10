@@ -39,6 +39,7 @@ export type PlayerSummary = {
     name: string;
     connected: boolean;
     isHost: boolean;
+    isActive: boolean;
     answered: boolean;
     ranked: boolean;
     score: number;
@@ -47,9 +48,17 @@ export type PlayerSummary = {
 export type PlayerView = {
     name: string;
     isHost: boolean;
+    isActive: boolean;
+    isSpectator: boolean;
     players: PlayerSummary[];
 } & (
-    | { phase: "lobby"; isHost: boolean }
+    | {
+        phase: "lobby";
+        isHost: boolean;
+        canStartRound: boolean;
+        lobbyCount: number;
+        playerCount: number;
+    }
     | {
         phase: "results";
         round: number;
@@ -66,9 +75,28 @@ export type PlayerView = {
         readyCount: number;
         playerCount: number;
         isReady: boolean;
+        canReady: boolean;
     }
-    | { phase: "answering"; round: number; prompt: string; words: string[], submitted: string[] | null; answeredCount: number; playerCount: number }
-    | { phase: "ranking"; round: number; prompt: string; answers: Answer[], hasRanked: boolean; rankedCount: number; playerCount: number }
+    | {
+        phase: "answering";
+        round: number;
+        prompt: string;
+        words: string[];
+        submitted: string[] | null;
+        answeredCount: number;
+        playerCount: number;
+        canSubmit: boolean;
+    }
+    | {
+        phase: "ranking";
+        round: number;
+        prompt: string;
+        answers: Answer[];
+        hasRanked: boolean;
+        rankedCount: number;
+        playerCount: number;
+        canRank: boolean;
+    }
 );
 
 
@@ -78,6 +106,7 @@ export type HostView = {
     prompt: string | null;
     players: {
         playerInfo: Player;
+        isActive: boolean;
         answered: boolean;
         ranked: boolean;
         score: number
@@ -90,5 +119,6 @@ export type Room = {
     game: Game;
     players: Map<string, Player>;
     readyPlayers: Set<string>;
+    activePlayerIds: Set<string>;
     hostPlayerId: string | null;
 }
