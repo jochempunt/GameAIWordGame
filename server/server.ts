@@ -127,6 +127,14 @@ io.on("connection", (socket) => {
         );
     });
 
+    socket.on("kickPlayer", (playerId, acknowledge) => {
+        kickPlayer(socket, playerId, safeAcknowledge(acknowledge));
+    });
+
+    socket.on("transferHost", (playerId, acknowledge) => {
+        transferHostFromSocket(socket, playerId, safeAcknowledge(acknowledge));
+    });
+
     socket.on("disconnect", () => {
         disconnectPlayer(socket);
     });
@@ -521,6 +529,67 @@ function leaveGame(
     pushState(room);
 }
 
+function kickPlayer(
+    socket: Socket,
+    targetPlayerId: string,
+    acknowledge: (response: { ok: boolean; error?: string }) => void,
+): void {
+    const result = getPlayerBySocketId(socket.id);
+    if (!result) {
+        acknowledge({ ok: false, error: "Player not found" });
+        return;
+    }
+
+    const { player, room } = result;
+    if (player.id !== room.hostPlayerId) {
+        acknowledge({ ok: false, error: "Only the host can kick players" });
+        return;
+    }
+
+    const target = room.players.get(targetPlayerId);
+    if (!target) {
+        acknowledge({ ok: false, error: "Player not found" });
+        return;
+    }
+
+    io.to(target.socketId).emit("kicked");
+    removePlayerFromRoom({ id: target.socketId, leave: (roomId: string) => io.sockets.sockets.get(target.socketId)?.leave(roomId) } as Socket, room, target);
+
+    acknowledge({ ok: true });
+
+    if (advanceRoomAfterMembershipChange(room)) {
+        return;
+    }
+
+    pushState(room);
+}
+
+function transferHostFromSocket(
+    socket: Socket,
+    targetPlayerId: string,
+    acknowledge: (response: { ok: boolean; error?: string }) => void,
+): void {
+    const result = getPlayerBySocketId(socket.id);
+    if (!result) {
+        acknowledge({ ok: false, error: "Player not found" });
+        return;
+    }
+
+    const { player, room } = result;
+    if (player.id !== room.hostPlayerId) {
+        acknowledge({ ok: false, error: "Only the host can transfer host" });
+        return;
+    }
+
+    const nextHost = transferHost(room, targetPlayerId);
+    if (!nextHost) {
+        acknowledge({ ok: false, error: "Could not transfer host" });
+        return;
+    }
+
+    acknowledge({ ok: true });
+    pushState(room);
+}
 function removePlayerFromRoom(
     socket: Socket,
     room: Room,

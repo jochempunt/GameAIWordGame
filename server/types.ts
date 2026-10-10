@@ -36,6 +36,7 @@ export type GameState = {
 };
 
 export type PlayerSummary = {
+    id: string;
     name: string;
     connected: boolean;
     isHost: boolean;

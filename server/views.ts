@@ -1,6 +1,8 @@
 import type { Game } from "./game.js";
 import type { HostView, Player, PlayerSummary, PlayerView } from "./types.js";
 
+const MIN_PLAYERS_TO_START = 3;
+
 export function viewForPlayer(
     game: Game,
     player: Player,
@@ -37,7 +39,7 @@ export function viewForPlayer(
         ...base,
         phase: "lobby",
         isHost,
-        canStartRound: isHost && game.state.phase === "lobby" && connectedPlayers.length > 0,
+        canStartRound: isHost && game.state.phase === "lobby" && connectedPlayers.length >= MIN_PLAYERS_TO_START,
         lobbyCount: game.state.phase === "results" ? readyCount : connectedPlayers.length,
         playerCount: game.state.phase === "results" ? activeConnectedPlayers.length : connectedPlayers.length,
     });
@@ -130,6 +132,7 @@ function summarizePlayers(
     const isLobbyPhase = game.state.phase === "lobby";
 
     return players.map((player) => ({
+        id: player.id,
         name: player.name,
         connected: player.connected,
         isHost: player.id === hostPlayerId,

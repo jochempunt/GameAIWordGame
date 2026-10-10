@@ -1158,3 +1158,16 @@ h1.prompt {
         flex: 1;
     }
 }
+
+.host-player-controls {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.host-player-controls button {
+    flex: 1;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 0 var(--blue-dark);
+}

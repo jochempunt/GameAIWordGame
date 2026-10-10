@@ -88,6 +88,7 @@ socket.on("connect", () => {
 });
 
 socket.on("state", render);
+socket.on("kicked", () => returnToRoomSelection("You were kicked from the room."));
 
 function render(view: PlayerView): void {
     hideAll();
@@ -273,9 +274,37 @@ function renderRoomOverview(view: PlayerView): void {
         score.textContent = `${player.score} pts`;
 
         item.append(position, identity, score);
+
+        if (view.isHost) {
+            const controls = document.createElement("div");
+            controls.classList.add("host-player-controls");
+
+            const kickButton = document.createElement("button");
+            kickButton.type = "button";
+            kickButton.textContent = "Kick";
+            kickButton.addEventListener("click", () => emitHostPlayerAction("kickPlayer", player.id));
+
+            const transferButton = document.createElement("button");
+            transferButton.type = "button";
+            transferButton.textContent = "Transfer Host";
+            transferButton.disabled = player.isHost || !player.connected;
+            transferButton.addEventListener("click", () => emitHostPlayerAction("transferHost", player.id));
+
+            controls.append(kickButton, transferButton);
+            item.appendChild(controls);
+        }
+
         item.classList.toggle("disconnected", !player.connected);
         roomPlayers.appendChild(item);
     }
+}
+
+function emitHostPlayerAction(event: "kickPlayer" | "transferHost", playerId: string): void {
+    socket.emit(event, playerId, (response: { ok: boolean; error?: string }) => {
+        if (!response.ok) {
+            console.error(response.error ?? "Host action failed");
+        }
+    });
 }
 
 function roomStatusText(view: PlayerView): string {
