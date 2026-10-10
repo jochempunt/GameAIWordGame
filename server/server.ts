@@ -72,7 +72,18 @@ function pushState(room: Room): void {
 
 
 io.on("connection", (socket) => {
-    socket.on("getJoinAddress", (acknowledge) => {
+    // an error thrown inside a socket handler would otherwise crash the whole server
+    const on = (event: string, handler: (...args: any[]) => void): void => {
+        socket.on(event, (...args: any[]) => {
+            try {
+                handler(...args);
+            } catch (error) {
+                console.error(`Error handling "${event}" from socket ${socket.id}:`, error);
+            }
+        });
+    };
+
+    on("getJoinAddress", (acknowledge) => {
         const address = Object.values(networkInterfaces()).flat()
             .find(info => info?.family === "IPv4" && !info.internal)?.address;
         safeAcknowledge<{ address: string | null }>(acknowledge)({ address: address ?? null });
@@ -89,23 +100,23 @@ io.on("connection", (socket) => {
     //     registerHost(socket);
     // });
 
-    socket.on("join", (roomId, name, acknowledge) => {
+    on("join", (roomId, name, acknowledge) => {
         joinPlayer(socket, roomId, name, safeAcknowledge(acknowledge));
     });
 
-    socket.on("rejoin", (playerId, acknowledge) => {
+    on("rejoin", (playerId, acknowledge) => {
         rejoinPlayer(socket, playerId, safeAcknowledge(acknowledge));
     });
 
-    socket.on("startRound", () => {
+    on("startRound", () => {
         startRound(socket);
     });
 
-    socket.on("submitAnswer", (words, acknowledge) => {
+    on("submitAnswer", (words, acknowledge) => {
         submitAnswer(socket, words, safeAcknowledge(acknowledge));
     });
 
-    socket.on("submitRanking", (rankedAnswerIds, acknowledge) => {
+    on("submitRanking", (rankedAnswerIds, acknowledge) => {
         submitRanking(
             socket,
             rankedAnswerIds,
@@ -113,29 +124,29 @@ io.on("connection", (socket) => {
         );
     });
 
-    socket.on("readyForNextRound", (acknowledge) => {
+    on("readyForNextRound", (acknowledge) => {
         readyForNextRound(
             socket,
             safeAcknowledge(acknowledge),
         );
     });
 
-    socket.on("leaveGame", (acknowledge) => {
+    on("leaveGame", (acknowledge) => {
         leaveGame(
             socket,
             safeAcknowledge(acknowledge),
         );
     });
 
-    socket.on("kickPlayer", (playerId, acknowledge) => {
+    on("kickPlayer", (playerId, acknowledge) => {
         kickPlayer(socket, playerId, safeAcknowledge(acknowledge));
     });
 
-    socket.on("transferHost", (playerId, acknowledge) => {
+    on("transferHost", (playerId, acknowledge) => {
         transferHostFromSocket(socket, playerId, safeAcknowledge(acknowledge));
     });
 
-    socket.on("disconnect", () => {
+    on("disconnect", () => {
         disconnectPlayer(socket);
     });
 });
@@ -145,15 +156,15 @@ io.on("connection", (socket) => {
 
 function joinPlayer(
     socket: Socket,
-    roomId: String,
-    name: string,
+    roomId: unknown,
+    name: unknown,
     acknowledge: (response: {
         ok: boolean;
         playerId?: string;
         error?: string;
     }) => void,
 ): void {
-    const room = rooms.get(roomId.toUpperCase());
+    const room = typeof roomId === "string" ? rooms.get(roomId.toUpperCase()) : undefined;
 
     if (!room) {
         acknowledge({ ok: false, error: "Room not found" });
@@ -376,6 +387,20 @@ function submitRanking(
         acknowledge({
             ok: false,
             error: "You have already submitted your ranking",
+        });
+
+        return;
+    }
+
+    if (
+        !Array.isArray(rankedAnswerIds) ||
+        !rankedAnswerIds.every(
+            (answerId) => typeof answerId === "string",
+        )
+    ) {
+        acknowledge({
+            ok: false,
+            error: "Invalid ranking",
         });
 
         return;
