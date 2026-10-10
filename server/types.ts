@@ -4,7 +4,8 @@ type AnswerId = string;
 import type { Game } from "./game.js"
 
 export type Player = {
-    id: string;
+    id: string; // public, shown to the whole room
+    token: string; // secret, only ever sent to the player it belongs to
     socketId: string;
     name: string;
     connected: boolean;
@@ -92,7 +93,7 @@ export type PlayerView = {
         phase: "ranking";
         round: number;
         prompt: string;
-        answers: Answer[];
+        answers: { id: AnswerId; words: string[] }[];
         hasRanked: boolean;
         rankedCount: number;
         playerCount: number;

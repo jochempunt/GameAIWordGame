@@ -75,7 +75,12 @@ export function viewForPlayer(
                 phase: "ranking",
                 round: game.state.round,
                 prompt: round?.prompt ?? "",
-                answers: round?.answers ?? [],
+                // only the other players' answers, without their author, and sorted by
+                // their random id so the order does not reveal who submitted first
+                answers: (round?.answers ?? [])
+                    .filter(answer => answer.playerId !== player.id)
+                    .map(answer => ({ id: answer.id, words: answer.words }))
+                    .sort((a, b) => a.id.localeCompare(b.id)),
                 hasRanked,
                 rankedCount: activeConnectedPlayers.filter(player => round?.rankings.has(player.id)).length,
                 playerCount: activeConnectedPlayers.length,

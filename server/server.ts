@@ -27,7 +27,6 @@ const io = new Server(httpServer);
 
 
 const rooms = new Map<string, Room>();
-const socketToRoom = new Map<string, string>();
 
 const ROOM_CODES = ["AAAA", "BBBB", "CCCC", "DDDD"];
 const MIN_PLAYERS_TO_START = 3;
@@ -104,8 +103,8 @@ io.on("connection", (socket) => {
         joinPlayer(socket, roomId, name, safeAcknowledge(acknowledge));
     });
 
-    on("rejoin", (playerId, acknowledge) => {
-        rejoinPlayer(socket, playerId, safeAcknowledge(acknowledge));
+    on("rejoin", (token, acknowledge) => {
+        rejoinPlayer(socket, token, safeAcknowledge(acknowledge));
     });
 
     on("startRound", () => {
@@ -160,10 +159,16 @@ function joinPlayer(
     name: unknown,
     acknowledge: (response: {
         ok: boolean;
-        playerId?: string;
+        token?: string;
         error?: string;
     }) => void,
 ): void {
+    // one socket controls at most one player
+    if (getPlayerBySocket(socket)) {
+        acknowledge({ ok: false, error: "You are already in a room" });
+        return;
+    }
+
     const room = typeof roomId === "string" ? rooms.get(roomId.toUpperCase()) : undefined;
 
     if (!room) {
@@ -182,6 +187,7 @@ function joinPlayer(
 
     const player: Player = {
         id: crypto.randomUUID(),
+        token: crypto.randomUUID(),
         socketId: socket.id,
         name: name.trim(),
         connected: true,
@@ -191,8 +197,7 @@ function joinPlayer(
     if (room.game.state.phase === "lobby") {
         room.activePlayerIds.add(player.id);
     }
-    socketToRoom.set(socket.id, room.id);
-    socket.join(room.id);
+    attachSocket(socket, room, player);
 
     if (!room.hostPlayerId) {
         transferHost(room, player.id);
@@ -204,7 +209,7 @@ function joinPlayer(
 
     acknowledge({
         ok: true,
-        playerId: player.id,
+        token: player.token,
     });
 
     if (advanceRoomAfterMembershipChange(room)) {
@@ -215,24 +220,16 @@ function joinPlayer(
 }
 function rejoinPlayer(
     socket: Socket,
-    playerId: string,
+    token: unknown,
     acknowledge: (response: {
         ok: boolean;
         name?: string;
         error?: string;
     }) => void,
 ): void {
-    let foundRoom: Room | undefined;
-    let foundPlayer: Player | undefined;
+    const found = typeof token === "string" ? getPlayerByToken(token) : undefined;
 
-    for (const room of rooms.values()) {
-        if (room.players.has(playerId)) {
-            foundRoom = room;
-            foundPlayer = room.players.get(playerId);
-            break;
-        }
-    }
-    if (!foundPlayer || !foundRoom) {
+    if (!found) {
         acknowledge({
             ok: false,
             error: "Player not found",
@@ -240,13 +237,24 @@ function rejoinPlayer(
         return;
     }
 
-    foundPlayer.socketId = socket.id;
-    foundPlayer.connected = true;
+    const { player: foundPlayer, room: foundRoom } = found;
+    const current = getPlayerBySocket(socket);
+
+    if (current && current.player !== foundPlayer) {
+        acknowledge({ ok: false, error: "You are already in a room" });
+        return;
+    }
+
+    // the same player may still be open on an older socket (e.g. another tab)
+    const previousSocket = io.sockets.sockets.get(foundPlayer.socketId);
+    if (previousSocket && previousSocket.id !== socket.id) {
+        detachSocket(previousSocket, foundRoom);
+    }
+
+    attachSocket(socket, foundRoom, foundPlayer);
     if (foundRoom.game.state.phase === "lobby") {
         foundRoom.activePlayerIds.add(foundPlayer.id);
     }
-    socketToRoom.set(socket.id, foundRoom.id);
-    socket.join(foundRoom.id);
 
     if (!foundRoom.hostPlayerId) {
         transferHost(foundRoom, foundPlayer.id);
@@ -275,7 +283,7 @@ function submitAnswer(
         error?: string;
     }) => void,
 ): void {
-    const result = getPlayerBySocketId(socket.id);
+    const result = getPlayerBySocket(socket);
 
     if (!result) {
         acknowledge({
@@ -349,7 +357,7 @@ function submitRanking(
         error?: string;
     }) => void,
 ): void {
-    const result = getPlayerBySocketId(socket.id);
+    const result = getPlayerBySocket(socket);
 
     if (!result) {
         acknowledge({
@@ -474,7 +482,7 @@ function readyForNextRound(
         error?: string;
     }) => void,
 ): void {
-    const result = getPlayerBySocketId(socket.id);
+    const result = getPlayerBySocket(socket);
 
     if (!result) {
         acknowledge({
@@ -532,7 +540,7 @@ function leaveGame(
         error?: string;
     }) => void,
 ): void {
-    const result = getPlayerBySocketId(socket.id);
+    const result = getPlayerBySocket(socket);
 
     if (!result) {
         acknowledge({ ok: true });
@@ -541,7 +549,7 @@ function leaveGame(
 
     const { player, room } = result;
 
-    removePlayerFromRoom(socket, room, player);
+    removePlayerFromRoom(room, player);
 
     console.log(`Player left room ${room.id}: ${player.name}`);
 
@@ -559,7 +567,7 @@ function kickPlayer(
     targetPlayerId: string,
     acknowledge: (response: { ok: boolean; error?: string }) => void,
 ): void {
-    const result = getPlayerBySocketId(socket.id);
+    const result = getPlayerBySocket(socket);
     if (!result) {
         acknowledge({ ok: false, error: "Player not found" });
         return;
@@ -578,7 +586,7 @@ function kickPlayer(
     }
 
     io.to(target.socketId).emit("kicked");
-    removePlayerFromRoom({ id: target.socketId, leave: (roomId: string) => io.sockets.sockets.get(target.socketId)?.leave(roomId) } as Socket, room, target);
+    removePlayerFromRoom(room, target);
 
     acknowledge({ ok: true });
 
@@ -594,7 +602,7 @@ function transferHostFromSocket(
     targetPlayerId: string,
     acknowledge: (response: { ok: boolean; error?: string }) => void,
 ): void {
-    const result = getPlayerBySocketId(socket.id);
+    const result = getPlayerBySocket(socket);
     if (!result) {
         acknowledge({ ok: false, error: "Player not found" });
         return;
@@ -616,14 +624,15 @@ function transferHostFromSocket(
     pushState(room);
 }
 function removePlayerFromRoom(
-    socket: Socket,
     room: Room,
     player: Player,
 ): void {
     const wasHost = room.hostPlayerId === player.id;
+    const socket = io.sockets.sockets.get(player.socketId);
 
-    socketToRoom.delete(socket.id);
-    socket.leave(room.id);
+    if (socket?.data.playerId === player.id) {
+        detachSocket(socket, room);
+    }
     room.readyPlayers.delete(player.id);
     room.activePlayerIds.delete(player.id);
     room.players.delete(player.id);
@@ -660,13 +669,12 @@ function transferHost(
     return nextHost;
 }
 function disconnectPlayer(socket: Socket): void {
-    const result = getPlayerBySocketId(socket.id);
+    const result = getPlayerBySocket(socket);
     if (!result) return;
 
     const { player, room } = result;
 
     player.connected = false;
-    socketToRoom.delete(socket.id);
     console.log(`Player disconnected: ${player.name} from room ${room.id}`);
 
     if (player.id === room.hostPlayerId) {
@@ -682,7 +690,7 @@ function disconnectPlayer(socket: Socket): void {
 }
 
 function startRound(socket: Socket): void {
-    const result = getPlayerBySocketId(socket.id);
+    const result = getPlayerBySocket(socket);
     if (!result) return;
 
     const { player, room } = result;
@@ -849,18 +857,38 @@ function getConnectedRoomPlayers(room: Room): Player[] {
 //     );
 // }
 
-function getPlayerBySocketId(socketId: string): { player: Player, room: Room } | undefined {
-    const roomId = socketToRoom.get(socketId);
-    if (!roomId) return undefined;
+// socket.data remembers which player a socket controls
+function attachSocket(socket: Socket, room: Room, player: Player): void {
+    player.socketId = socket.id;
+    player.connected = true;
+    socket.data.roomId = room.id;
+    socket.data.playerId = player.id;
+    socket.join(room.id);
+}
 
-    const room = rooms.get(roomId);
-    if (!room) return undefined;
+function detachSocket(socket: Socket, room: Room): void {
+    socket.data.roomId = undefined;
+    socket.data.playerId = undefined;
+    socket.leave(room.id);
+}
 
-    const player = room.players.get(socketId);
+function getPlayerBySocket(socket: Socket): { player: Player, room: Room } | undefined {
+    const room = rooms.get(socket.data.roomId);
+    const player = room?.players.get(socket.data.playerId);
 
-    const foundPlayer = [...room.players.values()].find((p) => p.socketId === socketId);
-    if (!foundPlayer) return undefined;
-    return { player: foundPlayer, room };
+    // a newer socket may have taken over this player since (rejoin from another tab)
+    if (!room || !player || player.socketId !== socket.id) return undefined;
+    return { player, room };
+}
+
+function getPlayerByToken(token: string): { player: Player, room: Room } | undefined {
+    for (const room of rooms.values()) {
+        for (const player of room.players.values()) {
+            if (player.token === token) return { player, room };
+        }
+    }
+
+    return undefined;
 }
 //  ---- Start server ----
 httpServer.listen(PORT, HOST, () => {

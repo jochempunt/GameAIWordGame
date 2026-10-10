@@ -70,18 +70,18 @@ let skipNextPromptAnimation = false;
 
 
 socket.on("connect", () => {
-    const playerId = localStorage.getItem("playerId");
-    
-    if (!playerId) {
+    const sessionToken = localStorage.getItem("sessionToken");
+
+    if (!sessionToken) {
         showJoin();
         return;
     }
-    
+
     skipNextPromptAnimation = true;
-    
-    socket.emit("rejoin", playerId, (res: { ok: boolean }) => {
+
+    socket.emit("rejoin", sessionToken, (res: { ok: boolean }) => {
         if (!res.ok) {
-            localStorage.removeItem("playerId");
+            localStorage.removeItem("sessionToken");
             showJoin();
         }
     });
@@ -164,7 +164,7 @@ function showJoin(): void {
 }
 
 function returnToRoomSelection(message = "Choose a room to join."): void {
-    localStorage.removeItem("playerId");
+    localStorage.removeItem("sessionToken");
     selectedWords = [];
     availableWords = [];
     rankedAnswers = [];
@@ -205,19 +205,24 @@ joinForm.addEventListener("submit", (event) => {
     
     statusText.classList.remove("status-error");
     statusText.textContent = `Joining Room ${roomId}...`;
-    
+
+    // no second join while the first one is still on its way
+    joinSubmitButton.disabled = true;
+
     socket.emit(
         "join",
         roomId,
         name,
-        (response: { ok: boolean; playerId?: string; error?: string }) => {
-            if (!response.ok || !response.playerId) {
+        (response: { ok: boolean; token?: string; error?: string }) => {
+            joinSubmitButton.disabled = false;
+
+            if (!response.ok || !response.token) {
                 statusText.textContent = response.error ?? "Could not join";
                 statusText.classList.add("status-error");
                 return;
             }
-            
-            localStorage.setItem("playerId", response.playerId);
+
+            localStorage.setItem("sessionToken", response.token);
         },
     );
 });
@@ -591,16 +596,13 @@ function renderRanking(view: ViewOf<"ranking">): void {
     rankingView.hidden = false;
     setPrompt(view.prompt, view.round);
     
-    const localPlayerId = localStorage.getItem("playerId");
-    
     currentRankingView = view;
-    
+
     if (rankingRound !== view.round) {
         rankingRound = view.round;
-        
-        rankedAnswers = view.answers
-        .filter(answer => answer.playerId !== localPlayerId)
-        .map(answer => answer.id);
+
+        // the server only sends the answers this player has to rank
+        rankedAnswers = view.answers.map(answer => answer.id);
         
         selectedAnswerId = null;
     }
@@ -937,18 +939,8 @@ rankingSubmitButton.addEventListener("click", () => {
         return;
     }
     
-    const localPlayerId = localStorage.getItem("playerId");
-    
-    if (!localPlayerId) {
-        return;
-    }
-    
-    const answerCount = currentRankingView.answers.filter(
-        answer => answer.playerId !== localPlayerId,
-    ).length;
-    
     // Make sure every answer has been ranked.
-    if (rankedAnswers.length !== answerCount) {
+    if (rankedAnswers.length !== currentRankingView.answers.length) {
         return;
     }
     
