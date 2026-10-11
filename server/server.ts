@@ -123,7 +123,7 @@ io.on("connection", (socket) => {
     });
     
     socket.on("join", (name, acknowledge) => {
-        joinPlayer(socket, name,safeAcknowledge(acknowledge));
+        runGameAction(joinPlayer(socket, name, safeAcknowledge(acknowledge)));
     });
     
     socket.on("rejoin", (playerId, acknowledge) => {
@@ -172,7 +172,7 @@ function registerHost(socket: Socket): void {
     pushState();
 }
 
-function joinPlayer(
+async function joinPlayer(
     socket: Socket,
     name: string,
     acknowledge: (response: {
@@ -180,7 +180,7 @@ function joinPlayer(
         playerId?: string;
         error?: string;
     }) => void,
-): void {
+): Promise<void> {
     if (game.state.phase !== "lobby") {
         acknowledge({
             ok: false,
@@ -207,6 +207,7 @@ function joinPlayer(
     };
     
     players.set(player.id, player);
+    game.recordPlayer(player.id, player.name);
     
     console.log(
         `Player joined: ${player.name} (${player.id})`,
@@ -218,6 +219,7 @@ function joinPlayer(
         ok: true,
         playerId: player.id,
     });
+    await saveGame(game);
 }
 
 function rejoinPlayer(
@@ -489,7 +491,7 @@ async function readyForNextRound(
 async function startNextRound(): Promise<void> {
     readyPlayers.clear();
     
-    if (!game.startRound()) {
+    if (!game.startRound(getConnectedPlayers().map(player => player.id))) {
         console.error("Could not start next round");
         pushState();
         return;
@@ -533,7 +535,7 @@ async function startRound(socket: Socket): Promise<void> {
         return;
     }
     
-    if (!game.startRound()) {
+    if (!game.startRound(getConnectedPlayers().map(player => player.id))) {
         return;
     }
     

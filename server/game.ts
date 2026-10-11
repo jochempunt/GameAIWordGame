@@ -16,16 +16,29 @@ export class Game {
     state: GameState = {
         phase: "lobby",
         round: 0,
+        players: new Map(),
         rounds: new Map<number, RoundState>(),
         totals: new Map<string, number>()
     };
     
+    recordPlayer(playerId: string, name: string): void {
+        if (this.state.players.has(playerId)) {
+            return;
+        }
+
+        this.state.players.set(playerId, {
+            id: playerId,
+            name,
+            joinedAt: new Date(),
+        });
+    }
+
     
     currentRound(): RoundState | undefined {
         return this.state.rounds.get(this.state.round);
     }
     
-startRound(): boolean {
+startRound(playerIds: string[] = []): boolean {
     if (
         this.state.phase !== "lobby" &&
         this.state.phase !== "results"
@@ -38,6 +51,7 @@ startRound(): boolean {
     const round: RoundState = {
         prompt: this.randomPrompt(),
         words: this.randomWords(WORD_COUNT),
+        playerIds: [...new Set(playerIds)],
         answers: [],
         rankings: new Map<string, string[]>(),
     };

@@ -1,17 +1,19 @@
 import { getDatabase } from "./db.js";
 import { Game } from "../game.js";
-import type { GameState, RoundState } from "../types.js";
+import type { GamePlayer, GameState, RoundState } from "../types.js";
 
 const GAMES_COLLECTION_NAME = "games";
 
-type StoredRound = Omit<RoundState, "rankings" | "scores"> & {
+type StoredRound = Omit<RoundState, "rankings" | "scores" | "playerIds"> & {
+  playerIds?: string[];
   rankings: [string, string[]][];
   scores?: [string, number][];
 };
 
 type StoredGame = {
   _id: string;
-  state: Omit<GameState, "rounds" | "totals"> & {
+  state: Omit<GameState, "players" | "rounds" | "totals"> & {
+    players?: [string, GamePlayer][];
     rounds: [number, StoredRound][];
     totals: [string, number][];
   };
@@ -27,6 +29,7 @@ export async function saveGame(game: Game): Promise<string> {
     _id: game.id,
     state: {
       ...game.state,
+      players: [...game.state.players],
       totals: [...game.state.totals],
       rounds: [...game.state.rounds].map(([number, round]) => [number, {
         ...round,
@@ -53,9 +56,11 @@ export async function getGame(id: string): Promise<Game | null> {
   const game = new Game(document._id);
   game.state = {
     ...document.state,
+    players: new Map(document.state.players ?? []),
     totals: new Map(document.state.totals),
     rounds: new Map(document.state.rounds.map(([number, round]) => [number, {
       ...round,
+      playerIds: round.playerIds ?? [],
       rankings: new Map(round.rankings),
       scores: round.scores ? new Map(round.scores) : undefined,
     }])),
