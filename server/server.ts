@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { Game, MIN_PLAYERS_TO_START } from "./game.js";
 import type { Player } from "./types.js";
 import { viewForPlayer } from "./views.js";
-import type { Room } from "./types.js";
+import type { Room, RoomSummary } from "./types.js";
 
 
 // ---- Setup ----
@@ -54,7 +54,17 @@ function safeAcknowledge<T>(fn: unknown): Ack<T> {  // if something passes non f
 
 
 // ---- server state ----
+function roomSummaries(): RoomSummary[] {
+    return [...rooms.values()].map(room => ({
+        id: room.id,
+        playerCount: room.players.size,
+        capacity: MAX_PLAYERS_PER_ROOM,
+        phase: room.game.state.phase,
+    }));
+}
+
 function pushState(room: Room): void {
+    io.emit("rooms", roomSummaries());
 
     for (const player of [...room.players.values()].filter(p => p.connected)) {
         io.to(player.socketId).emit(
@@ -76,6 +86,7 @@ function pushState(room: Room): void {
 
 
 io.on("connection", (socket) => {
+    socket.emit("rooms", roomSummaries());
     // an error thrown inside a socket handler would otherwise crash the whole server
     const on = (event: string, handler: (...args: any[]) => void): void => {
         socket.on(event, (...args: any[]) => {
