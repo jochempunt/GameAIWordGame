@@ -1,5 +1,5 @@
 import { io } from "socket.io-client";
-import type { PlayerView } from "../../server/types.js";
+import type { PlayerView, RoomSummary } from "../../server/types.js";
 
 const socket = io();
 
@@ -11,9 +11,9 @@ const joinForm = document.querySelector<HTMLFormElement>("#join-form")!;
 const nameInput = document.querySelector<HTMLInputElement>("#name")!;
 const statusText = document.querySelector<HTMLParagraphElement>("#status")!;
 
-const roomCards = document.querySelectorAll<HTMLButtonElement>(".room-card");
-const selectedRoomInput = document.querySelector<HTMLInputElement>("#selected-room")!;
-const joinSubmitButton = document.querySelector<HTMLButtonElement>("#join-submit")!;
+const roomCards = document.querySelector<HTMLDivElement>(".room-cards")!;
+let rooms: RoomSummary[] = [];
+let joiningRoomId: string | null = null;
 const startRoundButton = document.querySelector<HTMLButtonElement>("#start-round")!;
 const startRoundRequirement = document.querySelector<HTMLElement>("#start-round-requirement")!;
 const roomOverview = document.querySelector<HTMLElement>("#room-overview")!;
@@ -88,6 +88,15 @@ socket.on("connect", () => {
     });
 });
 
+socket.on("rooms", (summaries: RoomSummary[]) => {
+    rooms = summaries;
+    renderRoomCards();
+});
+socket.on("disconnect", () => {
+    joiningRoomId = null;
+    renderRoomCards();
+    statusText.textContent = "Reconnecting...";
+});
 socket.on("state", render);
 socket.on("kicked", () => returnToRoomSelection("You were kicked from the room."));
 
@@ -160,7 +169,8 @@ function showJoin(): void {
     hideAll();
     joinView.hidden = false;
     roomOverview.hidden = true;
-    statusText.textContent = "Connected";
+    renderRoomCards();
+    statusText.textContent = "Choose a room to join.";
     statusText.classList.remove("status-error");
 }
 
@@ -176,57 +186,78 @@ function returnToRoomSelection(message = "Choose a room to join."): void {
     hasRenderedOnce = false;
     skipNextPromptAnimation = false;
 
-    selectedRoomInput.value = "";
-    joinSubmitButton.disabled = true;
-
-    for (const card of roomCards) {
-        card.classList.remove("selected");
-    }
+    joiningRoomId = null;
 
     showJoin();
     statusText.textContent = message;
 }
 
-for (const card of roomCards) {
-    card.addEventListener("click", () => {
-        for (const c of roomCards) c.classList.remove("selected");
-        card.classList.add("selected");
-        selectedRoomInput.value = card.dataset.roomId!;
-        joinSubmitButton.disabled = false;
+function renderRoomCards(): void {
+    roomCards.replaceChildren();
+    rooms.forEach(room => {
+        const card = document.createElement("article");
+        card.className = "room-card";
+        const heading = document.createElement("div");
+        heading.className = "room-card-heading";
+        const title = document.createElement("h3");
+        title.append("ROOM: ");
+        const code = document.createElement("span");
+        code.className = "room-code wordmark-highlight";
+        code.textContent = room.id;
+        title.append(code);
+        heading.append(title);
+
+        const count = document.createElement("p");
+        count.className = "room-player-count";
+        count.textContent = `${room.playerCount} / ${room.capacity} players joined`;
+        const full = room.playerCount >= room.capacity;
+        const status = document.createElement("p");
+        status.className = "room-card-status";
+        status.textContent = full ? "Room full" : room.phase !== "lobby"
+            ? "Round in progress · Join to watch"
+            : room.playerCount === 0 ? "Be the first to join" : "In the lobby · Come on in";
+
+        const button = document.createElement("button");
+        button.type = "submit";
+        button.value = room.id;
+        button.className = "room-join";
+        button.textContent = joiningRoomId === room.id ? "Joining..." : full ? "Full" : "Join room";
+        button.setAttribute("aria-label", `Join room ${room.id}`);
+        button.disabled = full || joiningRoomId !== null || !socket.connected;
+        card.append(heading, count, status, button);
+        roomCards.append(card);
     });
 }
 
-joinForm.addEventListener("submit", (event) => {
+joinForm.addEventListener("submit", (event: SubmitEvent) => {
     event.preventDefault();
-    
+    const roomId = event.submitter instanceof HTMLButtonElement ? event.submitter.value : "";
     const name = nameInput.value.trim();
-    const roomId = selectedRoomInput.value;
-    
-    if (!name || !roomId) return;
-    
+    if (!name) {
+        nameInput.setCustomValidity("Please enter your name.");
+        nameInput.reportValidity();
+        return;
+    }
+    if (!roomId || joiningRoomId !== null || !socket.connected) return;
+    joiningRoomId = roomId;
+    renderRoomCards();
     statusText.classList.remove("status-error");
     statusText.textContent = `Joining Room ${roomId}...`;
-
-    // no second join while the first one is still on its way
-    joinSubmitButton.disabled = true;
-
-    socket.emit(
-        "join",
-        roomId,
-        name,
-        (response: { ok: boolean; token?: string; error?: string }) => {
-            joinSubmitButton.disabled = false;
-
-            if (!response.ok || !response.token) {
-                statusText.textContent = response.error ?? "Could not join";
+    socket.timeout(10000).emit(
+        "join", roomId, name,
+        (error: Error | null, response?: { ok: boolean; token?: string; error?: string }) => {
+            joiningRoomId = null;
+            renderRoomCards();
+            if (error || !response?.ok || !response.token) {
+                statusText.textContent = error ? "Joining timed out. Please try again." : response?.error ?? "Could not join";
                 statusText.classList.add("status-error");
                 return;
             }
-
             localStorage.setItem("sessionToken", response.token);
         },
     );
 });
+nameInput.addEventListener("input", () => nameInput.setCustomValidity(""));
 
 
 // ---- view rendering ----

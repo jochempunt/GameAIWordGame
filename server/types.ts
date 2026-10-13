@@ -29,6 +29,13 @@ export type RoundState = {
 };
 
 type Phase = "lobby" | "answering" | "ranking" | "results";
+export type RoomSummary = {
+    id: string;
+    playerCount: number;
+    capacity: number;
+    phase: Phase;
+};
+
 export type GameState = {
     phase: Phase;
     round: number;

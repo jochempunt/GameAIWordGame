@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { Game } from "./game.js";
 import type { Player } from "./types.js";
 import { viewForPlayer } from "./views.js";
-import type { Room } from "./types.js";
+import type { Room, RoomSummary } from "./types.js";
 
 
 // ---- Setup ----
@@ -49,7 +49,17 @@ function safeAcknowledge<T>(fn: unknown): Ack<T> {  // if something passes non f
 
 
 // ---- server state ----
+function roomSummaries(): RoomSummary[] {
+    return [...rooms.values()].map(room => ({
+        id: room.id,
+        playerCount: room.players.size,
+        capacity: MAX_PLAYERS_PER_ROOM,
+        phase: room.game.state.phase,
+    }));
+}
+
 function pushState(room: Room): void {
+    io.emit("rooms", roomSummaries());
 
     for (const player of [...room.players.values()].filter(p => p.connected)) {
         io.to(player.socketId).emit(
@@ -71,7 +81,19 @@ function pushState(room: Room): void {
 
 
 io.on("connection", (socket) => {
-    socket.on("getJoinAddress", (acknowledge) => {
+    socket.emit("rooms", roomSummaries());
+    // an error thrown inside a socket handler would otherwise crash the whole server
+    const on = (event: string, handler: (...args: any[]) => void): void => {
+        socket.on(event, (...args: any[]) => {
+            try {
+                handler(...args);
+            } catch (error) {
+                console.error(`Error handling "${event}" from socket ${socket.id}:`, error);
+            }
+        });
+    };
+
+    on("getJoinAddress", (acknowledge) => {
         const address = Object.values(networkInterfaces()).flat()
             .find(info => info?.family === "IPv4" && !info.internal)?.address;
         safeAcknowledge<{ address: string | null }>(acknowledge)({ address: address ?? null });

@@ -248,6 +248,87 @@ label{
     margin-top: 2px;
 }
 
+#room-list-title {
+    margin: 0.75rem 0 0.35rem;
+    font-size: 1.35rem;
+}
+
+.room-list-hint {
+    margin: 0 0 1rem;
+    color: var(--cream-light);
+    font-size: 0.9rem;
+}
+
+.room-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.room-card {
+    display: flex;
+    flex-direction: column;
+    padding: 1.1rem;
+    border: 1px solid var(--tile-border);
+    border-radius: 0.8rem 1rem 0.85rem 0.65rem;
+    background: var(--cream-light);
+    box-shadow: 0 4px 0 var(--tile-shadow);
+}
+
+.room-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.room-card h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.room-code {
+    font-size: inherit;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+.room-player-count {
+    margin: 1.1rem 0 0.3rem;
+    font-size: 0.95rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.room-card-status {
+    margin: 0 0 1.1rem;
+    color: var(--muted-ink);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.room-join {
+    margin-top: auto;
+    padding: 0.7rem;
+    font-size: 0.95rem;
+}
+
+.room-join:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+}
+
+.room-join:hover:not(:disabled) {
+    background: var(--blue-dark);
+}
+
+@media (max-width: 380px) {
+    .room-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
 form button,
 #start-round,
 #submit-answer {
