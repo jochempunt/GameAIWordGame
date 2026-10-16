@@ -4,6 +4,7 @@ import { PROMPTS } from "./prompts.js";
 import type {
     Answer,
     GameState,
+    Ranking,
     RoundState,
 } from "./types.js";
 
@@ -38,6 +39,13 @@ export class Game {
     currentRound(): RoundState | undefined {
         return this.state.rounds.get(this.state.round);
     }
+
+    abandonCurrentRound(): void {
+        const round = this.currentRound();
+        if (round?.status === "in_progress") {
+            round.status = "abandoned";
+        }
+    }
     
 startRound(playerIds: string[] = []): boolean {
     if (this.state.phase !== "lobby") {
@@ -47,11 +55,14 @@ startRound(playerIds: string[] = []): boolean {
     this.state.round++;
 
     const round: RoundState = {
+        status: "in_progress",
+        startedAt: new Date(),
+        completedAt: null,
         prompt: this.randomPrompt(),
         words: this.randomWords(WORD_COUNT),
         playerIds: [...new Set(playerIds)],
         answers: [],
-        rankings: new Map<string, string[]>(),
+        rankings: new Map<string, Ranking>(),
     };
 
     this.state.rounds.set(this.state.round, round);
@@ -91,6 +102,7 @@ startRound(playerIds: string[] = []): boolean {
             id: crypto.randomUUID(),
             playerId,
             words,
+            receivedAt: new Date(),
         };
         
         round.answers.push(answer);
@@ -127,9 +139,9 @@ startRound(playerIds: string[] = []): boolean {
     }
 
     for (const ranking of round.rankings.values()) {
-        const totalAnswers = ranking.length;
+        const totalAnswers = ranking.answerIds.length;
 
-        ranking.forEach((answerId, index) => {
+        ranking.answerIds.forEach((answerId, index) => {
             const points = totalAnswers - index;
 
             const currentScore = scores.get(answerId) ?? 0;

@@ -1,3 +1,4 @@
+// Legacy single-game host screen, kept for reference. host.html no longer loads this module.
 import { io } from "socket.io-client";
 import { createRankBadge } from "./rankBadge.js";
 import QRCode from "qrcode";

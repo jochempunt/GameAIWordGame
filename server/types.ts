@@ -9,6 +9,7 @@ export type Player = {
     socketId: string;
     name: string;
     connected: boolean;
+    reconnecting?: boolean; // Count this disconnected player during the short reconnect grace.
 };
 
 export type GamePlayer = {
@@ -21,12 +22,19 @@ export type Answer = {
     id: AnswerId;
     playerId: PlayerId;
     words: string[];
+    receivedAt: Date | null; // null when loading older submissions without a timestamp.
 };
 
 
-type Ranking = string[];
+export type Ranking = {
+    answerIds: string[];
+    receivedAt: Date | null;
+};
 
 export type RoundState = {
+    status: "in_progress" | "completed" | "abandoned";
+    startedAt: Date | null; // null for older rounds whose start time was not recorded.
+    completedAt: Date | null;
     prompt: string;
     words: string[];
     playerIds: string[];

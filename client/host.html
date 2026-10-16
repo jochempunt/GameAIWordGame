@@ -9,17 +9,21 @@
     content="width=device-width, initial-scale=1.0"
     >
     
-    <title>Game Host</title>
+    <title>Join a room</title>
     
     <link rel="stylesheet" href="/src/style.css">
     
-    <script
-    type="module"
-    src="/src/host.ts"
-    ></script>
+    <!-- Legacy host.ts is intentionally inactive; hosts now play inside rooms. -->
 </head>
 
 <body>
+    <main>
+        <h1>Hosting has moved into rooms</h1>
+        <p>Join a room to play. The first player becomes its host.</p>
+        <a href="/">Open rooms</a>
+    </main>
+    <!-- Preserve the old screen for reference without exposing its controls. -->
+    <div hidden inert>
     <main class="host">
         <header class="game-brand">
             <p class="game-wordmark">Scientists <span class="wordmark-highlight">Confirm<sup class="wordmark-citation" aria-hidden="true">[1]</sup></span></p>
@@ -76,6 +80,7 @@
         </section>
     </main>
     <p id="status">Connecting...</p>
+    </div>
 </body>
 
 </html>

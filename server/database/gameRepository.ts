@@ -1,12 +1,16 @@
 import { getDatabase } from "./db.js";
 import { Game } from "../game.js";
-import type { GamePlayer, GameState, RoundState } from "../types.js";
+import type { Answer, GamePlayer, GameState, Ranking, RoundState } from "../types.js";
 
 const GAMES_COLLECTION_NAME = "games";
 
-type StoredRound = Omit<RoundState, "rankings" | "scores" | "playerIds"> & {
+type StoredRound = Omit<RoundState, "answers" | "rankings" | "scores" | "playerIds" | "status" | "startedAt" | "completedAt"> & {
   playerIds?: string[];
-  rankings: [string, string[]][];
+  status?: RoundState["status"];
+  startedAt?: Date | null;
+  completedAt?: Date | null;
+  answers: (Omit<Answer, "receivedAt"> & { receivedAt?: Date | null })[];
+  rankings: [string, Ranking | string[]][];
   scores?: [string, number][];
 };
 
@@ -81,8 +85,25 @@ export async function getGame(id: string): Promise<Game | null> {
     totals: new Map(document.state.totals),
     rounds: new Map(document.state.rounds.map(([number, round]) => [number, {
       ...round,
+      // Older documents have no timestamps; do not invent historical dates.
+      startedAt: round.startedAt ?? null,
+      completedAt: round.completedAt ?? null,
+      status: round.status ?? (round.scores
+        ? "completed"
+        : number === document.state.round &&
+          (document.state.phase === "answering" || document.state.phase === "ranking")
+          ? "in_progress"
+          : "abandoned"),
       playerIds: round.playerIds ?? [],
-      rankings: new Map(round.rankings),
+      answers: round.answers.map(answer => ({
+        ...answer,
+        receivedAt: answer.receivedAt ?? null,
+      })),
+      rankings: new Map(round.rankings.map(([playerId, ranking]) => [playerId,
+        Array.isArray(ranking)
+          ? { answerIds: ranking, receivedAt: null }
+          : { ...ranking, receivedAt: ranking.receivedAt ?? null },
+      ])),
       scores: round.scores ? new Map(round.scores) : undefined,
     }])),
   };

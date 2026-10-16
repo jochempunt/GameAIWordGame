@@ -33,7 +33,7 @@ const rooms = new Map<string, Room>();
 const ROOM_CODES = ["AAAA", "BBBB", "CCCC", "DDDD"];
 const MAX_PLAYERS_PER_ROOM = 20;
 const MAX_NAME_LENGTH = 20; // same as the maxlength of the name input
-const HOST_GRACE_MS = 15_000; // a host who drops keeps the role this long
+const DISCONNECT_GRACE_MS = 15_000; // Keep the host role and wait for missing round actions this long.
 const DISCONNECT_PURGE_MS = 5 * 60_000; // disconnected players are removed after this long
 
 let shuttingDown = false;
@@ -506,7 +506,10 @@ function submitRanking(
     // Save this player's ranking.
     round.rankings.set(
         player.id,
-        rankedAnswerIds,
+        {
+            answerIds: rankedAnswerIds,
+            receivedAt: new Date(),
+        },
     );
 
     console.log(
@@ -569,7 +572,7 @@ function readyForNextRound(
     room.readyPlayers.add(player.id);
 
     console.log(
-        `Player returned to lobby: ${player.name} (${room.readyPlayers.size}/${getActiveConnectedRoomPlayers(room).length})`,
+        `Player returned to lobby: ${player.name} (${room.readyPlayers.size}/${getRoundPlayers(room).length})`,
     );
 
     acknowledge({ ok: true });
@@ -687,6 +690,7 @@ function removePlayerFromRoom(
 
     if (room.players.size === 0) {
         // Archive the previous session before replacing the in-memory game.
+        room.game.abandonCurrentRound();
         persistRoomGame(room);
         room.game = new Game();
         room.readyPlayers.clear();
@@ -728,6 +732,7 @@ function disconnectPlayer(socket: Socket): void {
     const { player, room } = result;
 
     player.connected = false;
+    player.reconnecting = true;
     console.log(`Player disconnected: ${player.name} from room ${room.id}`);
 
     scheduleDisconnectTimers(room, player);
@@ -740,23 +745,31 @@ function disconnectPlayer(socket: Socket): void {
 }
 
 // Phones drop the connection whenever the screen locks, so a disconnect is not final:
-// the host keeps the role for a moment, and the player is only removed after a while.
+// keep waiting for their round actions briefly, then stop waiting; remove them later.
 function scheduleDisconnectTimers(room: Room, player: Player): void {
     clearDisconnectTimers(player.id);
 
     const stillGone = () => room.players.get(player.id) === player && !player.connected;
 
-    const hostTimer = setTimeout(() => {
+    const graceTimer = setTimeout(() => {
         try {
-            if (!stillGone() || room.hostPlayerId !== player.id) return;
+            if (!stillGone()) return;
 
-            console.log(`Host did not come back to room ${room.id}`);
-            transferHost(room);
+            player.reconnecting = false;
+            if (room.hostPlayerId === player.id) {
+                console.log(`Host did not come back to room ${room.id}`);
+                transferHost(room);
+            }
+
+            if (advanceRoomAfterMembershipChange(room)) {
+                return;
+            }
+
             commitRoomState(room);
         } catch (error) {
-            console.error(`Error transferring host in room ${room.id}:`, error);
+            console.error(`Error ending disconnect grace in room ${room.id}:`, error);
         }
-    }, HOST_GRACE_MS);
+    }, DISCONNECT_GRACE_MS);
 
     const purgeTimer = setTimeout(() => {
         try {
@@ -775,7 +788,7 @@ function scheduleDisconnectTimers(room: Room, player: Player): void {
         }
     }, DISCONNECT_PURGE_MS);
 
-    disconnectTimers.set(player.id, [hostTimer, purgeTimer]);
+    disconnectTimers.set(player.id, [graceTimer, purgeTimer]);
 }
 
 function clearDisconnectTimers(playerId: string): void {
@@ -821,7 +834,7 @@ function tryStartVoting(room: Room): void {
     if (room.game.state.phase !== "answering") return;
 
     const round = room.game.currentRound();
-    const roundPlayers = getActiveConnectedRoomPlayers(room);
+    const roundPlayers = getRoundPlayers(room);
 
     if (!round || roundPlayers.length === 0) return;
 
@@ -848,7 +861,7 @@ function tryFinishRanking(room: Room): void {
 
     if (!round) return;
 
-    const roundPlayers = getActiveConnectedRoomPlayers(room);
+    const roundPlayers = getRoundPlayers(room);
 
     if (roundPlayers.length === 0) return;
 
@@ -887,6 +900,8 @@ function tryFinishRanking(room: Room): void {
         );
     }
 
+    round.status = "completed";
+    round.completedAt = new Date();
     room.readyPlayers.clear();
     room.game.state.phase = "results";
 }
@@ -905,12 +920,12 @@ function tryReturnToLobbyIfReady(room: Room): boolean {
     }
 
     const connectedPlayers = getConnectedRoomPlayers(room);
-    const roundPlayers = getActiveConnectedRoomPlayers(room);
+    const roundPlayers = getRoundPlayers(room);
     const everyoneReady =
         phase === "results" &&
         roundPlayers.length > 0 &&
         roundPlayers.every(player => room.readyPlayers.has(player.id));
-    // in any phase: nobody who was playing this round is still here, so the
+    // Nobody playing this round is connected or still within reconnect grace, so the
     // spectators waiting for the next round should not be stuck watching it
     const noActivePlayersConnected =
         roundPlayers.length === 0 && connectedPlayers.length > 0;
@@ -919,6 +934,7 @@ function tryReturnToLobbyIfReady(room: Room): boolean {
         return false;
     }
 
+    room.game.abandonCurrentRound();
     room.game.state.phase = "lobby";
     setActivePlayersForLobby(room);
 
@@ -935,8 +951,10 @@ function setActivePlayersForLobby(room: Room): void {
     );
 }
 
-function getActiveConnectedRoomPlayers(room: Room): Player[] {
-    return getConnectedRoomPlayers(room).filter(player => room.activePlayerIds.has(player.id));
+function getRoundPlayers(room: Room): Player[] {
+    return [...room.players.values()].filter(player =>
+        room.activePlayerIds.has(player.id) && (player.connected || player.reconnecting),
+    );
 }
 
 function getConnectedRoomPlayers(room: Room): Player[] {
@@ -964,6 +982,7 @@ function attachSocket(socket: Socket, room: Room, player: Player): void {
     clearDisconnectTimers(player.id);
     player.socketId = socket.id;
     player.connected = true;
+    player.reconnecting = false;
     socket.data.roomId = room.id;
     socket.data.playerId = player.id;
     socket.join(room.id);
@@ -1011,6 +1030,9 @@ async function shutdown(): Promise<void> {
         }
         // Stop clients before the final snapshots; shutdown disconnects are not game actions.
         await new Promise<void>(resolve => io.close(() => resolve()));
+        for (const room of rooms.values()) {
+            room.game.abandonCurrentRound();
+        }
         await Promise.all([...rooms.values()].map(room => saveGame(room.game, room.id)));
         await flushGameSaves();
         await disconnectFromDatabase();

@@ -16,10 +16,12 @@ export function viewForPlayer(
     const isLobbyPhase = game.state.phase === "lobby";
     const isActive = isLobbyPhase || activePlayerIds.has(player.id);
     const isSpectator = !isLobbyPhase && !isActive;
-    const activeConnectedPlayers = isLobbyPhase
+    const roundPlayers = isLobbyPhase
         ? connectedPlayers
-        : connectedPlayers.filter(player => activePlayerIds.has(player.id));
-    const readyCount = activeConnectedPlayers.filter(player => readyPlayers.has(player.id)).length;
+        : roomPlayers.filter(player =>
+            activePlayerIds.has(player.id) && (player.connected || player.reconnecting),
+        );
+    const readyCount = roundPlayers.filter(player => readyPlayers.has(player.id)).length;
     const round = game.currentRound();
     const playerSummaries = summarizePlayers(
         game,
@@ -41,7 +43,7 @@ export function viewForPlayer(
         isHost,
         canStartRound: isHost && game.state.phase === "lobby" && connectedPlayers.length >= MIN_PLAYERS_TO_START,
         lobbyCount: game.state.phase === "results" ? readyCount : connectedPlayers.length,
-        playerCount: game.state.phase === "results" ? activeConnectedPlayers.length : connectedPlayers.length,
+        playerCount: game.state.phase === "results" ? roundPlayers.length : connectedPlayers.length,
     });
 
     if (game.state.phase === "results" && readyPlayers.has(player.id)) {
@@ -63,8 +65,8 @@ export function viewForPlayer(
                 prompt: round.prompt,
                 words: round.words,
                 submitted: mine?.words ?? null,
-                answeredCount: activeConnectedPlayers.filter(player => round.answers.some(answer => answer.playerId === player.id)).length,
-                playerCount: activeConnectedPlayers.length,
+                answeredCount: roundPlayers.filter(player => round.answers.some(answer => answer.playerId === player.id)).length,
+                playerCount: roundPlayers.length,
                 canSubmit: isActive,
             };
         }
@@ -82,8 +84,8 @@ export function viewForPlayer(
                     .map(answer => ({ id: answer.id, words: answer.words }))
                     .sort((a, b) => a.id.localeCompare(b.id)),
                 hasRanked,
-                rankedCount: activeConnectedPlayers.filter(player => round?.rankings.has(player.id)).length,
-                playerCount: activeConnectedPlayers.length,
+                rankedCount: roundPlayers.filter(player => round?.rankings.has(player.id)).length,
+                playerCount: roundPlayers.length,
                 canRank: isActive,
             };
         }
@@ -93,7 +95,9 @@ export function viewForPlayer(
             const roundResults = round.answers
                 .map(answer => ({
                     playerId: answer.playerId,
-                    playerName: roomPlayers.find(player => player.id === answer.playerId)?.name ?? "Unknown player",
+                    playerName: roomPlayers.find(player => player.id === answer.playerId)?.name
+                        ?? game.state.players.get(answer.playerId)?.name
+                        ?? "Unknown player",
                     words: answer.words,
                     score: round.scores?.get(answer.id) ?? 0,
                 }))
@@ -120,7 +124,7 @@ export function viewForPlayer(
                 roundResults,
                 leaderboard,
                 readyCount,
-                playerCount: activeConnectedPlayers.length,
+                playerCount: roundPlayers.length,
                 isReady: readyPlayers.has(player.id),
                 canReady: isActive,
             };
