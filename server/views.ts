@@ -28,6 +28,7 @@ export function viewForPlayer(
         hostPlayerId,
     );
     const base = {
+        playerId: player.id,
         name: player.name,
         isHost,
         isActive,
@@ -91,6 +92,7 @@ export function viewForPlayer(
 
             const roundResults = round.answers
                 .map(answer => ({
+                    playerId: answer.playerId,
                     playerName: roomPlayers.find(player => player.id === answer.playerId)?.name ?? "Unknown player",
                     words: answer.words,
                     score: round.scores?.get(answer.id) ?? 0,
@@ -99,11 +101,13 @@ export function viewForPlayer(
 
             const leaderboard = roomPlayers
                 .map(player => ({
+                    playerId: player.id,
                     playerName: player.name,
                     totalScore: game.state.totals.get(player.id) ?? 0,
                 }))
                 .sort((a, b) => b.totalScore - a.totalScore)
                 .map((player, index) => ({
+                    playerId: player.playerId,
                     playerName: player.playerName,
                     rank: index + 1,
                 }));

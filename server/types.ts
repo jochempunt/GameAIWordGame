@@ -63,6 +63,7 @@ export type PlayerSummary = {
 };
 
 export type PlayerView = {
+    playerId: string;
     name: string;
     isHost: boolean;
     isActive: boolean;
@@ -81,11 +82,13 @@ export type PlayerView = {
         round: number;
         prompt: string;
         roundResults: {
+            playerId: string;
             playerName: string;
             words: string[];
             score: number;
         }[];
         leaderboard: {
+            playerId: string;
             playerName: string;
             rank: number;
         }[];

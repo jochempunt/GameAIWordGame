@@ -98,16 +98,6 @@ body {
 }
 
 
-.upper{
-    position: relative;
-    top: -0.25em;
-    font-family: var(--font-body);
-    font-size: 0.5em;
-    font-weight: 800;
-    letter-spacing: 0;
-    vertical-align: super;
-}
-
 main {
     width: min(92%, 600px);
     margin: 0 auto;
@@ -717,6 +707,11 @@ h1.prompt {
     font-size: 0.9rem;
 }
 
+#room-actions {
+    margin-bottom: 1rem;
+    text-align: right;
+}
+
 #room-overview {
     margin: 0 0 1.5rem;
     padding: 1rem;
@@ -751,7 +746,43 @@ h1.prompt {
 #room-overview-title {
     margin: 0;
     color: var(--cream);
-    font-size: 1.1rem;
+    font-size: 1.4rem;
+}
+
+#lobby-view {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid rgb(255 248 240 / 22%);
+}
+
+#lobby-status {
+    margin: 0 0 0.75rem;
+    line-height: 1.5;
+}
+
+#lobby-view [hidden] {
+    display: none;
+}
+
+#start-round {
+    width: 100%;
+    margin-top: 0.25rem;
+}
+
+.you-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.35rem;
+    background: var(--ink);
+    color: var(--cream-light);
+    font-size: 0.6rem;
+    font-weight: 800;
+    font-style: normal;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+    vertical-align: middle;
+    white-space: nowrap;
 }
 
 #room-overview-status {
@@ -890,6 +921,36 @@ h1.prompt {
     .word {
         padding: 0.65rem 0.8rem;
     }
+
+    #playing-view {
+        padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+    }
+
+    #submit-answer {
+        position: fixed;
+        z-index: 10;
+        right: 1rem;
+        bottom: calc(1rem + env(safe-area-inset-bottom));
+        left: 1rem;
+        width: auto;
+        margin: 0;
+    }
+
+    #room-overview {
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+    }
+
+    .room-overview-heading {
+        gap: 0.25rem;
+        margin-bottom: 0.6rem;
+    }
+
+    #lobby-view {
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
 }
 
 
@@ -917,23 +978,6 @@ h1.prompt {
     line-height: 1.3;
     letter-spacing: -0.015em;
 }
-
-#easter-egg {
-  position: fixed;
-  bottom: 1rem;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: 1rem;
-  font-style: italic;
-  opacity: 0.8;
-  padding: 0 1rem;
-  margin: 0;
-  pointer-events: none;
-  color: var(--cream-light);
-}
-
-
 
 .results-layout {
     display: grid;
@@ -1186,6 +1230,29 @@ h1.prompt {
     background: var(--cream-light);
 
     font-weight: 800;
+}
+
+.leaderboard-rank[data-rank="unranked"] {
+    background: #D9DCD7;
+    box-shadow: inset 0 0 0 1px #B9C0B5;
+}
+
+.leaderboard-rank[data-rank="1"] {
+    background: #F5CE70;
+    color: #59400C;
+    box-shadow: inset 0 0 0 1px #C59A38;
+}
+
+.leaderboard-rank[data-rank="2"] {
+    background: #DEE3E8;
+    color: #3F4B58;
+    box-shadow: inset 0 0 0 1px #A9B3BE;
+}
+
+.leaderboard-rank[data-rank="3"] {
+    background: #DCAC83;
+    color: #56351E;
+    box-shadow: inset 0 0 0 1px #B78053;
 }
 
 

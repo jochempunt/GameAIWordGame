@@ -996,7 +996,6 @@ function getPlayerByToken(token: string): { player: Player, room: Room } | undef
 // ---- Startup and shutdown ----
 async function startServer(): Promise<void> {
     await connectToDatabase();
-    await Promise.all([...rooms.values()].map(room => saveGame(room.game, room.id)));
     httpServer.listen(PORT, HOST, () => {
         console.log(`Game server running on port ${PORT}`);
     });

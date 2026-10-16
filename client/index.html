@@ -41,29 +41,24 @@
         </section>
         
         
+        <div id="room-actions" hidden>
+            <button type="button" id="leave-room">Exit</button>
+            <p id="action-error" role="alert"></p>
+        </div>
+
         <section id="room-overview" hidden>
             <div class="room-overview-heading">
                 <div class="room-overview-title-row">
-                    <h2 id="room-overview-title">Room Overview</h2>
-                    <button type="button" id="leave-room">Exit</button>
+                    <h2 id="room-overview-title">Lobby</h2>
                 </div>
                 <p id="room-overview-status" aria-live="polite"></p>
-                <p id="action-error" role="alert"></p>
             </div>
+            <section id="lobby-view" hidden>
+                <p id="lobby-status">Waiting for the host...</p>
+                <p id="start-round-requirement" hidden>Min. 3 Players to Start</p>
+                <button id="start-round" hidden>Start round</button>
+            </section>
             <ul id="room-players" aria-live="polite"></ul>
-        </section>
-        <!-- LOBBY -->
-        <section id="lobby-view" hidden>
-            <h1>You're in!</h1>
-            
-            <p id="joined-name"></p>
-            
-            <p>Waiting for the host...</p>
-            
-            <p id="start-round-requirement" hidden>Min. 3 Players to Start</p>
-            <button id="start-round" hidden>
-                Start Game!
-            </button>
         </section>
         
         
@@ -113,7 +108,7 @@
         <section id="ranking-view" hidden>
             
             
-            <h1>Rank the answers on funniness <sup class="upper" aria-hidden="true">*</sup></h1>
+            <h1>Rank the answers on funniness</h1>
             <h2 class="prompt"></h2>
             
             <p id="ranking-hint">Drag and drop an answer onto another, or tap two answers to swap their rankings.</p>
@@ -122,7 +117,6 @@
             <button id="submit-ranking" disabled>
                 Submit Ranking
             </button>
-            <p id="easter-egg" aria-hidden="true" >*Funniness is totally an empirical measure, based on a sample size of one (you).</p>
         </section>
         
         
@@ -159,12 +153,12 @@
             
             <section id="ready-section">
                 
-                <h2>Ready for next round?</h2>
+                <h2>Back to the lobby?</h2>
                 
                 <div id="ready-controls">
                     
                     <button id="ready-button">
-                        Ready
+                        Next
                     </button>
                     
                     <span id="ready-count">

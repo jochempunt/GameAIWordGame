@@ -7,7 +7,7 @@ import type {
     RoundState,
 } from "./types.js";
 
-const WORD_COUNT = 30;
+const WORD_COUNT = 25;
 export const MIN_PLAYERS_TO_START = 3;
 
 

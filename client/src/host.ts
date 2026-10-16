@@ -1,4 +1,5 @@
 import { io } from "socket.io-client";
+import { createRankBadge } from "./rankBadge.js";
 import QRCode from "qrcode";
 import { HostView } from "../../server/types.js";
 
@@ -88,6 +89,7 @@ function render(view: HostView): void {
 function renderPlayers(players: HostView["players"], phase: HostView["phase"]): void {
     playerList.replaceChildren();
     const standings = [...players].sort((a, b) => b.score - a.score);
+    const hasScores = standings.some(player => player.score > 0);
     if (standings.length === 0) {
         const empty = document.createElement("li");
         empty.classList.add("standings-empty");
@@ -99,9 +101,7 @@ function renderPlayers(players: HostView["players"], phase: HostView["phase"]): 
     for (const [index, player] of standings.entries()) {
         if (index > 0 && player.score !== standings[index - 1].score) rank = index + 1;
         const item = document.createElement("li");
-        const position = document.createElement("span");
-        position.classList.add("leaderboard-rank");
-        position.textContent = `${rank}.`;
+        const position = createRankBadge(hasScores ? rank : null);
         const identity = document.createElement("div");
         identity.classList.add("researcher-identity");
         const name = document.createElement("span");

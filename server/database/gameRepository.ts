@@ -26,8 +26,10 @@ function getGamesCollection() {
   return getDatabase().collection<StoredGame>(GAMES_COLLECTION_NAME);
 }
 
-/** creates or updates a game using ID. returns saved games ID. */
-export async function saveGame(game: Game, roomId?: string): Promise<string> {
+/** Saves sessions that have started a round; returns null for unplayed lobbies. */
+export async function saveGame(game: Game, roomId?: string): Promise<string | null> {
+  if (game.state.rounds.size === 0) return null;
+
   // Capture mutable arrays and Maps now, before waiting for an earlier write.
   const document: StoredGame = structuredClone({
     _id: game.id,

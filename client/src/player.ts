@@ -1,4 +1,5 @@
 import { io } from "socket.io-client";
+import { createRankBadge } from "./rankBadge.js";
 import type { PlayerView, RoomSummary } from "../../server/types.js";
 
 const socket = io();
@@ -17,6 +18,7 @@ let joiningRoomId: string | null = null;
 const startRoundButton = document.querySelector<HTMLButtonElement>("#start-round")!;
 const startRoundRequirement = document.querySelector<HTMLElement>("#start-round-requirement")!;
 const roomOverview = document.querySelector<HTMLElement>("#room-overview")!;
+const roomActions = document.querySelector<HTMLElement>("#room-actions")!;
 const roomOverviewTitle = document.querySelector<HTMLElement>("#room-overview-title")!;
 const roomOverviewStatus = document.querySelector<HTMLElement>("#room-overview-status")!;
 const roomPlayers = document.querySelector<HTMLUListElement>("#room-players")!;
@@ -44,7 +46,7 @@ const readyCount = document.querySelector<HTMLElement>("#ready-count")!;
 
 const rankedView = document.querySelector<HTMLElement>("#ranked-view")!;
 
-const joinedName = document.querySelector<HTMLElement>("#joined-name")!;
+const lobbyStatus = document.querySelector<HTMLElement>("#lobby-status")!;
 let promptText = document.getElementsByClassName("prompt")[0] as HTMLElement;
 
 const wordsContainer = document.querySelector<HTMLElement>("#words")!;
@@ -169,6 +171,7 @@ function showJoin(): void {
     hideAll();
     joinView.hidden = false;
     roomOverview.hidden = true;
+    roomActions.hidden = true;
     renderRoomCards();
     statusText.textContent = "Choose a room to join.";
     statusText.classList.remove("status-error");
@@ -263,12 +266,16 @@ nameInput.addEventListener("input", () => nameInput.setCustomValidity(""));
 // ---- view rendering ----
 
 function renderRoomOverview(view: PlayerView): void {
-    roomOverview.hidden = false;
-    roomOverviewTitle.textContent = view.isHost ? "You are hosting" : "Room Overview";
-    roomOverviewStatus.textContent = roomStatusText(view);
+    roomActions.hidden = false;
+    roomOverview.hidden = view.phase !== "lobby";
+    if (roomOverview.hidden) return;
+    roomOverviewTitle.textContent = view.isHost ? "Your lobby" : "Lobby";
+    const connectedCount = view.players.filter(player => player.connected).length;
+    roomOverviewStatus.textContent = `${connectedCount} player${connectedCount === 1 ? "" : "s"} connected`;
     roomPlayers.replaceChildren();
 
     const standings = [...view.players].sort((a, b) => b.score - a.score);
+    const hasScores = standings.some(player => player.score > 0);
 
     if (standings.length === 0) {
         const empty = document.createElement("li");
@@ -286,9 +293,7 @@ function renderRoomOverview(view: PlayerView): void {
         }
 
         const item = document.createElement("li");
-        const position = document.createElement("span");
-        position.classList.add("leaderboard-rank");
-        position.textContent = `${rank}.`;
+        const position = createRankBadge(hasScores ? rank : null);
 
         const identity = document.createElement("div");
         identity.classList.add("researcher-identity");
@@ -296,6 +301,7 @@ function renderRoomOverview(view: PlayerView): void {
         const name = document.createElement("span");
         name.classList.add("leaderboard-name");
         name.textContent = player.name;
+        appendYouBadge(name, player.id === view.playerId);
         identity.appendChild(name);
 
         const status = playerStatusText(player, view.phase);
@@ -359,11 +365,13 @@ function roomStatusText(view: PlayerView): string {
     switch (view.phase) {
         case "lobby":
             if (!view.canStartRound && view.lobbyCount < view.playerCount) {
-                return `${view.lobbyCount}/${view.playerCount} players back in the lobby`;
+                return `${view.lobbyCount}/${view.playerCount} players back in the lobby. Waiting for everyone to click Next.`;
             }
 
             return view.isHost
-                ? "Start the next round when everyone is ready."
+                ? view.canStartRound
+                    ? "Everyone is here. Start the round when you're ready."
+                    : "Invite your friends — you need at least 3 players to start."
                 : "Waiting for the host to start the next round.";
         case "answering":
             return view.isSpectator
@@ -404,10 +412,21 @@ function playerStatusText(player: PlayerSummary, phase: PlayerView["phase"]): st
 
 function renderLobby(view: ViewOf<"lobby">): void {
     lobbyView.hidden = false;
-    joinedName.textContent = view.name;
+    lobbyStatus.textContent = roomStatusText(view);
     startRoundButton.hidden = !view.isHost;
     startRoundButton.disabled = !view.canStartRound;
     startRoundRequirement.hidden = !view.isHost || view.canStartRound;
+    startRoundRequirement.textContent = view.lobbyCount < view.playerCount
+        ? "Everyone must click Next before the next round can start."
+        : "Min. 3 Players to Start";
+}
+
+function appendYouBadge(element: HTMLElement, isYou: boolean): void {
+    if (!isYou) return;
+    const badge = document.createElement("span");
+    badge.classList.add("you-badge");
+    badge.textContent = "YOU";
+    element.appendChild(badge);
 }
 
 startRoundButton.addEventListener("click", () => {
@@ -499,7 +518,7 @@ function renderResults(view: ViewOf<"results">): void {
     `${view.readyCount}/${view.playerCount}`;
     
     readyButton.textContent =
-    view.isReady ? "In lobby" : "Ready";
+    view.isReady ? "In lobby" : "Next";
     
     readyButton.disabled = view.isReady || !view.canReady;
 }
@@ -525,7 +544,9 @@ function renderRoundResults(
         const playerName = document.createElement("span");
         playerName.classList.add("result-player");
         playerName.textContent = `[${index + 1}] ${result.playerName}`;
-        playerName.setAttribute("aria-label", `Source ${index + 1}: ${result.playerName}`);
+        const isYou = result.playerId === view.playerId;
+        appendYouBadge(playerName, isYou);
+        playerName.setAttribute("aria-label", `Source ${index + 1}: ${result.playerName}${isYou ? " (you)" : ""}`);
         
         const answer = document.createElement("span");
         answer.classList.add("result-answer");
@@ -586,6 +607,7 @@ function renderLeaderboard(
     if (!leaderboardContainer) return;
     
     leaderboardContainer.replaceChildren();
+    const hasScores = view.players.some(player => player.score > 0);
     
     for (const player of view.leaderboard) {
         
@@ -594,18 +616,14 @@ function renderLeaderboard(
         
         playerElement.classList.add("leaderboard-player");
         
-        const rank =document.createElement("span");
-        
-        rank.classList.add("leaderboard-rank");
-        
-        rank.textContent =
-        `${player.rank}.`;
+        const rank = createRankBadge(hasScores ? player.rank : null);
         
         const name = document.createElement("span");
         
         name.classList.add("leaderboard-name");
         
         name.textContent = player.playerName;
+        appendYouBadge(name, player.playerId === view.playerId);
         
         playerElement.append(
             rank,
