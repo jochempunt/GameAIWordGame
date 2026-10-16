@@ -8,6 +8,8 @@ import { Game, MIN_PLAYERS_TO_START } from "./game.js";
 import type { Player } from "./types.js";
 import { viewForPlayer } from "./views.js";
 import type { Room, RoomSummary } from "./types.js";
+import { connectToDatabase, disconnectFromDatabase } from "./database/db.js";
+import { saveGame, flushGameSaves } from "./database/gameRepository.js";
 
 
 // ---- Setup ----
@@ -34,6 +36,7 @@ const MAX_NAME_LENGTH = 20; // same as the maxlength of the name input
 const HOST_GRACE_MS = 15_000; // a host who drops keeps the role this long
 const DISCONNECT_PURGE_MS = 5 * 60_000; // disconnected players are removed after this long
 
+let shuttingDown = false;
 const disconnectTimers = new Map<string, NodeJS.Timeout[]>();
 for (const code of ROOM_CODES) {
     rooms.set(code, {
@@ -63,6 +66,18 @@ function roomSummaries(): RoomSummary[] {
     }));
 }
 
+// Commit after game-flow transitions so the snapshot includes phase changes and scores.
+function commitRoomState(room: Room): void {
+    persistRoomGame(room);
+    pushState(room);
+}
+
+function persistRoomGame(room: Room): void {
+    void saveGame(room.game, room.id).catch((error) => {
+        console.error(`Could not save game in room ${room.id}:`, error);
+    });
+}
+
 function pushState(room: Room): void {
     io.emit("rooms", roomSummaries());
 
@@ -90,6 +105,7 @@ io.on("connection", (socket) => {
     // an error thrown inside a socket handler would otherwise crash the whole server
     const on = (event: string, handler: (...args: any[]) => void): void => {
         socket.on(event, (...args: any[]) => {
+            if (shuttingDown) return;
             try {
                 handler(...args);
             } catch (error) {
@@ -224,6 +240,7 @@ function joinPlayer(
     };
 
     room.players.set(player.id, player);
+    room.game.recordPlayer(player.id, player.name);
     if (room.game.state.phase === "lobby") {
         room.activePlayerIds.add(player.id);
     }
@@ -246,7 +263,7 @@ function joinPlayer(
         return;
     }
 
-    pushState(room);
+    commitRoomState(room);
 }
 function rejoinPlayer(
     socket: Socket,
@@ -301,7 +318,7 @@ function rejoinPlayer(
         return;
     }
 
-    pushState(foundRoom);
+    commitRoomState(foundRoom);
 }
 
 
@@ -377,7 +394,7 @@ function submitAnswer(
         return;
     }
 
-    pushState(room);
+    commitRoomState(room);
 }
 function submitRanking(
     socket: Socket,
@@ -502,7 +519,7 @@ function submitRanking(
     });
 
     tryFinishRanking(room);
-    pushState(room);
+    commitRoomState(room);
 }
 
 function readyForNextRound(
@@ -561,7 +578,7 @@ function readyForNextRound(
         return;
     }
 
-    pushState(room);
+    commitRoomState(room);
 }
 function leaveGame(
     socket: Socket,
@@ -589,7 +606,7 @@ function leaveGame(
         return;
     }
 
-    pushState(room);
+    commitRoomState(room);
 }
 
 function kickPlayer(
@@ -624,7 +641,7 @@ function kickPlayer(
         return;
     }
 
-    pushState(room);
+    commitRoomState(room);
 }
 
 function transferHostFromSocket(
@@ -651,7 +668,7 @@ function transferHostFromSocket(
     }
 
     acknowledge({ ok: true });
-    pushState(room);
+    commitRoomState(room);
 }
 function removePlayerFromRoom(
     room: Room,
@@ -669,6 +686,8 @@ function removePlayerFromRoom(
     room.players.delete(player.id);
 
     if (room.players.size === 0) {
+        // Archive the previous session before replacing the in-memory game.
+        persistRoomGame(room);
         room.game = new Game();
         room.readyPlayers.clear();
         room.activePlayerIds.clear();
@@ -717,7 +736,7 @@ function disconnectPlayer(socket: Socket): void {
         return;
     }
 
-    pushState(room);
+    commitRoomState(room);
 }
 
 // Phones drop the connection whenever the screen locks, so a disconnect is not final:
@@ -733,7 +752,7 @@ function scheduleDisconnectTimers(room: Room, player: Player): void {
 
             console.log(`Host did not come back to room ${room.id}`);
             transferHost(room);
-            pushState(room);
+            commitRoomState(room);
         } catch (error) {
             console.error(`Error transferring host in room ${room.id}:`, error);
         }
@@ -750,7 +769,7 @@ function scheduleDisconnectTimers(room: Room, player: Player): void {
                 return;
             }
 
-            pushState(room);
+            commitRoomState(room);
         } catch (error) {
             console.error(`Error removing disconnected player from room ${room.id}:`, error);
         }
@@ -780,7 +799,7 @@ function startRound(socket: Socket): void {
     setActivePlayersForLobby(room);
     if (room.activePlayerIds.size < MIN_PLAYERS_TO_START) return;
 
-    if (!game.startRound()) return;
+    if (!game.startRound([...room.activePlayerIds])) return;
 
     const round = game.currentRound();
 
@@ -791,7 +810,7 @@ function startRound(socket: Socket): void {
     console.log("Words:", round.words);
 
 
-    pushState(room);
+    commitRoomState(room);
 }
 
 
@@ -905,7 +924,7 @@ function tryReturnToLobbyIfReady(room: Room): boolean {
 
     console.log(`Room ${room.id} returned to lobby`);
 
-    pushState(room);
+    commitRoomState(room);
     return true;
 }
 
@@ -974,9 +993,39 @@ function getPlayerByToken(token: string): { player: Player, room: Room } | undef
 
     return undefined;
 }
-//  ---- Start server ----
-httpServer.listen(PORT, HOST, () => {
-    console.log(
-        `Game server running on port ${PORT}`,
-    );
+// ---- Startup and shutdown ----
+async function startServer(): Promise<void> {
+    await connectToDatabase();
+    await Promise.all([...rooms.values()].map(room => saveGame(room.game, room.id)));
+    httpServer.listen(PORT, HOST, () => {
+        console.log(`Game server running on port ${PORT}`);
+    });
+}
+
+async function shutdown(): Promise<void> {
+    if (shuttingDown) return;
+    shuttingDown = true;
+
+    try {
+        for (const playerId of disconnectTimers.keys()) {
+            clearDisconnectTimers(playerId);
+        }
+        // Stop clients before the final snapshots; shutdown disconnects are not game actions.
+        await new Promise<void>(resolve => io.close(() => resolve()));
+        await Promise.all([...rooms.values()].map(room => saveGame(room.game, room.id)));
+        await flushGameSaves();
+        await disconnectFromDatabase();
+        process.exit(0);
+    } catch (error) {
+        console.error("Shutdown failed:", error);
+        process.exit(1);
+    }
+}
+
+process.once("SIGINT", () => { void shutdown(); });
+process.once("SIGTERM", () => { void shutdown(); });
+
+startServer().catch((error) => {
+    console.error("Server startup failed:", error);
+    process.exit(1);
 });

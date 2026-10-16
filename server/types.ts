@@ -11,6 +11,12 @@ export type Player = {
     connected: boolean;
 };
 
+export type GamePlayer = {
+    id: string;
+    name: string;
+    joinedAt: Date;
+};
+
 export type Answer = {
     id: AnswerId;
     playerId: PlayerId;
@@ -23,6 +29,7 @@ type Ranking = string[];
 export type RoundState = {
     prompt: string;
     words: string[];
+    playerIds: string[];
     answers: Answer[];
     rankings: Map<string, Ranking>;
     scores?: Map<string, number>;
@@ -39,6 +46,7 @@ export type RoomSummary = {
 export type GameState = {
     phase: Phase;
     round: number;
+    players: Map<string, GamePlayer>;
     rounds: Map<number, RoundState>;
     totals: Map<string, number>;
 };

@@ -5,11 +5,68 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    environment:
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/wordgame?authSource=admin
+
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+
+  mongo:
+    image: mongo:8.0
+    container_name: gameaiwordgame-mongo
+    restart: unless-stopped
+
+    # used when Mongo creates its database for the first time.
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+
+    # Mongo stores its actual database files here.
+    # The Docker volume survives container replacement/rebuilds.
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "127.0.0.1:27017:27017"
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--username",
+          "${MONGO_ROOT_USERNAME}",
+          "--password",
+          "${MONGO_ROOT_PASSWORD}",
+          "--authenticationDatabase",
+          "admin",
+          "--eval",
+          "db.adminCommand('ping')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: gameaiwordgame-tunnel
     restart: unless-stopped
+
+    # only start Cloudflare for production deployments.
+    profiles:
+      - production
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
       - game
+
+
+# persistent Docker-managed storage.
+#
+# `docker compose down` keeps this.
+# `docker compose down -v` DELETES it.
+volumes:
+  mongo_data:
