@@ -63,7 +63,7 @@ export function viewForPlayer(
                 phase: "answering",
                 round: game.state.round,
                 prompt: round.prompt,
-                words: round.words,
+                words: round.wordsAvailable.get(player.id) ?? [],
                 submitted: mine?.words ?? null,
                 answeredCount: roundPlayers.filter(player => round.answers.some(answer => answer.playerId === player.id)).length,
                 playerCount: roundPlayers.length,

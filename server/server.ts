@@ -820,8 +820,7 @@ function startRound(socket: Socket): void {
 
     console.log(`Room ${room.id} - round ${game.state.round} started`);
     console.log("Prompt:", round.prompt);
-    console.log("Words:", round.words);
-
+    console.log("Words available per player:", round.wordsAvailable);
 
     commitRoomState(room);
 }

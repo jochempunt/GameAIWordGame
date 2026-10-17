@@ -4,23 +4,21 @@ import type { Answer, GamePlayer, GameState, Ranking, RoundState } from "../type
 
 const GAMES_COLLECTION_NAME = "games";
 
-type StoredRound = Omit<RoundState, "answers" | "rankings" | "scores" | "playerIds" | "status" | "startedAt" | "completedAt"> & {
-  playerIds?: string[];
-  status?: RoundState["status"];
-  startedAt?: Date | null;
-  completedAt?: Date | null;
-  answers: (Omit<Answer, "receivedAt"> & { receivedAt?: Date | null })[];
-  rankings: [string, Ranking | string[]][];
-  scores?: [string, number][];
+type StoredRound = Omit<RoundState, "wordsAvailable" | "rankings" | "scores" | "answers"> & {
+  roundNumber: number;
+  wordsAvailable: { playerId: string; words: string[] }[];
+  answers: (Omit<Answer, "id"> & { answerId: string })[];
+  rankings: (Ranking & { playerId: string })[];
+  scores?: { answerId: string; score: number }[];
 };
 
 type StoredGame = {
   _id: string;
   roomId?: string;
   state: Omit<GameState, "players" | "rounds" | "totals"> & {
-    players?: [string, GamePlayer][];
-    rounds: [number, StoredRound][];
-    totals: [string, number][];
+    players: (Omit<GamePlayer, "id"> & { playerId: string })[];
+    rounds: StoredRound[];
+    totals: { playerId: string; score: number }[];
   };
 };
 
@@ -40,13 +38,20 @@ export async function saveGame(game: Game, roomId?: string): Promise<string | nu
     ...(roomId === undefined ? {} : { roomId }),
     state: {
       ...game.state,
-      players: [...game.state.players],
-      totals: [...game.state.totals],
-      rounds: [...game.state.rounds].map(([number, round]) => [number, {
+      players: [...game.state.players.values()].map(({ id, ...player }) => ({
+        playerId: id, ...player,
+      })),
+      totals: [...game.state.totals].map(([playerId, score]) => ({ playerId, score })),
+      rounds: [...game.state.rounds].map(([roundNumber, round]) => ({
+        roundNumber,
         ...round,
-        rankings: [...round.rankings],
-        scores: round.scores ? [...round.scores] : undefined,
-      }]),
+        wordsAvailable: [...round.wordsAvailable].map(([playerId, words]) => ({ playerId, words })),
+        answers: round.answers.map(({ id, ...answer }) => ({ answerId: id, ...answer })),
+        rankings: [...round.rankings].map(([playerId, ranking]) => ({ playerId, ...ranking })),
+        scores: round.scores
+          ? [...round.scores].map(([answerId, score]) => ({ answerId, score }))
+          : undefined,
+      })),
     },
   });
   
@@ -81,30 +86,18 @@ export async function getGame(id: string): Promise<Game | null> {
   const game = new Game(document._id);
   game.state = {
     ...document.state,
-    players: new Map(document.state.players ?? []),
-    totals: new Map(document.state.totals),
-    rounds: new Map(document.state.rounds.map(([number, round]) => [number, {
+    players: new Map(document.state.players.map(({ playerId, ...player }) => [
+      playerId, { id: playerId, ...player },
+    ])),
+    totals: new Map(document.state.totals.map(({ playerId, score }) => [playerId, score])),
+    rounds: new Map(document.state.rounds.map(({ roundNumber, ...round }) => [roundNumber, {
       ...round,
-      // Older documents have no timestamps; do not invent historical dates.
-      startedAt: round.startedAt ?? null,
-      completedAt: round.completedAt ?? null,
-      status: round.status ?? (round.scores
-        ? "completed"
-        : number === document.state.round &&
-          (document.state.phase === "answering" || document.state.phase === "ranking")
-          ? "in_progress"
-          : "abandoned"),
-      playerIds: round.playerIds ?? [],
-      answers: round.answers.map(answer => ({
-        ...answer,
-        receivedAt: answer.receivedAt ?? null,
-      })),
-      rankings: new Map(round.rankings.map(([playerId, ranking]) => [playerId,
-        Array.isArray(ranking)
-          ? { answerIds: ranking, receivedAt: null }
-          : { ...ranking, receivedAt: ranking.receivedAt ?? null },
-      ])),
-      scores: round.scores ? new Map(round.scores) : undefined,
+      wordsAvailable: new Map(round.wordsAvailable.map(({ playerId, words }) => [playerId, words])),
+      answers: round.answers.map(({ answerId, ...answer }) => ({ id: answerId, ...answer })),
+      rankings: new Map(round.rankings.map(({ playerId, ...ranking }) => [playerId, ranking])),
+      scores: round.scores
+        ? new Map(round.scores.map(({ answerId, score }) => [answerId, score]))
+        : undefined,
     }])),
   };
   

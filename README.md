@@ -32,8 +32,30 @@ Games are stored in `wordgame.games`, using the game ID as MongoDB's `_id`.
 
 `saveGame(game)` creates or updates a game. `getGame(id)` restores a `Game` instance, including its `Map` objects.
 
+Stored collections use objects with named fields; the game uses Maps in memory.
+
+| Stored field | Entry shape / meaning |
+| --- | --- |
+| `state.players` | `{ playerId, name, joinedAt }` |
+| `state.rounds` | `{ roundNumber, ...roundData }` |
+| Round `wordsAvailable` | `{ playerId, words }`: assigned words |
+| Round `answers` | `{ answerId, playerId, words, receivedAt }`: submitted answer |
+| Round `rankings` | `{ playerId, answerIds, receivedAt }`: voter and answers ordered best first |
+| Round `scores` | `{ answerId, score }`: points for an answer |
+| `state.totals` | `{ playerId, score }`: accumulated points for a player |
+
+`playerId` links to `state.players[].playerId`; `answerId` and `answerIds` link to that round's `answers[].answerId`.
+Ranking `answerIds` are ordered best first, worst last: index 0 is rank 1.
+With N ranked answers, the first receives N points, the second N−1, and the last 1 from that voter.
+Player IDs identify room participants, not permanent accounts across sessions.
+
+Each round stores `wordsAvailable` separately from submitted answers.
+These are the 25 words offered to each participating player, generated once at round start,
+even if they never submit. Players receive independent random subsets; overlap is allowed.
+`answers[].words` contains the words actually submitted, in sentence order, linked by `answers[].playerId`.
+
 **Current limitations:**
-- Player identities, connections, and ready status are not persisted in the database.
+- Connections and ready status are not persisted in the database.
 - Automatic game restoration on server startup is not implemented (function to use at gameRepository.ts -> getGame(id)).
 - Reconnection after a server restart is not supported yet.
 

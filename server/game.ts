@@ -59,7 +59,9 @@ startRound(playerIds: string[] = []): boolean {
         startedAt: new Date(),
         completedAt: null,
         prompt: this.randomPrompt(),
-        words: this.randomWords(WORD_COUNT),
+        wordsAvailable: new Map(
+            [...new Set(playerIds)].map(id => [id, this.randomWords(WORD_COUNT)]),
+        ),
         playerIds: [...new Set(playerIds)],
         answers: [],
         rankings: new Map<string, Ranking>(),
@@ -94,7 +96,8 @@ startRound(playerIds: string[] = []): boolean {
             return undefined;
         }
         
-        if (!this.validateWords(words, round.words)) {
+        const availableWords = round.wordsAvailable.get(playerId);
+        if (!availableWords || !this.validateWords(words, availableWords)) {
             return undefined;
         }
         

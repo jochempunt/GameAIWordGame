@@ -21,7 +21,7 @@ export type GamePlayer = {
 export type Answer = {
     id: AnswerId;
     playerId: PlayerId;
-    words: string[];
+    words: string[]; // Submitted answer, in the player's chosen order.
     receivedAt: Date | null; // null when loading older submissions without a timestamp.
 };
 
@@ -36,7 +36,7 @@ export type RoundState = {
     startedAt: Date | null; // null for older rounds whose start time was not recorded.
     completedAt: Date | null;
     prompt: string;
-    words: string[];
+    wordsAvailable: Map<PlayerId, string[]>; // Assigned subset per player, including non-submitters.
     playerIds: string[];
     answers: Answer[];
     rankings: Map<string, Ranking>;
