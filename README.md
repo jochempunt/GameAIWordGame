@@ -63,8 +63,6 @@ pnpm dev
 Then open:
 
 - Player: [http://localhost:5173](http://localhost:5173)
-- Host: [http://localhost:5173/host.html](http://localhost:5173/host.html)
-
 
 
 ### Database commands
