@@ -9,7 +9,7 @@ type PlayerSummary = PlayerView["players"][number];
 
 // ---- html elements ----
 const joinForm = document.querySelector<HTMLFormElement>("#join-form")!;
-const nameInput = document.querySelector<HTMLInputElement>("#name")!;
+// const nameInput = document.querySelector<HTMLInputElement>("#name")!;
 const statusText = document.querySelector<HTMLParagraphElement>("#status")!;
 
 const roomCards = document.querySelector<HTMLDivElement>(".room-cards")!;
@@ -235,20 +235,24 @@ function renderRoomCards(): void {
 joinForm.addEventListener("submit", (event: SubmitEvent) => {
     event.preventDefault();
     const roomId = event.submitter instanceof HTMLButtonElement ? event.submitter.value : "";
-    const name = nameInput.value.trim();
+/*    const name = nameInput.value.trim();
     if (!name) {
         nameInput.setCustomValidity("Please enter your name.");
         nameInput.reportValidity();
-        return;
-    }
+        return;}
+*/        
     if (!roomId || joiningRoomId !== null || !socket.connected) return;
     joiningRoomId = roomId;
     renderRoomCards();
     statusText.classList.remove("status-error");
     statusText.textContent = `Joining Room ${roomId}...`;
     socket.timeout(10000).emit(
-        "join", roomId, name,
-        (error: Error | null, response?: { ok: boolean; token?: string; error?: string }) => {
+        "join", roomId,
+        (error: Error | null, response?: {
+            ok: boolean;
+            token?: string;
+            error?: string;
+            name?: string; }) => {
             joiningRoomId = null;
             renderRoomCards();
             if (error || !response?.ok || !response.token) {
@@ -257,10 +261,13 @@ joinForm.addEventListener("submit", (event: SubmitEvent) => {
                 return;
             }
             localStorage.setItem("sessionToken", response.token);
+            statusText.textContent = response.name
+            ? `Joined as ${response.name}`
+            : "Joined successfully";
         },
     );
 });
-nameInput.addEventListener("input", () => nameInput.setCustomValidity(""));
+//nameInput.addEventListener("input", () => nameInput.setCustomValidity(""));
 
 
 // ---- view rendering ----

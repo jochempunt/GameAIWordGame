@@ -10,6 +10,7 @@ import { viewForPlayer } from "./views.js";
 import type { Room, RoomSummary } from "./types.js";
 import { connectToDatabase, disconnectFromDatabase } from "./database/db.js";
 import { saveGame, flushGameSaves } from "./database/gameRepository.js";
+import { generatePlayerName } from "./playerNames.js";
 
 
 // ---- Setup ----
@@ -131,8 +132,8 @@ io.on("connection", (socket) => {
     //     registerHost(socket);
     // });
 
-    on("join", (roomId, name, acknowledge) => {
-        joinPlayer(socket, roomId, name, safeAcknowledge(acknowledge));
+    on("join", (roomId, acknowledge) => {
+        joinPlayer(socket, roomId, safeAcknowledge(acknowledge));
     });
 
     on("rejoin", (token, acknowledge) => {
@@ -188,11 +189,11 @@ io.on("connection", (socket) => {
 function joinPlayer(
     socket: Socket,
     roomId: unknown,
-    name: unknown,
     acknowledge: (response: {
         ok: boolean;
         token?: string;
         error?: string;
+        name?: string;
     }) => void,
 ): void {
     // one socket controls at most one player
@@ -208,28 +209,20 @@ function joinPlayer(
         return;
     }
 
-    if (typeof name !== "string" || !name.trim()) {
-        acknowledge({
-            ok: false,
-            error: "Name cannot be empty",
-        });
-
-        return;
-    }
-
-    if (name.trim().length > MAX_NAME_LENGTH) {
-        acknowledge({
-            ok: false,
-            error: "Name is too long",
-        });
-
-        return;
-    }
-
     if (room.players.size >= MAX_PLAYERS_PER_ROOM) {
         acknowledge({ ok: false, error: "Room is full" });
         return;
     }
+
+    const usedNames = new Set(
+        [...rooms.values()].flatMap(room =>
+            [...room.players.values()].map(player =>
+                player.name.toLowerCase()
+            )
+        )
+    );
+
+    const name = generatePlayerName(usedNames);
 
     const player: Player = {
         id: crypto.randomUUID(),
@@ -257,6 +250,7 @@ function joinPlayer(
     acknowledge({
         ok: true,
         token: player.token,
+        name: player.name,
     });
 
     if (advanceRoomAfterMembershipChange(room)) {
