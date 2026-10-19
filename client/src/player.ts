@@ -203,7 +203,10 @@ function renderRoomCards(): void {
     // fresh rooms. As soon as one of those is joined, the next empty room is
     // revealed on the next rooms update.
     let visibleEmptyRooms = 0;
-    const visibleRooms = rooms.filter(room => {
+    const roomsByPopulation = [...rooms].sort((a, b) =>
+        b.playerCount - a.playerCount || a.id.localeCompare(b.id),
+    );
+    const visibleRooms = roomsByPopulation.filter(room => {
         if (room.playerCount > 0) return true;
 
         visibleEmptyRooms++;
