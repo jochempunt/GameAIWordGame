@@ -2,11 +2,19 @@
 # which reaches the game over Docker's internal network at http://game:3000.
 # Local development adds ports from compose.dev.yaml (see the README).
 
+# Docker keeps container logs forever by default; cap each container at 3 files of 10 MB.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   game:
     build: .
     container_name: gameaiwordgame
     restart: unless-stopped
+    logging: *logging
     environment:
       MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/wordgame?authSource=admin
 
@@ -19,6 +27,7 @@ services:
     image: mongo:8.0
     container_name: gameaiwordgame-mongo
     restart: unless-stopped
+    logging: *logging
 
     # used when Mongo creates its database for the first time.
     environment:
@@ -43,6 +52,7 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: gameaiwordgame-tunnel
     restart: unless-stopped
+    logging: *logging
 
     # only start Cloudflare for production deployments.
     profiles:

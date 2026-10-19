@@ -58,10 +58,19 @@ export function generatePlayerName(usedNames: Set<string>): string {
         }
     }
 
-    if (availableNames.length === 0) {
-        throw new Error("No unique player names available");
+    if (availableNames.length > 0) {
+        const index = Math.floor(Math.random() * availableNames.length);
+        return availableNames[index];
     }
 
-    const index = Math.floor(Math.random() * availableNames.length);
-    return availableNames[index];
+    // Every plain name is taken: add a number, e.g. "Sleepy Penguin 2".
+    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    for (let suffix = 2; ; suffix++) {
+        const name = `${adjective} ${noun} ${suffix}`;
+
+        if (!usedNames.has(name.toLowerCase())) {
+            return name;
+        }
+    }
 }

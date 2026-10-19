@@ -215,13 +215,6 @@ io.on("connection", (socket) => {
             .find(info => info?.family === "IPv4" && !info.internal)?.address;
         safeAcknowledge<{ address: string | null }>(acknowledge)({ address: address ?? null });
     });
-    console.log("\nNew connection");
-    console.log("Socket ID:", socket.id);
-    console.log("IP:", socket.handshake.address);
-    console.log(
-        "User-Agent:",
-        socket.handshake.headers["user-agent"],
-    );
 
     // socket.on("registerHost", () => {
     //     registerHost(socket);
@@ -363,7 +356,7 @@ function joinPlayer(
     }
 
     console.log(
-        `Player joined: ${player.name} (${player.id}) in room ${room.id}`,
+        `Player joined: ${player.name} in room ${room.id}`,
     );
 
     acknowledge({
@@ -425,7 +418,7 @@ function rejoinPlayer(
         transferHost(foundRoom, foundPlayer.id);
     }
 
-    console.log(`Player rejoined: ${foundPlayer.name} (${foundPlayer.id}) in room ${foundRoom.id}`);
+    console.log(`Player rejoined: ${foundPlayer.name} in room ${foundRoom.id}`);
 
     acknowledge({
         ok: true,
@@ -499,10 +492,7 @@ function submitAnswer(
         return;
     }
 
-    console.log(
-        `Answer submitted by ${player.name}:`,
-        answer.words,
-    );
+    console.log(`Answer submitted by ${player.name} in room ${room.id}`);
 
     acknowledge({
         ok: true,
@@ -630,10 +620,7 @@ function submitRanking(
         },
     );
 
-    console.log(
-        `Ranking submitted by ${player.name}:`,
-        rankedAnswerIds,
-    );
+    console.log(`Ranking submitted by ${player.name} in room ${room.id}`);
 
     acknowledge({
         ok: true,
@@ -965,8 +952,6 @@ function startRound(socket: Socket): void {
     if (!round) return;
 
     console.log(`Room ${room.id} - round ${game.state.round} started`);
-    console.log("Prompt:", round.prompt);
-    console.log("Words available per player:", round.wordsAvailable);
 
     commitRoomState(room);
 }
@@ -995,8 +980,7 @@ function tryStartVoting(room: Room): void {
 
     room.game.state.phase = "ranking";
 
-    console.log("Everyone answered");
-    console.log("Starting ranking phase");
+    console.log(`Room ${room.id}: everyone answered, starting ranking`);
 }
 
 function tryFinishRanking(room: Room): void {
@@ -1017,19 +1001,12 @@ function tryFinishRanking(room: Room): void {
     );
 
     console.log(
-        `Rankings: ${round.rankings.size}/${roundPlayers.length}`,
+        `Room ${room.id}: rankings ${round.rankings.size}/${roundPlayers.length}`,
     );
 
     if (!everyoneRanked) return;
 
-    console.log("Everyone ranked!");
-
-    for (const [playerId, ranking] of round.rankings) {
-        console.log(
-            `Ranking from ${playerId}:`,
-            ranking,
-        );
-    }
+    console.log(`Room ${room.id}: everyone ranked`);
 
     room.game.calculateScores();
 
