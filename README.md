@@ -47,7 +47,7 @@ Stored collections use objects with named fields; the game uses Maps in memory.
 `playerId` links to `state.players[].playerId`; `answerId` and `answerIds` link to that round's `answers[].answerId`.
 Ranking `answerIds` are ordered best first, worst last: index 0 is rank 1.
 With N ranked answers, the first receives N points, the second N−1, and the last 1 from that voter.
-Player IDs identify room participants, not permanent accounts across sessions.
+Player IDs remain stable across rooms and games while the browser keeps its session token in localStorage. They are not permanent accounts.
 
 Each round stores `wordsAvailable` separately from submitted answers.
 These are the 25 words offered to each participating player, generated once at round start,

@@ -1,6 +1,7 @@
 import express from "express";
 import { networkInterfaces } from "node:os";
 import { createServer } from "node:http";
+import { createHash } from "node:crypto";
 import { Server, Socket } from "socket.io";
 import { fileURLToPath } from "node:url";
 
@@ -132,8 +133,8 @@ io.on("connection", (socket) => {
     //     registerHost(socket);
     // });
 
-    on("join", (roomId, acknowledge) => {
-        joinPlayer(socket, roomId, safeAcknowledge(acknowledge));
+    on("join", (roomId, token, acknowledge) => {
+        joinPlayer(socket, roomId, token, safeAcknowledge(acknowledge));
     });
 
     on("rejoin", (token, acknowledge) => {
@@ -189,6 +190,7 @@ io.on("connection", (socket) => {
 function joinPlayer(
     socket: Socket,
     roomId: unknown,
+    sessionToken: unknown,
     acknowledge: (response: {
         ok: boolean;
         token?: string;
@@ -214,6 +216,15 @@ function joinPlayer(
         return;
     }
 
+    // Reuse the browser's secret across rooms; only its hash is public.
+    const token = typeof sessionToken === "string"
+        && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(sessionToken)
+        ? sessionToken : crypto.randomUUID();
+    if (getPlayerByToken(token)) {
+        acknowledge({ ok: false, error: "You are already in a room. Reconnect to rejoin it." });
+        return;
+    }
+
     const usedNames = new Set(
         [...rooms.values()].flatMap(room =>
             [...room.players.values()].map(player =>
@@ -225,8 +236,8 @@ function joinPlayer(
     const name = generatePlayerName(usedNames);
 
     const player: Player = {
-        id: crypto.randomUUID(),
-        token: crypto.randomUUID(),
+        id: createHash("sha256").update(token).digest("hex"),
+        token,
         socketId: socket.id,
         name: name.trim(),
         connected: true,

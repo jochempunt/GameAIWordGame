@@ -178,7 +178,7 @@ function showJoin(): void {
 }
 
 function returnToRoomSelection(message = "Choose a room to join."): void {
-    localStorage.removeItem("sessionToken");
+    // Keep the session identity when leaving a room or failing to rejoin.
     selectedWords = [];
     availableWords = [];
     rankedAnswers = [];
@@ -247,7 +247,7 @@ joinForm.addEventListener("submit", (event: SubmitEvent) => {
     statusText.classList.remove("status-error");
     statusText.textContent = `Joining Room ${roomId}...`;
     socket.timeout(10000).emit(
-        "join", roomId,
+        "join", roomId, localStorage.getItem("sessionToken"),
         (error: Error | null, response?: {
             ok: boolean;
             token?: string;
