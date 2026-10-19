@@ -36,7 +36,7 @@ Stored collections use objects with named fields; the game uses Maps in memory.
 
 | Stored field | Entry shape / meaning |
 | --- | --- |
-| `state.players` | `{ playerId, name, joinedAt }` |
+| `state.players` | `{ playerId, joinedAt, consent? }` (display names are not saved) |
 | `state.rounds` | `{ roundNumber, ...roundData }` |
 | Round `wordsAvailable` | `{ playerId, words }`: assigned words |
 | Round `answers` | `{ answerId, playerId, words, receivedAt }`: submitted answer |

@@ -2,6 +2,7 @@ type PlayerId = string;
 type AnswerId = string;
 
 import type { Game } from "./game.js"
+import type { ConsentRecord } from "./consent.js";
 
 export type Player = {
     id: string; // public, shown to the whole room
@@ -9,6 +10,7 @@ export type Player = {
     socketId: string;
     name: string;
     connected: boolean;
+    consent: ConsentRecord;
     reconnecting?: boolean; // Count this disconnected player during the short reconnect grace.
 };
 
@@ -16,6 +18,7 @@ export type GamePlayer = {
     id: string;
     name: string;
     joinedAt: Date;
+    consent?: ConsentRecord; // Older saved games predate the consent screen.
 };
 
 export type Answer = {

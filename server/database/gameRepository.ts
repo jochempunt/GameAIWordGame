@@ -16,7 +16,7 @@ type StoredGame = {
   _id: string;
   roomId?: string;
   state: Omit<GameState, "players" | "rounds" | "totals"> & {
-    players: (Omit<GamePlayer, "id"> & { playerId: string })[];
+    players: (Omit<GamePlayer, "id" | "name"> & { playerId: string })[];
     rounds: StoredRound[];
     totals: { playerId: string; score: number }[];
   };
@@ -38,8 +38,8 @@ export async function saveGame(game: Game, roomId?: string): Promise<string | nu
     ...(roomId === undefined ? {} : { roomId }),
     state: {
       ...game.state,
-      players: [...game.state.players.values()].map(({ id, ...player }) => ({
-        playerId: id, ...player,
+      players: [...game.state.players.values()].map(({ id, joinedAt, consent }) => ({
+        playerId: id, joinedAt, ...(consent ? { consent } : {}),
       })),
       totals: [...game.state.totals].map(([playerId, score]) => ({ playerId, score })),
       rounds: [...game.state.rounds].map(([roundNumber, round]) => ({
@@ -86,8 +86,8 @@ export async function getGame(id: string): Promise<Game | null> {
   const game = new Game(document._id);
   game.state = {
     ...document.state,
-    players: new Map(document.state.players.map(({ playerId, ...player }) => [
-      playerId, { id: playerId, ...player },
+    players: new Map(document.state.players.map(({ playerId, joinedAt, consent }) => [
+      playerId, { id: playerId, name: "Unknown player", joinedAt, ...(consent ? { consent } : {}) },
     ])),
     totals: new Map(document.state.totals.map(({ playerId, score }) => [playerId, score])),
     rounds: new Map(document.state.rounds.map(({ roundNumber, ...round }) => [roundNumber, {

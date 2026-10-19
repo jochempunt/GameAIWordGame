@@ -319,6 +319,109 @@ label{
     }
 }
 
+.consent-intro,
+.consent-note {
+    color: var(--cream-light);
+    line-height: 1.6;
+}
+
+.consent-note {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+}
+
+.consent-card {
+    display: grid;
+    gap: 1.25rem;
+    padding: 1.25rem;
+    border: 1px solid var(--tile-border);
+    border-radius: 0.75rem;
+    background: var(--cream-light);
+}
+
+.consent-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    color: var(--ink);
+    line-height: 1.6;
+}
+
+.consent-choice input {
+    appearance: none;
+    display: grid;
+    place-content: center;
+    flex: 0 0 1.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin: 0.175rem 0 0;
+    padding: 0;
+    border: 2px solid var(--muted-ink);
+    border-radius: 0.25rem;
+    background: var(--cream-light);
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.consent-choice input:checked {
+    border-color: var(--blue-dark);
+    background: var(--blue-dark);
+}
+
+.consent-choice input::before {
+    content: "";
+    width: 0.3rem;
+    height: 0.55rem;
+    margin-top: -0.15rem;
+    border: solid var(--cream-light);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    visibility: hidden;
+}
+
+.consent-choice input:checked::before {
+    visibility: visible;
+}
+
+@media (forced-colors: active) {
+    .consent-choice input {
+        appearance: auto;
+    }
+
+    .consent-choice input::before {
+        display: none;
+    }
+}
+
+.consent-choice a {
+    color: var(--blue-dark);
+    font-weight: 700;
+    text-underline-offset: 0.15em;
+}
+
+.consent-choice a:focus-visible,
+#consent-continue:focus-visible,
+.consent-information summary:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+}
+
+.consent-information {
+    padding: 0.25rem 0;
+    color: var(--cream-light);
+    line-height: 1.6;
+}
+
+.consent-information summary {
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.consent-information p {
+    color: inherit;
+    font-size: 0.9rem;
+}
+
 form button,
 #start-round,
 #submit-answer {

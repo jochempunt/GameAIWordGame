@@ -1,8 +1,58 @@
 import { io } from "socket.io-client";
 import { createRankBadge } from "./rankBadge.js";
 import type { PlayerView, RoomSummary } from "../../server/types.js";
+import { CONSENT_VERSION, isCurrentConsent, type ConsentRecord } from "../../server/consent.js";
 
-const socket = io();
+const socket = io({ autoConnect: false });
+let acceptedConsent: ConsentRecord | null = null;
+const consentView = document.querySelector<HTMLElement>("#consent-view")!;
+const consentForm = document.querySelector<HTMLFormElement>("#consent-form")!;
+const participationCheckbox = document.querySelector<HTMLInputElement>("#consent-participation")!;
+const dataCheckbox = document.querySelector<HTMLInputElement>("#consent-data")!;
+const consentContinue = document.querySelector<HTMLButtonElement>("#consent-continue")!;
+const consentStatus = document.querySelector<HTMLElement>("#consent-status")!;
+const informationLink = document.querySelector<HTMLAnchorElement>("#participant-information-link")!;
+// Set this to your Qualtrics participant information / consent form URL when ready.
+const participantInformationUrl = (import.meta as ImportMeta & { env: Record<string, string> }).env.VITE_PARTICIPANT_INFO_URL;
+if (participantInformationUrl) {
+    informationLink.href = participantInformationUrl;
+    informationLink.target = "_blank";
+    informationLink.rel = "noopener noreferrer";
+} else {
+    informationLink.addEventListener("click", () => {
+        document.querySelector<HTMLDetailsElement>("#participant-information")!.open = true;
+    });
+}
+
+consentForm.addEventListener("change", () => {
+    consentContinue.disabled = !participationCheckbox.checked || !dataCheckbox.checked;
+});
+consentForm.addEventListener("submit", event => {
+    event.preventDefault();
+    if (!participationCheckbox.checked || !dataCheckbox.checked) return;
+    const consent: ConsentRecord = {
+        version: CONSENT_VERSION,
+        participation: true,
+        dataCollection: true,
+        acceptedAt: new Date().toISOString(),
+    };
+    try {
+        localStorage.setItem("playerConsent", JSON.stringify(consent));
+    } catch {
+        consentStatus.textContent = "Please allow this site to save browser data, then try again.";
+        return;
+    }
+    connectWithConsent(consent);
+});
+
+function connectWithConsent(consent: ConsentRecord): void {
+    acceptedConsent = consent;
+    socket.auth = { consent };
+    consentView.hidden = true;
+    showJoin();
+    statusText.textContent = "Connecting...";
+    socket.connect();
+}
 
 type ViewOf<P extends PlayerView["phase"]> = Extract<PlayerView, { phase: P }>;
 type PlayerSummary = PlayerView["players"][number];
@@ -99,6 +149,9 @@ socket.on("disconnect", () => {
     renderRoomCards();
     statusText.textContent = "Reconnecting...";
 });
+socket.on("connect_error", () => {
+    statusText.textContent = "Could not connect. Retrying...";
+});
 socket.on("state", render);
 socket.on("kicked", () => returnToRoomSelection("You were kicked from the room."));
 
@@ -150,6 +203,7 @@ function setPrompt(text: string, round: number, animate = false): void {
 
 
 const allViews = [
+    consentView,
     joinView,
     lobbyView,
     playingView,
@@ -168,6 +222,7 @@ function hideAll(): void {
 
 
 function showJoin(): void {
+    if (!acceptedConsent) return;
     hideAll();
     joinView.hidden = false;
     roomOverview.hidden = true;
@@ -268,6 +323,14 @@ joinForm.addEventListener("submit", (event: SubmitEvent) => {
     );
 });
 //nameInput.addEventListener("input", () => nameInput.setCustomValidity(""));
+
+// Initialise only after the view references and socket handlers are ready.
+try {
+    const savedConsent: unknown = JSON.parse(localStorage.getItem("playerConsent") ?? "null");
+    if (isCurrentConsent(savedConsent)) connectWithConsent(savedConsent);
+} catch {
+    // Missing, malformed or unavailable storage leaves the consent screen visible.
+}
 
 
 // ---- view rendering ----

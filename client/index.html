@@ -15,8 +15,31 @@
             <p class="game-wordmark">Scientists <span class="wordmark-highlight">Confirm<sup class="wordmark-citation" aria-hidden="true">[1]</sup></span></p>
         </header>
         
+        <section id="consent-view" aria-labelledby="consent-title">
+            <h1 id="consent-title">Before you play</h1>
+            <p class="consent-intro">Please read and agree to both statements to continue.</p>
+            <form id="consent-form">
+                <div class="consent-card">
+                    <label class="consent-choice">
+                        <input id="consent-participation" type="checkbox" required />
+                        <span>I have read the <a id="participant-information-link" href="#participant-information">consent form</a> and agree to take part.</span>
+                    </label>
+                    <label class="consent-choice">
+                        <input id="consent-data" type="checkbox" required />
+                        <span>I agree to recording my answers, rankings, scores and play times, plus my IP address and browser information. This site saves a token to recognise this browser across rooms and future visits.</span>
+                    </label>
+                </div>
+                <details id="participant-information" class="consent-information">
+                    <summary>About taking part</summary>
+                    <p>Create funny answers from word tiles and rank other players’ answers. Taking part is voluntary, and you can leave the game at any time.</p>
+                </details>
+                <button id="consent-continue" type="submit" disabled>Continue to rooms</button>
+                <p id="consent-status" class="consent-note" role="status">Don’t wish to take part? You can close this page.</p>
+            </form>
+        </section>
+
         <!-- JOIN -->
-        <section id="join-view">
+        <section id="join-view" hidden>
             <h1>Join Game</h1>
             
             <form id="join-form">
@@ -162,5 +185,4 @@
         
     </main>
     
-    <script type="module" src="/src/player.ts" ></script>
 </body>

@@ -1,5 +1,6 @@
 import { WORDS } from "./words.js";
 import { PROMPTS } from "./prompts.js";
+import type { ConsentRecord } from "./consent.js";
 
 import type {
     Answer,
@@ -23,8 +24,12 @@ export class Game {
         totals: new Map<string, number>()
     };
     
-    recordPlayer(playerId: string, name: string): void {
-        if (this.state.players.has(playerId)) {
+    recordPlayer(playerId: string, name: string, consent?: ConsentRecord): void {
+        const existing = this.state.players.get(playerId);
+        if (existing) {
+            if (consent && existing.consent?.version !== consent.version) {
+                existing.consent = { ...consent };
+            }
             return;
         }
 
@@ -32,6 +37,7 @@ export class Game {
             id: playerId,
             name,
             joinedAt: new Date(),
+            ...(consent ? { consent: { ...consent } } : {}),
         });
     }
 

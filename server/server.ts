@@ -12,6 +12,7 @@ import type { Room, RoomSummary } from "./types.js";
 import { connectToDatabase, disconnectFromDatabase } from "./database/db.js";
 import { saveGame, flushGameSaves } from "./database/gameRepository.js";
 import { generatePlayerName } from "./playerNames.js";
+import { isCurrentConsent, type ConsentRecord } from "./consent.js";
 
 
 // ---- Setup ----
@@ -103,7 +104,21 @@ function pushState(room: Room): void {
 
 
 io.on("connection", (socket) => {
-    socket.emit("rooms", roomSummaries());
+    const consent = socket.handshake.auth.consent;
+    if (isCurrentConsent(consent)) {
+        // Use a server timestamp for the acknowledgement, rather than trusting the browser clock.
+        socket.data.consent = {
+            version: consent.version,
+            participation: true,
+            dataCollection: true,
+            acceptedAt: new Date().toISOString(),
+        } satisfies ConsentRecord;
+        socket.emit("rooms", roomSummaries());
+        console.log("\nNew consenting connection");
+        console.log("Socket ID:", socket.id);
+        console.log("IP:", socket.handshake.address);
+        console.log("User-Agent:", socket.handshake.headers["user-agent"]);
+    }
     // an error thrown inside a socket handler would otherwise crash the whole server
     const on = (event: string, handler: (...args: any[]) => void): void => {
         socket.on(event, (...args: any[]) => {
@@ -121,23 +136,24 @@ io.on("connection", (socket) => {
             .find(info => info?.family === "IPv4" && !info.internal)?.address;
         safeAcknowledge<{ address: string | null }>(acknowledge)({ address: address ?? null });
     });
-    console.log("\nNew connection");
-    console.log("Socket ID:", socket.id);
-    console.log("IP:", socket.handshake.address);
-    console.log(
-        "User-Agent:",
-        socket.handshake.headers["user-agent"],
-    );
 
     // socket.on("registerHost", () => {
     //     registerHost(socket);
     // });
 
     on("join", (roomId, token, acknowledge) => {
+        if (!socket.data.consent) {
+            safeAcknowledge(acknowledge)({ ok: false, error: "Please accept the current participation and data collection terms." });
+            return;
+        }
         joinPlayer(socket, roomId, token, safeAcknowledge(acknowledge));
     });
 
     on("rejoin", (token, acknowledge) => {
+        if (!socket.data.consent) {
+            safeAcknowledge(acknowledge)({ ok: false, error: "Please accept the current participation and data collection terms." });
+            return;
+        }
         rejoinPlayer(socket, token, safeAcknowledge(acknowledge));
     });
 
@@ -241,10 +257,11 @@ function joinPlayer(
         socketId: socket.id,
         name: name.trim(),
         connected: true,
+        consent: socket.data.consent,
     };
 
     room.players.set(player.id, player);
-    room.game.recordPlayer(player.id, player.name);
+    room.game.recordPlayer(player.id, player.name, player.consent);
     if (room.game.state.phase === "lobby") {
         room.activePlayerIds.add(player.id);
     }
@@ -303,6 +320,8 @@ function rejoinPlayer(
         detachSocket(previousSocket, foundRoom);
     }
 
+    foundPlayer.consent = socket.data.consent;
+    foundRoom.game.recordPlayer(foundPlayer.id, foundPlayer.name, foundPlayer.consent);
     attachSocket(socket, foundRoom, foundPlayer);
     if (foundRoom.game.state.phase === "lobby") {
         foundRoom.activePlayerIds.add(foundPlayer.id);
