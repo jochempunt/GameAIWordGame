@@ -9,6 +9,7 @@ export function viewForPlayer(
     readyPlayers: Set<string>,
     activePlayerIds: Set<string>,
     hostPlayerId: string | null,
+    roomLocked: boolean,
 ): PlayerView {
     const roomPlayers = [...players];
     const connectedPlayers = roomPlayers.filter(player => player.connected);
@@ -36,6 +37,7 @@ export function viewForPlayer(
         isActive,
         isSpectator,
         players: playerSummaries,
+        roomLocked,
     };
     const lobbyView = (): PlayerView => ({
         ...base,

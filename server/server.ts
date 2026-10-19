@@ -52,6 +52,7 @@ for (const code of ROOM_CODES) {
         readyPlayers: new Set<string>(),
         activePlayerIds: new Set<string>(),
         hostPlayerId: null,
+        locked: false,
     });
 }
 
@@ -69,6 +70,7 @@ function roomSummaries(): RoomSummary[] {
         playerCount: room.players.size,
         capacity: MAX_PLAYERS_PER_ROOM,
         phase: room.game.state.phase,
+        locked: room.locked,
     }));
 }
 
@@ -97,6 +99,7 @@ function pushState(room: Room): void {
                 room.readyPlayers,
                 room.activePlayerIds,
                 room.hostPlayerId,
+                room.locked,
             ),
         );
     }
@@ -183,6 +186,10 @@ io.on("connection", (socket) => {
         transferHostFromSocket(socket, playerId, safeAcknowledge(acknowledge));
     });
 
+    on("setRoomLocked", (locked, acknowledge) => {
+        setRoomLocked(socket, locked, safeAcknowledge(acknowledge));
+    });
+
     on("disconnect", () => {
         disconnectPlayer(socket);
     });
@@ -212,6 +219,11 @@ function joinPlayer(
 
     if (!room) {
         acknowledge({ ok: false, error: "Room not found" });
+        return;
+    }
+
+    if (room.locked) {
+        acknowledge({ ok: false, error: "Room is locked" });
         return;
     }
 
@@ -682,6 +694,33 @@ function transferHostFromSocket(
     acknowledge({ ok: true });
     commitRoomState(room);
 }
+function setRoomLocked(
+    socket: Socket,
+    locked: unknown,
+    acknowledge: (response: { ok: boolean; error?: string }) => void,
+): void {
+    const result = getPlayerBySocket(socket);
+    if (!result) {
+        acknowledge({ ok: false, error: "Player not found" });
+        return;
+    }
+
+    const { player, room } = result;
+    if (player.id !== room.hostPlayerId) {
+        acknowledge({ ok: false, error: "Only the host can change room settings" });
+        return;
+    }
+
+    if (typeof locked !== "boolean") {
+        acknowledge({ ok: false, error: "Invalid lock setting" });
+        return;
+    }
+
+    room.locked = locked;
+    acknowledge({ ok: true });
+    commitRoomState(room);
+}
+
 function removePlayerFromRoom(
     room: Room,
     player: Player,
@@ -705,6 +744,7 @@ function removePlayerFromRoom(
         room.readyPlayers.clear();
         room.activePlayerIds.clear();
         room.hostPlayerId = null;
+        room.locked = false;
         return;
     }
 

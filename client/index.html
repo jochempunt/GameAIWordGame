@@ -32,7 +32,17 @@
         
         
         <div id="room-actions" hidden>
-            <button type="button" id="leave-room">Exit</button>
+            <div class="room-action-buttons">
+                <button type="button" id="leave-room">Exit</button>
+                <button type="button" id="room-lock-toggle" hidden>Lock room</button>
+                <details id="room-settings" hidden>
+                    <summary>Room settings</summary>
+                    <details class="room-settings-section" open>
+                        <summary>Players</summary>
+                        <ul id="room-settings-players" aria-label="Players"></ul>
+                    </details>
+                </details>
+            </div>
             <p id="action-error" role="alert"></p>
         </div>
 

@@ -49,6 +49,7 @@ export type RoomSummary = {
     playerCount: number;
     capacity: number;
     phase: Phase;
+    locked: boolean;
 };
 
 export type GameState = {
@@ -77,6 +78,7 @@ export type PlayerView = {
     isActive: boolean;
     isSpectator: boolean;
     players: PlayerSummary[];
+    roomLocked: boolean;
 } & (
     | {
         phase: "lobby";
@@ -149,4 +151,5 @@ export type Room = {
     readyPlayers: Set<string>;
     activePlayerIds: Set<string>;
     hostPlayerId: string | null;
+    locked: boolean;
 }

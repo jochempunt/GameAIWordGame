@@ -313,6 +313,21 @@ label{
     background: var(--blue-dark);
 }
 
+.room-join.room-join-locked,
+.room-join.room-join-locked:hover:not(:disabled) {
+    border-color: rgb(60 60 60 / 45%);
+    background: #8d8d8d;
+    box-shadow: 0 3px 0 #606060;
+    color: #f0f0f0;
+    cursor: not-allowed;
+}
+
+.room-lock-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+
 @media (max-width: 380px) {
     .room-cards {
         grid-template-columns: 1fr;
@@ -712,6 +727,85 @@ h1.prompt {
     text-align: right;
 }
 
+.room-action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+#room-settings {
+    position: relative;
+    text-align: left;
+}
+
+#room-settings summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid rgb(255 248 240 / 35%);
+    border-radius: 0.5rem;
+    background: rgb(50 62 47 / 24%);
+    color: var(--cream-light);
+    font-size: 0.85rem;
+}
+
+#room-settings summary::-webkit-details-marker {
+    display: none;
+}
+
+#room-settings[open] summary {
+    background: rgb(255 248 240 / 16%);
+}
+
+.room-settings-section {
+    margin-top: 0.75rem;
+}
+
+.room-settings-section > summary {
+    padding: 0.45rem 0;
+    color: var(--cream);
+    font-weight: 700;
+}
+
+#room-settings-players {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#room-settings-players li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.3rem 0.75rem;
+    align-items: center;
+    padding: 0.65rem;
+    border: 1px solid rgb(255 248 240 / 22%);
+    border-radius: 0.5rem;
+    background: rgb(50 62 47 / 18%);
+}
+
+.room-settings-player-status {
+    color: var(--cream-light);
+    font-size: 0.8rem;
+}
+
+.room-settings-player-controls {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.room-settings-player-controls button {
+    flex: 1;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.75rem;
+}
+
+#room-settings-players li.disconnected {
+    opacity: 0.5;
+}
 #room-overview {
     margin: 0 0 1.5rem;
     padding: 1rem;
@@ -733,7 +827,8 @@ h1.prompt {
     gap: 0.75rem;
 }
 
-#leave-room {
+#leave-room,
+#room-lock-toggle {
     flex: 0 0 auto;
     padding: 0.45rem 0.7rem;
     border: 1px solid rgb(255 248 240 / 35%);

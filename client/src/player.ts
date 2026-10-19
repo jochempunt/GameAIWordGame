@@ -26,6 +26,9 @@ const roomPlayers = document.querySelector<HTMLUListElement>("#room-players")!;
 const leaveRoomButton = document.querySelector<HTMLButtonElement>("#leave-room")!;
 const actionError = document.querySelector<HTMLElement>("#action-error")!;
 
+const roomSettings = document.querySelector<HTMLDetailsElement>("#room-settings")!;
+const roomSettingsPlayers = document.querySelector<HTMLUListElement>("#room-settings-players")!;
+const roomLockToggle = document.querySelector<HTMLButtonElement>("#room-lock-toggle")!;
 const joinView = document.querySelector<HTMLElement>("#join-view")!;
 const lobbyView = document.querySelector<HTMLElement>("#lobby-view")!;
 const playingView = document.querySelector<HTMLElement>("#playing-view")!;
@@ -103,8 +106,19 @@ socket.on("disconnect", () => {
 socket.on("state", render);
 socket.on("kicked", () => returnToRoomSelection("You were kicked from the room."));
 
+roomLockToggle.addEventListener("click", () => {
+    const locked = roomLockToggle.dataset.locked === "true";
+    roomLockToggle.disabled = true;
+    socket.emit("setRoomLocked", !locked, (response: { ok: boolean; error?: string }) => {
+        roomLockToggle.disabled = false;
+        if (!response.ok) showActionError(response.error ?? "Could not update room lock");
+    });
+});
+
 function render(view: PlayerView): void {
     hideAll();
+    roomActions.hidden = false;
+    renderRoomSettings(view);
     renderRoomOverview(view);
     
     
@@ -224,25 +238,35 @@ function renderRoomCards(): void {
         code.className = "room-code wordmark-highlight";
         code.textContent = room.id;
         title.append(code);
-        heading.append(title);
+        if (room.locked) {
+            const lockIcon = document.createElement("span");
+            lockIcon.className = "room-lock-icon";
+            lockIcon.textContent = "\u{1F512}";
+            lockIcon.setAttribute("aria-label", "Room locked");
+            heading.append(title, lockIcon);
+        } else {
+            heading.append(title);
+        }
 
         const count = document.createElement("p");
         count.className = "room-player-count";
         count.textContent = `${room.playerCount} / ${room.capacity} players joined`;
         const full = room.playerCount >= room.capacity;
+        const locked = room.locked;
         const status = document.createElement("p");
         status.className = "room-card-status";
-        status.textContent = full ? "Room full" : room.phase !== "lobby"
+        status.textContent = locked ? "Room locked" : full ? "Room full" : room.phase !== "lobby"
             ? "Round in progress · Join to watch"
             : room.playerCount === 0 ? "Be the first to join" : "In the lobby · Come on in";
 
         const button = document.createElement("button");
         button.type = "submit";
         button.value = room.id;
-        button.className = "room-join";
-        button.textContent = joiningRoomId === room.id ? "Joining..." : full ? "Full" : "Join room";
-        button.setAttribute("aria-label", `Join room ${room.id}`);
-        button.disabled = full || joiningRoomId !== null || !socket.connected;
+        button.className = locked ? "room-join room-join-locked" : "room-join";
+        button.textContent = joiningRoomId === room.id ? "Joining..." : locked ? "Locked" : full ? "Full" : "Join room";
+        button.setAttribute("aria-label", locked ? `Room ${room.id} is locked` : `Join room ${room.id}`);
+        button.setAttribute("aria-disabled", String(locked));
+        button.disabled = (!locked && full) || joiningRoomId !== null || !socket.connected;
         card.append(heading, count, status, button);
         roomCards.append(card);
     });
@@ -258,6 +282,11 @@ joinForm.addEventListener("submit", (event: SubmitEvent) => {
         return;}
 */        
     if (!roomId || joiningRoomId !== null || !socket.connected) return;
+    const room = rooms.find(candidate => candidate.id === roomId);
+    if (room?.locked) {
+        window.alert(`Room ${roomId} is locked. Ask the host to unlock it before joining.`);
+        return;
+    }
     joiningRoomId = roomId;
     renderRoomCards();
     statusText.classList.remove("status-error");
@@ -289,7 +318,6 @@ joinForm.addEventListener("submit", (event: SubmitEvent) => {
 // ---- view rendering ----
 
 function renderRoomOverview(view: PlayerView): void {
-    roomActions.hidden = false;
     roomOverview.hidden = view.phase !== "lobby";
     if (roomOverview.hidden) return;
     roomOverviewTitle.textContent = view.isHost ? "Your lobby" : "Lobby";
@@ -341,27 +369,53 @@ function renderRoomOverview(view: PlayerView): void {
 
         item.append(position, identity, score);
 
-        if (view.isHost) {
-            const controls = document.createElement("div");
-            controls.classList.add("host-player-controls");
-
-            const kickButton = document.createElement("button");
-            kickButton.type = "button";
-            kickButton.textContent = "Kick";
-            kickButton.addEventListener("click", () => emitHostPlayerAction("kickPlayer", player.id));
-
-            const transferButton = document.createElement("button");
-            transferButton.type = "button";
-            transferButton.textContent = "Transfer Host";
-            transferButton.disabled = player.isHost || !player.connected;
-            transferButton.addEventListener("click", () => emitHostPlayerAction("transferHost", player.id));
-
-            controls.append(kickButton, transferButton);
-            item.appendChild(controls);
-        }
-
         item.classList.toggle("disconnected", !player.connected);
         roomPlayers.appendChild(item);
+    }
+}
+
+function renderRoomSettings(view: PlayerView): void {
+    roomSettings.hidden = !view.isHost;
+    roomLockToggle.hidden = !view.isHost;
+    if (!view.isHost) {
+        roomSettings.open = false;
+        return;
+    }
+
+    roomLockToggle.dataset.locked = String(view.roomLocked);
+    roomLockToggle.textContent = view.roomLocked ? "Unlock room" : "Lock room";
+    roomLockToggle.setAttribute("aria-pressed", String(view.roomLocked));
+
+    roomSettingsPlayers.replaceChildren();
+    for (const player of view.players) {
+        const item = document.createElement("li");
+        item.classList.toggle("disconnected", !player.connected);
+
+        const name = document.createElement("span");
+        name.textContent = player.name;
+
+        const status = document.createElement("span");
+        status.className = "room-settings-player-status";
+        status.textContent = player.isHost ? "Host" : player.connected ? "Connected" : "Disconnected";
+
+        const controls = document.createElement("div");
+        controls.className = "room-settings-player-controls";
+
+        const kickButton = document.createElement("button");
+        kickButton.type = "button";
+        kickButton.textContent = "Kick";
+        kickButton.disabled = player.isHost;
+        kickButton.addEventListener("click", () => emitHostPlayerAction("kickPlayer", player.id));
+
+        const transferButton = document.createElement("button");
+        transferButton.type = "button";
+        transferButton.textContent = "Transfer host";
+        transferButton.disabled = player.isHost || !player.connected;
+        transferButton.addEventListener("click", () => emitHostPlayerAction("transferHost", player.id));
+
+        controls.append(kickButton, transferButton);
+        item.append(name, status, controls);
+        roomSettingsPlayers.appendChild(item);
     }
 }
 
