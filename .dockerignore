@@ -1,0 +1,20 @@
+# Everything listed here stays out of the Docker build context, and so out of the image.
+
+# Secrets: the app gets its settings from compose at runtime, never from a baked-in file.
+.env
+.env.*
+
+# Installed and built on the host; the image installs and builds its own.
+node_modules
+**/node_modules
+client/dist
+
+# Not needed to build or run the game.
+.git
+.claude
+.vscode
+.idea
+*.log
+Dockerfile
+.dockerignore
+compose*.yaml

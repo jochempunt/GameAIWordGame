@@ -1,10 +1,12 @@
+# Production setup. Nothing here publishes a port: the only way in is the Cloudflare tunnel,
+# which reaches the game over Docker's internal network at http://game:3000.
+# Local development adds ports from compose.dev.yaml (see the README).
+
 services:
   game:
     build: .
     container_name: gameaiwordgame
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     environment:
       MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/wordgame?authSource=admin
 
@@ -27,24 +29,10 @@ services:
     # The Docker volume survives container replacement/rebuilds.
     volumes:
       - mongo_data:/data/db
-    ports:
-      - "127.0.0.1:27017:27017"
 
+    # `ping` needs no login, so the password stays out of the healthcheck command.
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mongosh",
-          "--quiet",
-          "--username",
-          "${MONGO_ROOT_USERNAME}",
-          "--password",
-          "${MONGO_ROOT_PASSWORD}",
-          "--authenticationDatabase",
-          "admin",
-          "--eval",
-          "db.adminCommand('ping')"
-        ]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -59,7 +47,10 @@ services:
     # only start Cloudflare for production deployments.
     profiles:
       - production
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run
+    # Read from the environment rather than the command line, where any user on the host could see it in `ps`.
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
       - game
 

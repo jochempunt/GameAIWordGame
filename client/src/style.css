@@ -46,6 +46,26 @@ body {
     color: var(--ink);
 }
 
+/* Thin bar that stays at the top while scrolling; sticky keeps it from covering the page. */
+#participant-id {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    margin: 0;
+    padding: calc(0.3rem + env(safe-area-inset-top)) 1rem 0.3rem;
+    background: var(--ink);
+    color: var(--cream-light);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+#participant-code {
+    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    letter-spacing: 0.08em;
+    user-select: all;
+}
+
 .game-brand {
     padding: 0.5rem 0 0.75rem;
     margin-bottom: 2rem;

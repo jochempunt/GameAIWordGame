@@ -17,7 +17,8 @@ export default defineConfig({
 
         proxy: {
             "/socket.io": {
-                target: "http://localhost:3000",
+                // the game server only listens on IPv4 loopback in development
+                target: "http://127.0.0.1:3000",
                 ws: true,
             },
         },

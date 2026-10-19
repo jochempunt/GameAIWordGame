@@ -18,7 +18,9 @@ import { hasConsented, recordConsent } from "./database/participantRepository.js
 // ---- Setup ----
 
 const PORT = 3000;
-const HOST = "0.0.0.0";
+// Docker sets 0.0.0.0 (see Dockerfile) so the tunnel container can reach the game.
+// Everywhere else only this machine can; phones in development go through the Vite dev server.
+const HOST = process.env.LISTEN_HOST ?? "127.0.0.1";
 
 const app = express();
 const clientDist = fileURLToPath(
@@ -83,7 +85,7 @@ function hasSocketConsent(socket: Socket, token: unknown): boolean {
 async function checkConsent(
     socket: Socket,
     token: unknown,
-    acknowledge: Ack<{ ok: boolean; consented: boolean; error?: string }>,
+    acknowledge: Ack<{ ok: boolean; consented: boolean; participantId?: string; error?: string }>,
 ): Promise<void> {
     const validToken = validSessionToken(token);
     if (!validToken) {
@@ -94,8 +96,14 @@ async function checkConsent(
     try {
         const playerId = playerIdForToken(validToken);
         const consented = await hasConsented(playerId);
-        if (consented) socket.data.consentedPlayerId = playerId;
-        acknowledge({ ok: true, consented });
+        if (!consented) {
+            acknowledge({ ok: true, consented });
+            return;
+        }
+
+        socket.data.consentedPlayerId = playerId;
+        // the stored id, so participants can quote it when asking to withdraw
+        acknowledge({ ok: true, consented, participantId: playerId });
     } catch (error) {
         console.error("Could not check participant consent:", error);
         acknowledge({ ok: false, consented: false, error: "Could not verify consent" });
@@ -105,7 +113,7 @@ async function checkConsent(
 async function giveConsent(
     socket: Socket,
     token: unknown,
-    acknowledge: Ack<{ ok: boolean; error?: string }>,
+    acknowledge: Ack<{ ok: boolean; participantId?: string; error?: string }>,
 ): Promise<void> {
     const validToken = validSessionToken(token);
     if (!validToken) {
@@ -117,7 +125,7 @@ async function giveConsent(
         const playerId = playerIdForToken(validToken);
         await recordConsent(playerId);
         socket.data.consentedPlayerId = playerId;
-        acknowledge({ ok: true });
+        acknowledge({ ok: true, participantId: playerId });
     } catch (error) {
         console.error("Could not record participant consent:", error);
         acknowledge({ ok: false, error: "Could not record consent" });

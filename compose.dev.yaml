@@ -1,0 +1,14 @@
+# Development only, never use this file on the production server.
+# Applied on top of compose.yaml by the `pnpm db*` and `pnpm docker:dev` scripts.
+# Every port is bound to this machine only.
+
+services:
+  mongo:
+    ports:
+      # for `pnpm dev`, which runs the game outside Docker
+      - "127.0.0.1:27017:27017"
+
+  game:
+    ports:
+      # to try the production container locally at http://localhost:3000
+      - "127.0.0.1:3000:3000"

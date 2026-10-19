@@ -86,14 +86,35 @@ Then open:
 
 - Player: [http://localhost:5173](http://localhost:5173)
 
+Phones on the same Wi-Fi connect through the Vite dev server on port 5173 (`pnpm dev:qr` prints the address).
+The game server itself (port 3000) only listens on `127.0.0.1` outside Docker; Vite forwards to it.
+
 
 ### Database commands
 
 ```bash
-pnpm db        # Start MongoDB
-pnpm db:stop   # Stop MongoDB
-pnpm db:logs   # View MongoDB logs
+pnpm db          # Start MongoDB (reachable at 127.0.0.1:27017 for pnpm dev)
+pnpm db:stop     # Stop MongoDB
+pnpm db:logs     # View MongoDB logs
+pnpm docker:dev  # Build and run the production container locally at http://localhost:3000
 ```
+
+These commands apply `compose.dev.yaml`, which is the only place ports are published, and only on `127.0.0.1`.
+Running plain `docker compose up` on a development machine recreates MongoDB without its port; run `pnpm db` again to get it back.
+
+## Deployment
+
+On the server, with production values in `.env` (see `.env.example`):
+
+```bash
+docker compose --profile production up -d --build
+```
+
+Use only `compose.yaml` here, never `compose.dev.yaml`. No port is published: the Cloudflare tunnel is the only way in.
+In the Cloudflare dashboard, the tunnel's public hostname must point to the service `http://game:3000`.
+MongoDB is only reachable inside Docker, e.g. `docker compose exec mongo mongodump ...` for backups.
+
+`.dockerignore` keeps `.env` and other local files out of the image; settings reach the containers through compose at runtime.
 
 MongoDB data is stored in a persistent Docker volume, so stopping or rebuilding the container does not remove game data.
 

@@ -16,6 +16,10 @@ const consentForm = document.querySelector<HTMLFormElement>("#consent-form")!;
 const consentChecks = [...consentForm.querySelectorAll<HTMLInputElement>("input[type=checkbox]")];
 const consentSubmit = document.querySelector<HTMLButtonElement>("#consent-submit")!;
 const consentStatus = document.querySelector<HTMLElement>("#consent-status")!;
+const participantIdBar = document.querySelector<HTMLElement>("#participant-id")!;
+const participantCode = document.querySelector<HTMLElement>("#participant-code")!;
+// 12 hex characters identify a participant among millions; researchers look it up by prefix.
+const PARTICIPANT_CODE_LENGTH = 12;
 
 const roomCards = document.querySelector<HTMLDivElement>(".room-cards")!;
 let rooms: RoomSummary[] = [];
@@ -85,7 +89,7 @@ const sessionToken = getOrCreateSessionToken();
 let consented = false;
 
 socket.on("connect", () => {
-    socket.emit("checkConsent", sessionToken, (response: { ok: boolean; consented: boolean; error?: string }) => {
+    socket.emit("checkConsent", sessionToken, (response: { ok: boolean; consented: boolean; participantId?: string; error?: string }) => {
         if (!response.ok) {
             showConsent(response.error ?? "Could not verify consent.");
             return;
@@ -94,7 +98,7 @@ socket.on("connect", () => {
             showConsent();
             return;
         }
-        enterGame();
+        enterGame(response.participantId);
     });
 });
 
@@ -116,7 +120,14 @@ function showConsent(message = ""): void {
     consentStatus.textContent = message;
 }
 
-function enterGame(): void {
+function showParticipantId(participantId: string | undefined): void {
+    if (!participantId) return;
+    participantCode.textContent = participantId.slice(0, PARTICIPANT_CODE_LENGTH);
+    participantIdBar.hidden = false;
+}
+
+function enterGame(participantId: string | undefined): void {
+    showParticipantId(participantId);
     consented = true;
     consentView.hidden = true;
     skipNextPromptAnimation = true;
@@ -137,13 +148,13 @@ consentForm.addEventListener("submit", event => {
 
     consentSubmit.disabled = true;
     consentStatus.textContent = "Recording your consent...";
-    socket.emit("giveConsent", sessionToken, (response: { ok: boolean; error?: string }) => {
+    socket.emit("giveConsent", sessionToken, (response: { ok: boolean; participantId?: string; error?: string }) => {
         if (!response.ok) {
             consentStatus.textContent = response.error ?? "Could not record consent. Please try again.";
             updateConsentButton();
             return;
         }
-        enterGame();
+        enterGame(response.participantId);
     });
 });
 socket.on("rooms", (summaries: RoomSummary[]) => {
