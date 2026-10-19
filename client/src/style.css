@@ -739,25 +739,42 @@ h1.prompt {
     text-align: left;
 }
 
-#room-settings summary {
+#room-settings > summary {
     cursor: pointer;
     list-style: none;
     padding: 0.45rem 0.7rem;
-    border: 1px solid rgb(255 248 240 / 35%);
+    border: 1px solid var(--blue-dark);
     border-radius: 0.5rem;
-    background: rgb(50 62 47 / 24%);
+    background: var(--blue);
+    box-shadow: 0 3px 0 var(--blue-dark);
     color: var(--cream-light);
     font-size: 0.85rem;
+    font-weight: 700;
 }
 
 #room-settings summary::-webkit-details-marker {
     display: none;
 }
 
-#room-settings[open] summary {
-    background: rgb(255 248 240 / 16%);
+#room-settings[open] > summary {
+    background: var(--blue-dark);
 }
 
+#room-lock-toggle {
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--blue-dark);
+    border-radius: 0.5rem;
+    background: var(--blue);
+    box-shadow: 0 3px 0 var(--blue-dark);
+    color: var(--cream-light);
+    font-size: 0.85rem;
+}
+
+#room-lock-toggle[aria-pressed="true"] {
+    background: var(--blue-dark);
+}
 .room-settings-section {
     margin-top: 0.75rem;
 }
@@ -782,13 +799,13 @@ h1.prompt {
     gap: 0.3rem 0.75rem;
     align-items: center;
     padding: 0.65rem;
-    border: 1px solid rgb(255 248 240 / 22%);
+    border: 1px solid var(--tile-border);
     border-radius: 0.5rem;
-    background: rgb(50 62 47 / 18%);
+    background: var(--cream-light);
 }
 
 .room-settings-player-status {
-    color: var(--cream-light);
+    color: var(--muted-ink);
     font-size: 0.8rem;
 }
 
@@ -827,14 +844,13 @@ h1.prompt {
     gap: 0.75rem;
 }
 
-#leave-room,
-#room-lock-toggle {
+#leave-room {
     flex: 0 0 auto;
     padding: 0.45rem 0.7rem;
     border: 1px solid rgb(255 248 240 / 35%);
-    background: rgb(50 62 47 / 24%);
-    box-shadow: none;
-    color: var(--cream-light);
+    background: var(--cream-light);
+    box-shadow: 0 3px 0 var(--tile-shadow);
+    color: var(--ink);
     font-size: 0.85rem;
 }
 
