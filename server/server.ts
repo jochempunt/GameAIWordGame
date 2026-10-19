@@ -32,7 +32,11 @@ const io = new Server(httpServer);
 
 const rooms = new Map<string, Room>();
 
-const ROOM_CODES = ["AAAA", "BBBB", "CCCC", "DDDD"];
+const ROOM_COUNT = 20;
+const ROOM_CODES = Array.from(
+    { length: ROOM_COUNT },
+    (_, index) => String.fromCharCode("A".charCodeAt(0) + index).repeat(4),
+);
 const MAX_PLAYERS_PER_ROOM = 20;
 const MAX_NAME_LENGTH = 20; // same as the maxlength of the name input
 const DISCONNECT_GRACE_MS = 15_000; // Keep the host role and wait for missing round actions this long.

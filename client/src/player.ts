@@ -15,6 +15,7 @@ const statusText = document.querySelector<HTMLParagraphElement>("#status")!;
 const roomCards = document.querySelector<HTMLDivElement>(".room-cards")!;
 let rooms: RoomSummary[] = [];
 let joiningRoomId: string | null = null;
+const VISIBLE_EMPTY_ROOM_COUNT = 2;
 const startRoundButton = document.querySelector<HTMLButtonElement>("#start-round")!;
 const startRoundRequirement = document.querySelector<HTMLElement>("#start-round-requirement")!;
 const roomOverview = document.querySelector<HTMLElement>("#room-overview")!;
@@ -197,7 +198,19 @@ function returnToRoomSelection(message = "Choose a room to join."): void {
 
 function renderRoomCards(): void {
     roomCards.replaceChildren();
-    rooms.forEach(room => {
+
+    // Keep every room with players visible, but only offer a small number of
+    // fresh rooms. As soon as one of those is joined, the next empty room is
+    // revealed on the next rooms update.
+    let visibleEmptyRooms = 0;
+    const visibleRooms = rooms.filter(room => {
+        if (room.playerCount > 0) return true;
+
+        visibleEmptyRooms++;
+        return visibleEmptyRooms <= VISIBLE_EMPTY_ROOM_COUNT;
+    });
+
+    visibleRooms.forEach(room => {
         const card = document.createElement("article");
         card.className = "room-card";
         const heading = document.createElement("div");
