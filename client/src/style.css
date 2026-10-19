@@ -728,14 +728,16 @@ h1.prompt {
 }
 
 .room-action-buttons {
-    display: flex;
-    justify-content: flex-end;
-    align-items: flex-start;
-    gap: 0.5rem;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.room-action-buttons > #leave-room {
+    justify-self: end;
 }
 
 #room-settings {
-    position: relative;
+    width: 100%;
     text-align: left;
 }
 
@@ -749,6 +751,7 @@ h1.prompt {
     box-shadow: 0 3px 0 var(--blue-dark);
     color: var(--cream-light);
     font-size: 0.85rem;
+    width: 100%;
     font-weight: 700;
 }
 
@@ -782,6 +785,7 @@ h1.prompt {
 .room-settings-section > summary {
     padding: 0.45rem 0;
     color: var(--cream);
+    width: 100%;
     font-weight: 700;
 }
 
