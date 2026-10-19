@@ -12,6 +12,7 @@ import type { Room, RoomSummary } from "./types.js";
 import { connectToDatabase, disconnectFromDatabase } from "./database/db.js";
 import { saveGame, flushGameSaves } from "./database/gameRepository.js";
 import { generatePlayerName } from "./playerNames.js";
+import { hasConsented, recordConsent } from "./database/participantRepository.js";
 
 
 // ---- Setup ----
@@ -62,6 +63,67 @@ function safeAcknowledge<T>(fn: unknown): Ack<T> {  // if something passes non f
     return typeof fn === "function" ? (fn as Ack<T>) : () => undefined;
 }
 
+function validSessionToken(token: unknown): string | undefined {
+    return typeof token === "string"
+        && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(token)
+        ? token
+        : undefined;
+}
+
+function playerIdForToken(token: string): string {
+    return createHash("sha256").update(token).digest("hex");
+}
+
+function hasSocketConsent(socket: Socket, token: unknown): boolean {
+    const validToken = validSessionToken(token);
+    return validToken !== undefined
+        && socket.data.consentedPlayerId === playerIdForToken(validToken);
+}
+
+async function checkConsent(
+    socket: Socket,
+    token: unknown,
+    acknowledge: Ack<{ ok: boolean; consented: boolean; error?: string }>,
+): Promise<void> {
+    const validToken = validSessionToken(token);
+    if (!validToken) {
+        acknowledge({ ok: false, consented: false, error: "Invalid participant session" });
+        return;
+    }
+
+    try {
+        const playerId = playerIdForToken(validToken);
+        const consented = await hasConsented(playerId);
+        if (consented) socket.data.consentedPlayerId = playerId;
+        acknowledge({ ok: true, consented });
+    } catch (error) {
+        console.error("Could not check participant consent:", error);
+        acknowledge({ ok: false, consented: false, error: "Could not verify consent" });
+    }
+}
+
+async function giveConsent(
+    socket: Socket,
+    token: unknown,
+    acknowledge: Ack<{ ok: boolean; error?: string }>,
+): Promise<void> {
+    const validToken = validSessionToken(token);
+    if (!validToken) {
+        acknowledge({ ok: false, error: "Invalid participant session" });
+        return;
+    }
+
+    try {
+        const playerId = playerIdForToken(validToken);
+        await recordConsent(playerId);
+        socket.data.consentedPlayerId = playerId;
+        acknowledge({ ok: true });
+    } catch (error) {
+        console.error("Could not record participant consent:", error);
+        acknowledge({ ok: false, error: "Could not record consent" });
+    }
+}
+
 
 // ---- server state ----
 function roomSummaries(): RoomSummary[] {
@@ -86,8 +148,14 @@ function persistRoomGame(room: Room): void {
     });
 }
 
+function pushRoomSummaries(): void {
+    for (const socket of io.sockets.sockets.values()) {
+        if (socket.data.consentedPlayerId) socket.emit("rooms", roomSummaries());
+    }
+}
+
 function pushState(room: Room): void {
-    io.emit("rooms", roomSummaries());
+    pushRoomSummaries();
 
     for (const player of [...room.players.values()].filter(p => p.connected)) {
         io.to(player.socketId).emit(
@@ -110,7 +178,6 @@ function pushState(room: Room): void {
 
 
 io.on("connection", (socket) => {
-    socket.emit("rooms", roomSummaries());
     // an error thrown inside a socket handler would otherwise crash the whole server
     const on = (event: string, handler: (...args: any[]) => void): void => {
         socket.on(event, (...args: any[]) => {
@@ -122,6 +189,18 @@ io.on("connection", (socket) => {
             }
         });
     };
+
+    on("checkConsent", (token, acknowledge) => {
+        void checkConsent(socket, token, safeAcknowledge(acknowledge));
+    });
+
+    on("giveConsent", (token, acknowledge) => {
+        void giveConsent(socket, token, safeAcknowledge(acknowledge));
+    });
+
+    on("getRooms", () => {
+        if (socket.data.consentedPlayerId) socket.emit("rooms", roomSummaries());
+    });
 
     on("getJoinAddress", (acknowledge) => {
         const address = Object.values(networkInterfaces()).flat()
@@ -209,6 +288,11 @@ function joinPlayer(
         name?: string;
     }) => void,
 ): void {
+    if (!hasSocketConsent(socket, sessionToken)) {
+        acknowledge({ ok: false, error: "Consent is required before joining" });
+        return;
+    }
+
     // one socket controls at most one player
     if (getPlayerBySocket(socket)) {
         acknowledge({ ok: false, error: "You are already in a room" });
@@ -295,6 +379,11 @@ function rejoinPlayer(
         error?: string;
     }) => void,
 ): void {
+    if (!hasSocketConsent(socket, token)) {
+        acknowledge({ ok: false, error: "Consent is required before rejoining" });
+        return;
+    }
+
     const found = typeof token === "string" ? getPlayerByToken(token) : undefined;
 
     if (!found) {

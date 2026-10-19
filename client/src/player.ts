@@ -2,7 +2,7 @@ import { io } from "socket.io-client";
 import { createRankBadge } from "./rankBadge.js";
 import type { PlayerView, RoomSummary } from "../../server/types.js";
 
-const socket = io();
+const socket = io({ autoConnect: false });
 
 type ViewOf<P extends PlayerView["phase"]> = Extract<PlayerView, { phase: P }>;
 type PlayerSummary = PlayerView["players"][number];
@@ -11,6 +11,11 @@ type PlayerSummary = PlayerView["players"][number];
 const joinForm = document.querySelector<HTMLFormElement>("#join-form")!;
 // const nameInput = document.querySelector<HTMLInputElement>("#name")!;
 const statusText = document.querySelector<HTMLParagraphElement>("#status")!;
+const consentView = document.querySelector<HTMLElement>("#consent-view")!;
+const consentForm = document.querySelector<HTMLFormElement>("#consent-form")!;
+const consentChecks = [...consentForm.querySelectorAll<HTMLInputElement>("input[type=checkbox]")];
+const consentSubmit = document.querySelector<HTMLButtonElement>("#consent-submit")!;
+const consentStatus = document.querySelector<HTMLElement>("#consent-status")!;
 
 const roomCards = document.querySelector<HTMLDivElement>(".room-cards")!;
 let rooms: RoomSummary[] = [];
@@ -76,25 +81,73 @@ let hasRenderedOnce = false;
 let skipNextPromptAnimation = false;
 
 
+const sessionToken = getOrCreateSessionToken();
+let consented = false;
+
 socket.on("connect", () => {
-    const sessionToken = localStorage.getItem("sessionToken");
-
-    if (!sessionToken) {
-        showJoin();
-        return;
-    }
-
-    skipNextPromptAnimation = true;
-
-    socket.emit("rejoin", sessionToken, (res: { ok: boolean }) => {
-        if (!res.ok) {
-            // also resets the picks and rankings left over from the game we were in
-            returnToRoomSelection();
+    socket.emit("checkConsent", sessionToken, (response: { ok: boolean; consented: boolean; error?: string }) => {
+        if (!response.ok) {
+            showConsent(response.error ?? "Could not verify consent.");
+            return;
         }
+        if (!response.consented) {
+            showConsent();
+            return;
+        }
+        enterGame();
     });
 });
 
+function getOrCreateSessionToken(): string {
+    const existing = localStorage.getItem("sessionToken");
+    if (existing && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(existing)) {
+        return existing;
+    }
+
+    const token = crypto.randomUUID();
+    localStorage.setItem("sessionToken", token);
+    return token;
+}
+
+function showConsent(message = ""): void {
+    hideAll();
+    consentView.hidden = false;
+    roomActions.hidden = true;
+    consentStatus.textContent = message;
+}
+
+function enterGame(): void {
+    consented = true;
+    consentView.hidden = true;
+    skipNextPromptAnimation = true;
+    socket.emit("getRooms");
+    socket.emit("rejoin", sessionToken, (response: { ok: boolean }) => {
+        if (!response.ok) returnToRoomSelection();
+    });
+}
+
+function updateConsentButton(): void {
+    consentSubmit.disabled = !consentChecks.every(check => check.checked);
+}
+
+consentChecks.forEach(check => check.addEventListener("change", updateConsentButton));
+consentForm.addEventListener("submit", event => {
+    event.preventDefault();
+    if (consentSubmit.disabled) return;
+
+    consentSubmit.disabled = true;
+    consentStatus.textContent = "Recording your consent...";
+    socket.emit("giveConsent", sessionToken, (response: { ok: boolean; error?: string }) => {
+        if (!response.ok) {
+            consentStatus.textContent = response.error ?? "Could not record consent. Please try again.";
+            updateConsentButton();
+            return;
+        }
+        enterGame();
+    });
+});
 socket.on("rooms", (summaries: RoomSummary[]) => {
+    if (!consented) return;
     rooms = summaries;
     renderRoomCards();
 });
@@ -103,7 +156,9 @@ socket.on("disconnect", () => {
     renderRoomCards();
     statusText.textContent = "Reconnecting...";
 });
-socket.on("state", render);
+socket.on("state", view => {
+    if (consented) render(view);
+});
 socket.on("kicked", () => returnToRoomSelection("You were kicked from the room."));
 
 roomLockToggle.addEventListener("click", () => {
@@ -165,6 +220,7 @@ function setPrompt(text: string, round: number, animate = false): void {
 
 
 const allViews = [
+    consentView,
     joinView,
     lobbyView,
     playingView,
@@ -1134,3 +1190,5 @@ readyButton.addEventListener("click", () => {
         },
     );
 });
+
+socket.connect();

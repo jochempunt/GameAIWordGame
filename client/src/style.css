@@ -32,6 +32,10 @@
     box-sizing: border-box;
 }
 
+[hidden] {
+    display: none !important;
+}
+
 body {
     margin: 0;
     min-height: 100vh;
@@ -1436,4 +1440,64 @@ h1.prompt {
     padding: 0.55rem 0.7rem;
     font-size: 0.85rem;
     box-shadow: 0 2px 0 var(--blue-dark);
+}
+
+/* ---- Research consent ---- */
+
+#consent-view {
+    display: grid;
+    gap: 1rem;
+}
+
+#consent-view p {
+    margin: 0;
+    color: var(--cream-light);
+    line-height: 1.6;
+}
+
+.consent-document-link {
+    display: inline-block;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--cream-light);
+    border-radius: 0.75rem 0.9rem 0.8rem 0.65rem;
+    color: var(--cream-light);
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.consent-document-link:hover,
+.consent-document-link:focus-visible {
+    background: rgb(255 248 240 / 15%);
+}
+
+#consent-form {
+    display: grid;
+    gap: 1rem;
+}
+
+.consent-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--tile-border);
+    border-radius: 0.8rem 1rem 0.85rem 0.65rem;
+    background: var(--cream-light);
+    color: var(--ink);
+    line-height: 1.5;
+}
+
+.consent-check input {
+    width: auto;
+    flex: 0 0 auto;
+    margin-top: 0.25rem;
+    padding: 0;
+    accent-color: var(--blue);
+    box-shadow: none;
+}
+
+#consent-status {
+    min-height: 1.5rem;
+    color: var(--cream-light);
+    font-weight: 600;
 }

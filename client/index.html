@@ -15,8 +15,22 @@
             <p class="game-wordmark">Scientists <span class="wordmark-highlight">Confirm<sup class="wordmark-citation" aria-hidden="true">[1]</sup></span></p>
         </header>
         
+        <section id="consent-view" hidden>
+            <h1>Participate in our research study</h1>
+            <p>You are invited to take part in a Utrecht University research study.</p>
+            <p>You will play an online word-based game in which players create answers to prompts and rank answers based on how funny they find them. We are studying whether AI models can predict these human rankings.</p>
+            <p>We will record your game activity, including the prompts you receive, answers you submit, and rankings you provide.</p>
+            <p>Please take as much time as you need to read the <strong>Informed Consent Document</strong> before deciding whether to participate. If you have questions, or later wish to withdraw and request deletion of your data, contact the researchers at <strong>example@example.com</strong>.</p>
+            <p><a class="consent-document-link" href="/informed-consent.html" target="_blank" rel="noopener">Read the Informed Consent Document</a></p>
+            <form id="consent-form">
+                <label class="consent-check"><input type="checkbox" name="age" required> I confirm that I am at least 16 years old.</label>
+                <label class="consent-check"><input type="checkbox" name="agreement" required> I have read and understood the Informed Consent Document and voluntarily agree to participate and to the collection and use of my study data as described there.</label>
+                <button type="submit" id="consent-submit" disabled>Participate</button>
+            </form>
+            <p id="consent-status" role="alert"></p>
+        </section>
         <!-- JOIN -->
-        <section id="join-view">
+        <section id="join-view" hidden>
             <h1>Join Game</h1>
             
             <form id="join-form">
