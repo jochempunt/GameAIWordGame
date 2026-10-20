@@ -1,4 +1,6 @@
 import express from "express";
+import { settings } from "./settings_validation.js";
+import type { PublicSettings } from "./settings_validation.js";
 import { networkInterfaces } from "node:os";
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
@@ -35,15 +37,10 @@ const io = new Server(httpServer);
 
 const rooms = new Map<string, Room>();
 
-const ROOM_COUNT = 20;
 const ROOM_CODES = Array.from(
-    { length: ROOM_COUNT },
+    { length: settings.roomCount },
     (_, index) => String.fromCharCode("A".charCodeAt(0) + index).repeat(4),
 );
-const MAX_PLAYERS_PER_ROOM = 20;
-const MAX_NAME_LENGTH = 20; // same as the maxlength of the name input
-const DISCONNECT_GRACE_MS = 15_000; // Keep the host role and wait for missing round actions this long.
-const DISCONNECT_PURGE_MS = 5 * 60_000; // disconnected players are removed after this long
 
 let shuttingDown = false;
 const disconnectTimers = new Map<string, NodeJS.Timeout[]>();
@@ -138,7 +135,7 @@ function roomSummaries(): RoomSummary[] {
     return [...rooms.values()].map(room => ({
         id: room.id,
         playerCount: room.players.size,
-        capacity: MAX_PLAYERS_PER_ROOM,
+        capacity: settings.maxPlayersPerRoom,
         phase: room.game.state.phase,
         locked: room.locked,
     }));
@@ -186,6 +183,10 @@ function pushState(room: Room): void {
 
 
 io.on("connection", (socket) => {
+    socket.emit("settings", {
+        minPlayersToStart: settings.minPlayersToStart,
+        visibleEmptyRoomCount: settings.visibleEmptyRoomCount,
+    } satisfies PublicSettings);
     // an error thrown inside a socket handler would otherwise crash the whole server
     const on = (event: string, handler: (...args: any[]) => void): void => {
         socket.on(event, (...args: any[]) => {
@@ -312,7 +313,7 @@ function joinPlayer(
         return;
     }
 
-    if (room.players.size >= MAX_PLAYERS_PER_ROOM) {
+    if (room.players.size >= settings.maxPlayersPerRoom) {
         acknowledge({ ok: false, error: "Room is full" });
         return;
     }
@@ -902,7 +903,7 @@ function scheduleDisconnectTimers(room: Room, player: Player): void {
         } catch (error) {
             console.error(`Error ending disconnect grace in room ${room.id}:`, error);
         }
-    }, DISCONNECT_GRACE_MS);
+    }, settings.disconnectGraceMs);
 
     const purgeTimer = setTimeout(() => {
         try {
@@ -919,7 +920,7 @@ function scheduleDisconnectTimers(room: Room, player: Player): void {
         } catch (error) {
             console.error(`Error removing disconnected player from room ${room.id}:`, error);
         }
-    }, DISCONNECT_PURGE_MS);
+    }, settings.disconnectPurgeMs);
 
     disconnectTimers.set(player.id, [graceTimer, purgeTimer]);
 }

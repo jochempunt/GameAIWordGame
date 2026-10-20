@@ -1,3 +1,4 @@
+import type { PublicSettings } from "../../server/settings_validation.js";
 import { io } from "socket.io-client";
 import { createRankBadge } from "./rankBadge.js";
 import type { PlayerView, RoomSummary } from "../../server/types.js";
@@ -24,7 +25,7 @@ const PARTICIPANT_CODE_LENGTH = 12;
 const roomCards = document.querySelector<HTMLDivElement>(".room-cards")!;
 let rooms: RoomSummary[] = [];
 let joiningRoomId: string | null = null;
-const VISIBLE_EMPTY_ROOM_COUNT = 2;
+let settings: PublicSettings;
 const startRoundButton = document.querySelector<HTMLButtonElement>("#start-round")!;
 const startRoundRequirement = document.querySelector<HTMLElement>("#start-round-requirement")!;
 const roomOverview = document.querySelector<HTMLElement>("#room-overview")!;
@@ -157,6 +158,10 @@ consentForm.addEventListener("submit", event => {
         enterGame(response.participantId);
     });
 });
+socket.on("settings", (value: PublicSettings) => {
+    settings = value;
+    renderRoomCards();
+});
 socket.on("rooms", (summaries: RoomSummary[]) => {
     if (!consented) return;
     rooms = summaries;
@@ -279,6 +284,7 @@ function returnToRoomSelection(message = "Choose a room to join."): void {
 
 function renderRoomCards(): void {
     roomCards.replaceChildren();
+    if (!settings) return;
 
     // Keep every room with players visible, but only offer a small number of
     // fresh rooms. As soon as one of those is joined, the next empty room is
@@ -291,7 +297,7 @@ function renderRoomCards(): void {
         if (room.playerCount > 0) return true;
 
         visibleEmptyRooms++;
-        return visibleEmptyRooms <= VISIBLE_EMPTY_ROOM_COUNT;
+        return visibleEmptyRooms <= settings.visibleEmptyRoomCount;
     });
 
     visibleRooms.forEach(room => {
@@ -515,7 +521,7 @@ function roomStatusText(view: PlayerView): string {
             return view.isHost
                 ? view.canStartRound
                     ? "Everyone is here. Start the round when you're ready."
-                    : "Invite your friends — you need at least 3 players to start."
+                    : `Invite your friends — you need at least ${settings.minPlayersToStart} players to start.`
                 : "Waiting for the host to start the next round.";
         case "answering":
             return view.isSpectator
@@ -562,7 +568,7 @@ function renderLobby(view: ViewOf<"lobby">): void {
     startRoundRequirement.hidden = !view.isHost || view.canStartRound;
     startRoundRequirement.textContent = view.lobbyCount < view.playerCount
         ? "Everyone must click Next before the next round can start."
-        : "Min. 3 Players to Start";
+        : `Min. ${settings.minPlayersToStart} Players to Start`;
 }
 
 function appendYouBadge(element: HTMLElement, isYou: boolean): void {
@@ -1043,7 +1049,11 @@ function handleAnswerClick(event: MouseEvent): void {
 
 function renderAvailableWords(): void {
     wordsContainer.replaceChildren();
-    
+    const usedCopies = new Map<string, number>();
+    for (const word of selectedWords) {
+        usedCopies.set(word, (usedCopies.get(word) ?? 0) + 1);
+    }
+
     for (const word of availableWords) {
         const button = document.createElement("button");
         
@@ -1051,7 +1061,9 @@ function renderAvailableWords(): void {
         button.classList.add("word");
         button.classList.add("chip");
         
-        if (selectedWords.includes(word)) {
+        const used = usedCopies.get(word) ?? 0;
+        if (used > 0) {
+            usedCopies.set(word, used - 1);
             button.disabled = true;
             button.classList.add("word-used");
         }
@@ -1080,14 +1092,14 @@ function renderAnswer(): void {
         return;
     }
     
-    for (const word of selectedWords) {
+    for (const [index, word] of selectedWords.entries()) {
         const button = document.createElement("button");
         
         button.textContent = word;
         button.classList.add("word", "selected-word");
         
         button.addEventListener("click", () => {
-            removeWord(word);
+            removeWord(index);
         });
         
         answerContainer.appendChild(button);
@@ -1106,10 +1118,8 @@ function selectWord(word: string): void {
     renderAvailableWords();
 }
 
-function removeWord(word: string): void {
-    const index = selectedWords.indexOf(word);
-    
-    if (index === -1) {
+function removeWord(index: number): void {
+    if (index < 0 || index >= selectedWords.length) {
         return;
     }
     

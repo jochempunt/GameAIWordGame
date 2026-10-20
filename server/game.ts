@@ -1,4 +1,5 @@
-import { WORDS } from "./words.js";
+import { settings } from "./settings_validation.js";
+import { dealWords } from "./words.js";
 import { PROMPTS } from "./prompts.js";
 
 import type {
@@ -8,8 +9,7 @@ import type {
     RoundState,
 } from "./types.js";
 
-const WORD_COUNT = 25;
-export const MIN_PLAYERS_TO_START = 3;
+export const MIN_PLAYERS_TO_START = settings.minPlayersToStart;
 
 
 export class Game {
@@ -60,7 +60,7 @@ startRound(playerIds: string[] = []): boolean {
         completedAt: null,
         prompt: this.randomPrompt(),
         wordsAvailable: new Map(
-            [...new Set(playerIds)].map(id => [id, this.randomWords(WORD_COUNT)]),
+            [...new Set(playerIds)].map(id => [id, dealWords()]),
         ),
         playerIds: [...new Set(playerIds)],
         answers: [],
@@ -201,16 +201,4 @@ startRound(playerIds: string[] = []): boolean {
         return PROMPTS[index];
     }
     
-    private randomWords(count: number): string[] {
-        const words = [...WORDS];
-
-        // Fisher-Yates shuffle, so every word is equally likely to be picked
-        for (let i = words.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-
-            [words[i], words[j]] = [words[j], words[i]];
-        }
-
-        return words.slice(0, count);
-    }
 }
