@@ -5,6 +5,11 @@ import type { PlayerView, RoomSummary } from "../../server/types.js";
 
 const socket = io({ autoConnect: false });
 
+function setPageTitle(label: string, round?: number): void {
+    const context = round === undefined ? label : `Round ${round} · ${label}`;
+    document.title = `${context} | Scientists Explain`;
+}
+
 type ViewOf<P extends PlayerView["phase"]> = Extract<PlayerView, { phase: P }>;
 type PlayerSummary = PlayerView["players"][number];
 
@@ -90,6 +95,7 @@ const sessionToken = getOrCreateSessionToken();
 let consented = false;
 
 socket.on("connect", () => {
+    setPageTitle("Connecting");
     socket.emit("checkConsent", sessionToken, (response: { ok: boolean; consented: boolean; participantId?: string; error?: string }) => {
         if (!response.ok) {
             showConsent(response.error ?? "Could not verify consent.");
@@ -115,6 +121,7 @@ function getOrCreateSessionToken(): string {
 }
 
 function showConsent(message = ""): void {
+    setPageTitle("Study Consent");
     hideAll();
     consentView.hidden = false;
     roomActions.hidden = true;
@@ -168,6 +175,7 @@ socket.on("rooms", (summaries: RoomSummary[]) => {
     renderRoomCards();
 });
 socket.on("disconnect", () => {
+    setPageTitle("Reconnecting");
     joiningRoomId = null;
     renderRoomCards();
     statusText.textContent = "Reconnecting...";
@@ -255,6 +263,7 @@ function hideAll(): void {
 
 
 function showJoin(): void {
+    setPageTitle("Choose a Room");
     hideAll();
     joinView.hidden = false;
     roomOverview.hidden = true;
@@ -561,6 +570,7 @@ function playerStatusText(player: PlayerSummary, phase: PlayerView["phase"]): st
 }
 
 function renderLobby(view: ViewOf<"lobby">): void {
+    setPageTitle("Lobby");
     lobbyView.hidden = false;
     lobbyStatus.textContent = roomStatusText(view);
     startRoundButton.hidden = !view.isHost;
@@ -612,6 +622,7 @@ function renderAnswering(view: ViewOf<"answering">, skipAnimation: boolean): voi
         return;
     }
 
+    setPageTitle(view.submitted ? "Answer Submitted" : "Build Your Answer", view.round);
     if (view.submitted) {
         submittedView.hidden = false;
         setPrompt(view.prompt, view.round);
@@ -646,6 +657,7 @@ function renderSpectating(
     round: number,
     status: string,
 ): void {
+    setPageTitle(title, round);
     spectatorView.hidden = false;
     spectatorTitle.textContent = title;
     spectatorStatus.textContent = status;
@@ -656,6 +668,7 @@ function renderSubmitted(answer: string[]): void {
 }
 
 function renderResults(view: ViewOf<"results">): void {
+    setPageTitle("Results", view.round);
     resultsView.hidden = false;
     
     setPrompt(view.prompt, view.round);
@@ -797,6 +810,7 @@ function renderRanking(view: ViewOf<"ranking">): void {
         return;
     }
     
+    setPageTitle(view.hasRanked ? "Ranking Submitted" : "Rank Answers", view.round);
     if (view.hasRanked) {
         rankedView.hidden = false;
         setPrompt(view.prompt, view.round);

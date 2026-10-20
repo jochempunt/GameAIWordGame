@@ -14,6 +14,7 @@ export default defineConfig({
 
     server: {
         host: "0.0.0.0",
+        headers: { "X-Robots-Tag": "noindex, nofollow" },
 
         proxy: {
             "/socket.io": {
@@ -22,5 +23,8 @@ export default defineConfig({
                 ws: true,
             },
         },
+    },
+    preview: {
+        headers: { "X-Robots-Tag": "noindex, nofollow" },
     },
 });

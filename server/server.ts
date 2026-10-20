@@ -29,6 +29,11 @@ const clientDist = fileURLToPath(
     new URL("../client/dist", import.meta.url),
 );
 
+// Apply to every HTTP response, including static assets and error pages.
+app.use((_request, response, next) => {
+    response.setHeader("X-Robots-Tag", "noindex, nofollow");
+    next();
+});
 app.use(express.static(clientDist));
 const httpServer = createServer(app);
 const io = new Server(httpServer);
