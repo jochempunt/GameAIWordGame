@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from preprocess_humor_local import load_games, preprocess_games, save_jsonl
 from tune_humor_xgboost import evaluate, feature_dict, read_tasks, run, unpack
+from retrain_humor import retrain
 
 
 def fixture_game(rounds=8, players=3):
@@ -139,6 +140,22 @@ class PreprocessTests(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which("node"), "Node.js required for exported runtime verification")
 class TrainingTests(unittest.TestCase):
+    def test_background_refit_uses_selected_parameters_and_completed_rounds_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            game = fixture_game(8)
+            game["state"]["rounds"][-1]["status"] = "in_progress"
+            source = root / "games.json"
+            source.write_text(json.dumps([game]), encoding="utf8")
+            parameters = root / "parameters.json"
+            parameters.write_text(json.dumps({"selected_parameters": {"n_estimators": 5, "max_depth": 2},
+                                              "ngram_order": 2}), encoding="utf8")
+            report = retrain(source, root / "model", parameters)
+            self.assertEqual(report["rounds"], 7)
+            self.assertEqual(report["selected_parameters"]["n_estimators"], 5)
+            self.assertEqual(report["ngram_order"], 2)
+            self.assertEqual(report["javascript_parity"]["status"], "passed")
+
     def test_train_export_and_predict_in_module_repository(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

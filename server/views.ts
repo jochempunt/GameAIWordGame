@@ -72,6 +72,22 @@ export function viewForPlayer(
                 canSubmit: isActive,
             };
         }
+        case "prediction": {
+            if (!round) return lobbyView();
+            const ownAnswer = round.answers.find(answer => answer.playerId === player.id);
+            const ownPrediction = round.prediction?.answers.find(prediction => prediction.answerId === ownAnswer?.id);
+            return {
+                ...base,
+                phase: "prediction",
+                round: game.state.round,
+                prompt: round.prompt,
+                predictionStatus: round.prediction?.status ?? "unavailable",
+                predictionRemainingMs: Math.max(0, (round.predictionEndsAt ?? Date.now()) - Date.now()),
+                ownPrediction: ownPrediction ? {
+                    rank: ownPrediction.rank, totalAnswers: round.prediction!.answers.length,
+                } : null,
+            };
+        }
         case "ranking": {
             const hasRanked = round?.rankings.has(player.id) ?? false;
             return {

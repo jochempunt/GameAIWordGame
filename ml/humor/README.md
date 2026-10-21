@@ -1,8 +1,45 @@
 # Local humor ranking pipeline
 
 These scripts train an XGBoost ranker from final round rankings and export a
-standalone JavaScript scorer. They run separately from the game. The current
-game continues to use human votes for scoring.
+standalone JavaScript scorer. The game loads
+`ml/humor/artifacts/model/humor_ranker.cjs` at startup (or the path in
+`HUMOR_MODEL_PATH`) and automatically retrains after each completed round.
+
+Background training starts after the round's final human scores are saved. It
+reads all eligible completed rounds across games, reuses the parameters from
+`experiment_report.json` (or defaults if no tuned report exists), and refits in a
+separate Python process using one CPU thread. It requires six eligible rounds.
+Rounds still accepting answers are excluded. Manual `pnpm humor:pipeline`
+remains available for the full tuning and held-out evaluation workflow.
+
+The previous model stays available throughout training. A new scorer replaces
+it only after JavaScript/Python parity checks pass, without restarting the
+server. Already computed round predictions stay fixed. Failed training or a
+worker exceeding two minutes leaves the previous model in use. Only one job
+runs at a time; rounds completed while it runs queue one fresh pass over the
+latest saved data. Shutdown cancels the worker.
+
+Local development automatically uses `.venv/bin/python` when present; otherwise
+it uses `python3`. Set `HUMOR_PYTHON` to override this. Python dependencies below
+must be installed once. Docker installs them during image build.
+The latest background refit's native model and execution metadata are saved as
+`background_model.json` and `background_training.json` next to the active scorer.
+These are not new held-out evaluation results. The manual tuning report remains
+unchanged. Temporary snapshots and candidate files are removed after each run.
+
+After all active players submit answers, each player sees only their own
+predicted position. Other players' predictions are not sent to their browser.
+After five seconds, the server automatically opens human voting for everyone.
+Human votes determine round points, followed by results and the next round.
+Predictions are stored separately from human scores and never used as training
+targets. If a prediction is unavailable, a brief message appears before voting
+opens automatically on the same schedule.
+
+The default trained CommonJS runtime and background training scripts are included
+in Docker builds; raw exports and other training artifacts remain excluded.
+Background updates live in the running container. To keep them across container
+replacement, copy the active scorer out before rebuilding or mount its artifact
+directory as persistent storage.
 
 From the repository root, set up Python 3.11+ and activate its environment:
 
@@ -89,6 +126,7 @@ Run the automated checks with the Python environment active:
 
 ```bash
 pnpm humor:test
+pnpm test:game
 ```
 
 Tests use explicitly synthetic fixtures to check preprocessing, validation,

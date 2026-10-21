@@ -122,6 +122,26 @@
             <p id="spectator-status" aria-live="polite"></p>
             <p>You can play when the room returns to the lobby.</p>
         </section>
+        <section id="prediction-view" hidden>
+            <div class="prediction-card">
+                <span class="prediction-eyebrow">A little forecast</span>
+                <h1>Your AI prediction</h1>
+                <h2 class="prompt"></h2>
+                <div id="prediction-placement" class="prediction-placement" aria-hidden="true">
+                    <span class="prediction-rank-label">Predicted place</span>
+                    <div class="prediction-rank"><span id="prediction-rank-number"></span><span id="prediction-rank-suffix"></span></div>
+                    <span id="prediction-rank-total" class="prediction-rank-total"></span>
+                </div>
+                <p id="prediction-status" aria-live="polite"></p>
+                <p class="prediction-note">That's the model's guess. Now it's your turn to judge.</p>
+            </div>
+            <div class="prediction-countdown">
+                <div class="prediction-countdown-label"><span>Player voting is up next</span><span id="prediction-seconds">5s</span></div>
+                <div id="prediction-progress" class="prediction-progress" role="progressbar" aria-label="Time until player voting" aria-valuemin="0" aria-valuemax="5" aria-valuenow="5">
+                    <div id="prediction-progress-fill"></div>
+                </div>
+            </div>
+        </section>
         <section id="ranking-view" hidden>
             
             

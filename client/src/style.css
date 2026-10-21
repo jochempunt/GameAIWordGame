@@ -1521,3 +1521,170 @@ h1.prompt {
     color: var(--cream-light);
     font-weight: 600;
 }
+
+/* ---- Private AI forecast ---- */
+
+#prediction-view {
+    padding-bottom: 6rem;
+}
+
+.prediction-card {
+    position: relative;
+    padding: clamp(1.5rem, 5vw, 3rem);
+    border: 2px solid var(--ink);
+    border-radius: 1.5rem 1.75rem 1.4rem 1.6rem;
+    background: var(--cream-light);
+    box-shadow: 0 8px 0 rgb(50 62 47 / 28%);
+    text-align: center;
+    animation: forecast-appear 350ms ease-out both;
+}
+
+.prediction-eyebrow {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: 2rem;
+    background: var(--cream);
+    color: var(--success);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.prediction-card h1 {
+    margin: 1rem 0 0.65rem;
+    color: var(--ink);
+    font-size: clamp(1.8rem, 6vw, 2.5rem);
+    letter-spacing: -0.04em;
+}
+
+.prediction-card .prompt {
+    margin: 0 auto 1.75rem;
+    max-width: 32ch;
+    color: var(--muted-ink);
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.prediction-placement {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 1.5rem 0;
+    border-top: 1px dashed var(--tile-border);
+    border-bottom: 1px dashed var(--tile-border);
+}
+
+.prediction-rank-label {
+    color: var(--muted-ink);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.prediction-rank {
+    position: relative;
+    isolation: isolate;
+    padding: 0 0.3em;
+    color: var(--ink);
+    line-height: 1.1;
+}
+
+.prediction-rank::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 28% 0 12%;
+    border-radius: 0.4rem;
+    background: #F5CE70;
+    transform: rotate(-4deg);
+}
+
+#prediction-rank-number {
+    font-family: var(--font-logo);
+    font-size: clamp(5.5rem, 20vw, 8rem);
+    letter-spacing: -0.06em;
+}
+
+#prediction-rank-suffix {
+    display: inline-block;
+    margin-left: 0.15em;
+    font-size: 1.8rem;
+    font-weight: 800;
+    vertical-align: 1.25em;
+}
+
+.prediction-rank-total {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.prediction-card .prediction-note {
+    margin: 1.5rem auto 0;
+    max-width: 30ch;
+    color: var(--muted-ink);
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+
+.prediction-status-accessible {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.prediction-countdown {
+    position: fixed;
+    z-index: 25;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 1rem max(1.25rem, calc((100vw - 600px) / 2)) calc(1rem + env(safe-area-inset-bottom));
+    border-top: 1px solid rgb(255 248 240 / 20%);
+    background: var(--ink);
+    color: var(--cream-light);
+    box-shadow: 0 -8px 24px rgb(50 62 47 / 12%);
+}
+
+.prediction-countdown-label {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+#prediction-seconds {
+    color: #F5CE70;
+    font-variant-numeric: tabular-nums;
+}
+
+.prediction-progress {
+    height: 0.4rem;
+    overflow: hidden;
+    border-radius: 1rem;
+    background: rgb(255 248 240 / 18%);
+}
+
+#prediction-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: #F5CE70;
+    transform-origin: left;
+    will-change: transform;
+}
+
+@keyframes forecast-appear {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .prediction-card { animation: none; }
+}

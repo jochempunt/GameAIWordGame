@@ -58,10 +58,38 @@ even if they never submit. Players receive independent random subsets; overlap i
 - Automatic game restoration on server startup is not implemented (function to use at gameRepository.ts -> getGame(id)).
 - Reconnection after a server restart is not supported yet.
 
+## CSV score logs
+
+Completed rounds automatically update two CSV logs in `logs/`:
+
+- `round-scores.csv`: each answer's player, prompt, text, final human score/rank,
+  cumulative player points within that game and across all games, and AI score/rank.
+- `model-accuracy.csv`: each round's NDCG@3, pairwise accuracy, and top-1 accuracy,
+  with cumulative metrics over all rounds that have predictions.
+
+The server rebuilds these files from saved MongoDB rounds at startup and after
+each completed round, without duplicating entries. In-progress/abandoned rounds
+and rounds missing final scores are excluded. Older rounds without AI predictions
+still contribute player points; their AI fields are blank and do not affect
+accuracy averages. Rankings preserve ties. Pairwise accuracy excludes human ties
+and gives half credit to tied AI scores; top-1 averages credit over tied predicted
+winners. NDCG averages gains over tied model predictions. Accuracy uses the
+predictions recorded before voting, rather than rerunning an updated model.
+
+Rebuild the CSVs manually with `pnpm scores:export`. Set `SCORE_LOG_DIR` to choose
+another directory. Logs are excluded from Git and Docker build context. In Docker,
+mount the log directory to retain the files when replacing the container; saved
+database rounds can also rebuild them.
+
 ## Word list and dealing
 
 For local model training and JavaScript export from saved human rankings, see
 [the humor ranking pipeline](ml/humor/README.md).
+
+With a trained model available, each player sees only their own predicted
+position for five seconds before human voting opens automatically. Player votes
+then determine round scores. Completed rounds trigger background retraining;
+gameplay uses the previous model until a validated update is ready.
 
 `server/words.txt` is the vocabulary source, with one word per line.
 Edit the text file and restart the server to reload it.

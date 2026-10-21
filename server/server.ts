@@ -11,15 +11,22 @@ import { Game, MIN_PLAYERS_TO_START } from "./game.js";
 import type { Player } from "./types.js";
 import { viewForPlayer } from "./views.js";
 import type { Room, RoomSummary } from "./types.js";
-import { connectToDatabase, disconnectFromDatabase } from "./database/db.js";
+import { connectToDatabase, disconnectFromDatabase, getDatabase } from "./database/db.js";
 import { saveGame, flushGameSaves } from "./database/gameRepository.js";
 import { generatePlayerName } from "./playerNames.js";
 import { hasConsented, recordConsent } from "./database/participantRepository.js";
+import { finishPredictionReview, loadHumorPredictor, PREDICTION_DURATION_MS, startPredictionReview } from "./predictions.js";
+import { BackgroundModelTrainer, retrainHumorModel } from "./backgroundTraining.js";
+import { ScoreCsvLog } from "./scoreCsv.js";
+import type { ScoreGame } from "./scoreCsv.js";
 
 
 // ---- Setup ----
 
 const PORT = 3000;
+const backgroundTrainer = new BackgroundModelTrainer(loadHumorPredictor(), signal =>
+    retrainHumorModel(() => getDatabase().collection("games").find({ "state.rounds.status": "completed" }).toArray(), signal));
+const scoreCsvLog = new ScoreCsvLog(() => getDatabase().collection<ScoreGame>("games").find({ "state.rounds.status": "completed" }).toArray());
 // Docker sets 0.0.0.0 (see Dockerfile) so the tunnel container can reach the game.
 // Everywhere else only this machine can; phones in development go through the Vite dev server.
 const HOST = process.env.LISTEN_HOST ?? "127.0.0.1";
@@ -966,27 +973,19 @@ function startRound(socket: Socket): void {
 //  ---- Game flow ----
 
 
-function tryStartVoting(room: Room): void {
-    if (room.game.state.phase !== "answering") return;
-
-    const round = room.game.currentRound();
-    const roundPlayers = getRoundPlayers(room);
-
-    if (!round || roundPlayers.length === 0) return;
-
-    const everyoneAnswered = roundPlayers.every(
-        (player) =>
-            round.answers.some(
-                (answer) =>
-                    answer.playerId === player.id,
-            ),
-    );
-
-    if (!everyoneAnswered) return;
-
-    room.game.state.phase = "ranking";
-
-    console.log(`Room ${room.id}: everyone answered, starting ranking`);
+function tryStartPredictionReview(room: Room): void {
+    if (startPredictionReview(room.game, getRoundPlayers(room).map(player => player.id), backgroundTrainer.model)) {
+        room.readyPlayers.clear();
+        console.log(`Room ${room.id}: everyone answered, reviewing AI predictions`);
+        const game = room.game;
+        const roundNumber = game.state.round;
+        setTimeout(() => {
+            // A room may have emptied or started another round while this timer waited.
+            if (shuttingDown || room.game !== game || game.state.round !== roundNumber) return;
+            if (!finishPredictionReview(game)) return;
+            if (!advanceRoomAfterMembershipChange(room)) commitRoomState(room);
+        }, PREDICTION_DURATION_MS);
+    }
 }
 
 function tryFinishRanking(room: Room): void {
@@ -1032,9 +1031,16 @@ function tryFinishRanking(room: Room): void {
     round.completedAt = new Date();
     room.readyPlayers.clear();
     room.game.state.phase = "results";
+    // Persist this completed round before the worker takes its training snapshot.
+    void saveGame(room.game, room.id).then(() => {
+        backgroundTrainer.request();
+        void scoreCsvLog.refresh().catch(error => console.error("Could not update score CSV logs:", error));
+    }).catch(error => {
+        console.error("Could not save completed round for background training:", error);
+    });
 }
 function advanceRoomAfterMembershipChange(room: Room): boolean {
-    tryStartVoting(room);
+    tryStartPredictionReview(room);
     tryFinishRanking(room);
 
     return tryReturnToLobbyIfReady(room);
@@ -1143,6 +1149,7 @@ function getPlayerByToken(token: string): { player: Player, room: Room } | undef
 // ---- Startup and shutdown ----
 async function startServer(): Promise<void> {
     await connectToDatabase();
+    void scoreCsvLog.refresh().catch(error => console.error("Could not rebuild score CSV logs:", error));
     httpServer.listen(PORT, HOST, () => {
         console.log(`Game server running on port ${PORT}`);
     });
@@ -1153,6 +1160,7 @@ async function shutdown(): Promise<void> {
     shuttingDown = true;
 
     try {
+        await backgroundTrainer.stop();
         for (const playerId of disconnectTimers.keys()) {
             clearDisconnectTimers(playerId);
         }
@@ -1163,6 +1171,7 @@ async function shutdown(): Promise<void> {
         }
         await Promise.all([...rooms.values()].map(room => saveGame(room.game, room.id)));
         await flushGameSaves();
+        await scoreCsvLog.flush().catch(error => console.error("Could not flush score CSV logs:", error));
         await disconnectFromDatabase();
         process.exit(0);
     } catch (error) {

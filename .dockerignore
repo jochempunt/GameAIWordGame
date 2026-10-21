@@ -11,8 +11,14 @@ client/dist
 .venv
 **/__pycache__
 
-# Offline training tools, private exports, and model artifacts stay local.
-ml
+# Include only the trained runtime from the offline pipeline.
+ml/**
+!ml/humor/
+!ml/humor/*.py
+!ml/humor/requirements.txt
+!ml/humor/artifacts/
+!ml/humor/artifacts/model/
+!ml/humor/artifacts/model/humor_ranker.cjs
 
 # Not needed to build or run the game.
 .git
@@ -20,6 +26,7 @@ ml
 .vscode
 .idea
 *.log
+logs/
 Dockerfile
 .dockerignore
 compose*.yaml

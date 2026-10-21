@@ -49,6 +49,16 @@ const lobbyView = document.querySelector<HTMLElement>("#lobby-view")!;
 const playingView = document.querySelector<HTMLElement>("#playing-view")!;
 const submittedView = document.querySelector<HTMLElement>("#submitted-view")!;
 const rankingView = document.querySelector<HTMLElement>("#ranking-view")!;
+const predictionView = document.querySelector<HTMLElement>("#prediction-view")!;
+const predictionStatus = document.querySelector<HTMLElement>("#prediction-status")!;
+const predictionPlacement = document.querySelector<HTMLElement>("#prediction-placement")!;
+const predictionRankNumber = document.querySelector<HTMLElement>("#prediction-rank-number")!;
+const predictionRankSuffix = document.querySelector<HTMLElement>("#prediction-rank-suffix")!;
+const predictionRankTotal = document.querySelector<HTMLElement>("#prediction-rank-total")!;
+const predictionSeconds = document.querySelector<HTMLElement>("#prediction-seconds")!;
+const predictionProgress = document.querySelector<HTMLElement>("#prediction-progress")!;
+const predictionProgressFill = document.querySelector<HTMLElement>("#prediction-progress-fill")!;
+let predictionAnimationFrame: number | undefined;
 const resultsView = document.querySelector<HTMLElement>("#results-view")!;
 const spectatorView = document.querySelector<HTMLElement>("#spectator-view")!;
 const spectatorTitle = document.querySelector<HTMLElement>("#spectator-title")!;
@@ -226,6 +236,10 @@ function render(view: PlayerView): void {
         renderAnswering(view, skipAnimation);
         break;
         
+        case "prediction":
+        renderPrediction(view);
+        break;
+
         case "ranking":
         renderRanking(view);
         break;
@@ -262,6 +276,7 @@ const allViews = [
     lobbyView,
     playingView,
     submittedView,
+    predictionView,
     rankingView,
     rankedView,
     resultsView,
@@ -269,6 +284,10 @@ const allViews = [
 ];
 
 function hideAll(): void {
+    if (predictionAnimationFrame !== undefined) {
+        cancelAnimationFrame(predictionAnimationFrame);
+        predictionAnimationFrame = undefined;
+    }
     for (const view of allViews) {
         view.hidden = true;
     }
@@ -549,6 +568,8 @@ function roomStatusText(view: PlayerView): string {
             return view.isSpectator
                 ? `${view.answeredCount}/${view.playerCount} players answered - you are spectating`
                 : `${view.answeredCount}/${view.playerCount} players answered`;
+        case "prediction":
+            return "Player voting starts automatically after the prediction.";
         case "ranking":
             return view.isSpectator
                 ? `${view.rankedCount}/${view.playerCount} players ranked - you are spectating`
@@ -678,6 +699,38 @@ function renderSpectating(
 }
 function renderSubmitted(answer: string[]): void {
     submittedAnswer.textContent = answer.join(" ");
+}
+
+function renderPrediction(view: ViewOf<"prediction">): void {
+    setPageTitle("AI Predictions", view.round);
+    predictionView.hidden = false;
+    setPrompt(view.prompt, view.round);
+    const own = view.ownPrediction;
+    predictionPlacement.hidden = !own;
+    if (own) {
+        predictionRankNumber.textContent = String(own.rank);
+        const lastTwo = own.rank % 100;
+        predictionRankSuffix.textContent = lastTwo >= 11 && lastTwo <= 13 ? "th"
+            : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[own.rank % 10] ?? "th";
+        predictionRankTotal.textContent = `out of ${own.totalAnswers} answers`;
+    }
+    predictionStatus.textContent = view.predictionStatus === "unavailable"
+        ? "Your AI prediction is unavailable for this round."
+        : own
+            ? `Your answer's predicted rank: ${own.rank} of ${own.totalAnswers}.`
+            : "Player voting will begin shortly.";
+    predictionStatus.classList.toggle("prediction-status-accessible", Boolean(own));
+    const deadline = performance.now() + view.predictionRemainingMs;
+    const tick = () => {
+        const remaining = Math.max(0, deadline - performance.now());
+        const seconds = Math.ceil(remaining / 1000);
+        predictionSeconds.textContent = `${seconds}s`;
+        predictionProgress.setAttribute("aria-valuenow", String(seconds));
+        predictionProgress.setAttribute("aria-valuetext", `${seconds} seconds until player voting`);
+        predictionProgressFill.style.transform = `scaleX(${Math.min(1, remaining / 5000)})`;
+        predictionAnimationFrame = remaining > 0 ? requestAnimationFrame(tick) : undefined;
+    };
+    tick();
 }
 
 function renderResults(view: ViewOf<"results">): void {

@@ -31,6 +31,11 @@ export type Ranking = {
     receivedAt: Date | null;
 };
 
+export type RoundPrediction = {
+    status: "ready" | "unavailable";
+    answers: { answerId: string; score: number; rank: number }[];
+};
+
 export type RoundState = {
     status: "in_progress" | "completed" | "abandoned";
     startedAt: Date | null; // null for older rounds whose start time was not recorded.
@@ -41,9 +46,11 @@ export type RoundState = {
     answers: Answer[];
     rankings: Map<string, Ranking>;
     scores?: Map<string, number>;
+    prediction?: RoundPrediction;
+    predictionEndsAt?: number;
 };
 
-type Phase = "lobby" | "answering" | "ranking" | "results";
+type Phase = "lobby" | "answering" | "prediction" | "ranking" | "results";
 export type RoomSummary = {
     id: string;
     playerCount: number;
@@ -116,6 +123,14 @@ export type PlayerView = {
         answeredCount: number;
         playerCount: number;
         canSubmit: boolean;
+    }
+    | {
+        phase: "prediction";
+        round: number;
+        prompt: string;
+        predictionStatus: RoundPrediction["status"];
+        ownPrediction: { rank: number; totalAnswers: number } | null;
+        predictionRemainingMs: number;
     }
     | {
         phase: "ranking";
