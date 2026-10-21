@@ -2,6 +2,7 @@ import type { PublicSettings } from "../../server/settings_validation.js";
 import { io } from "socket.io-client";
 import { createRankBadge } from "./rankBadge.js";
 import { RankingPicker } from "./ranking.js";
+import { createSessionToken } from "./sessionToken.js";
 import type { PlayerView, RoomSummary } from "../../server/types.js";
 
 const socket = io({ autoConnect: false });
@@ -85,7 +86,6 @@ const rankingPicker = new RankingPicker({
     ranked: document.querySelector<HTMLOListElement>("#ranked-answers")!,
     progress: document.querySelector<HTMLElement>("#ranking-progress")!,
     choicesSection: document.querySelector<HTMLElement>("#ranking-choices-section")!,
-    undo: document.querySelector<HTMLButtonElement>("#ranking-undo")!,
     submit: rankingSubmitButton,
 });
 
@@ -123,7 +123,7 @@ function getOrCreateSessionToken(): string {
         return existing;
     }
 
-    const token = crypto.randomUUID();
+    const token = createSessionToken();
     localStorage.setItem("sessionToken", token);
     return token;
 }

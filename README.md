@@ -13,6 +13,27 @@ This means a refreshed phone, reconnecting player, or host who opens the page la
 Game state is persisted in **MongoDB**, which runs in a Docker container.
 During development the game runs normally with hot reload, while only the database needs to run in Docker.
 
+### Ranking controls
+
+Tap an available answer to add it to the ranking. Placed answers leave the stash;
+removing them from the ranking returns them to the available answers.
+Available answers have grey
+selection circles and no drag grips. Once placed, answers gain filled colored
+number circles and three-line drag grips. Drag anywhere on a ranked card to
+insert it at another position (hold briefly first on touch screens). You can also
+drag available answers into any ranking position, or return ranked answers by
+dropping them in Answers. That area stays visible even when all answers are placed;
+drops elsewhere leave the draft unchanged. Tap a ranked answer to
+return it to the available answers, replacing Undo and tap-to-swap. All answers
+must be placed before submitting.
+
+Quick swipes scroll the page; holding a ranked card for 220 ms lifts it for dragging.
+Long rankings auto-scroll near the screen edges. Outside drops and cancelled
+gestures leave the order unchanged, and dropping does not play a swap animation.
+Keyboard users can press Enter/Space on answers to add/remove them, and use
+Up/Down or Home/End on a placed grip to reorder. Escape cancels a drag.
+
+
 ### Game persistence / DB
 
 The active game stays in memory and is saved to MongoDB after important state changes:
@@ -116,7 +137,11 @@ Then open:
 
 - Player: [http://localhost:5173](http://localhost:5173)
 
-Phones on the same Wi-Fi connect through the Vite dev server on port 5173 (`pnpm dev:qr` prints the address).
+`pnpm dev` prints a QR code and LAN address automatically. Connect your phone to
+the same Wi-Fi and scan the code to open the game over HTTP on port 5173.
+You can print it again with `pnpm dev:qr`. Session tokens also work over LAN HTTP,
+using cryptographically random UUIDs when the browser's `randomUUID` API is unavailable.
+Vite keeps port 5173 fixed so the QR code always matches the development server.
 The game server itself (port 3000) only listens on `127.0.0.1` outside Docker; Vite forwards to it.
 
 
