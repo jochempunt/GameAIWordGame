@@ -1,6 +1,7 @@
 import type { PublicSettings } from "../../server/settings_validation.js";
 import { io } from "socket.io-client";
 import { createRankBadge } from "./rankBadge.js";
+import { RankingPicker } from "./ranking.js";
 import type { PlayerView, RoomSummary } from "../../server/types.js";
 
 const socket = io({ autoConnect: false });
@@ -53,7 +54,6 @@ const resultsView = document.querySelector<HTMLElement>("#results-view")!;
 const spectatorView = document.querySelector<HTMLElement>("#spectator-view")!;
 const spectatorTitle = document.querySelector<HTMLElement>("#spectator-title")!;
 const spectatorStatus = document.querySelector<HTMLElement>("#spectator-status")!;
-const rankingHint = document.querySelector<HTMLElement>("#ranking-hint")!;
 const roundResultsContainer = document.querySelector<HTMLElement>("#round-results")!;
 
 const leaderboardContainer = document.querySelector<HTMLElement>("#leaderboard")!;
@@ -70,7 +70,7 @@ let promptText = document.getElementsByClassName("prompt")[0] as HTMLElement;
 
 const wordsContainer = document.querySelector<HTMLElement>("#words")!;
 const answerContainer = document.querySelector<HTMLElement>("#answer")!;
-const answersToRankContainer = document.querySelector<HTMLElement>("#answers-to-rank")!;
+const answersToRankContainer = document.querySelector<HTMLUListElement>("#answers-to-rank")!;
 const answerSubmitButton = document.querySelector<HTMLButtonElement>("#submit-answer")!;
 const submittedAnswer = document.querySelector<HTMLElement>("#submitted-answer")!;
 
@@ -79,11 +79,19 @@ const rankedCount = document.querySelector<HTMLElement>("#ranked-count")!;
 
 const rankingSubmitButton = document.querySelector<HTMLButtonElement>("#submit-ranking")!;
 
+const rankingPicker = new RankingPicker({
+    instructions: document.querySelector<HTMLElement>("#ranking-instructions")!,
+    choices: answersToRankContainer,
+    ranked: document.querySelector<HTMLOListElement>("#ranked-answers")!,
+    progress: document.querySelector<HTMLElement>("#ranking-progress")!,
+    choicesSection: document.querySelector<HTMLElement>("#ranking-choices-section")!,
+    undo: document.querySelector<HTMLButtonElement>("#ranking-undo")!,
+    submit: rankingSubmitButton,
+});
+
 let selectedWords: string[] = [];
 let availableWords: string[] = [];
-let rankedAnswers: string[] = [];
 let currentRankingView: ViewOf<"ranking"> | null = null;
-let selectedAnswerId: string | null = null;
 let rankingRound = 0;
 let currentRound = 0;
 
@@ -277,9 +285,8 @@ function returnToRoomSelection(message = "Choose a room to join."): void {
     // Keep the session identity when leaving a room or failing to rejoin.
     selectedWords = [];
     availableWords = [];
-    rankedAnswers = [];
+    rankingPicker.reset();
     currentRankingView = null;
-    selectedAnswerId = null;
     rankingRound = 0;
     currentRound = 0;
     hasRenderedOnce = false;
@@ -800,265 +807,28 @@ function renderLeaderboard(
 }
 
 function renderRanking(view: ViewOf<"ranking">): void {
+    currentRankingView = view;
     if (!view.canRank) {
         renderSpectating(
-            "Watching the review",
-            view.prompt,
-            view.round,
+            "Watching the review", view.prompt, view.round,
             `${view.rankedCount}/${view.playerCount} players ranked`,
         );
         return;
     }
-    
     setPageTitle(view.hasRanked ? "Ranking Submitted" : "Rank Answers", view.round);
+    setPrompt(view.prompt, view.round);
     if (view.hasRanked) {
         rankedView.hidden = false;
-        setPrompt(view.prompt, view.round);
         rankedCount.textContent = `${view.rankedCount}/${view.playerCount} players ranked`;
         return;
     }
-    
     rankingView.hidden = false;
-    setPrompt(view.prompt, view.round);
-    
-    currentRankingView = view;
-
     if (rankingRound !== view.round) {
         rankingRound = view.round;
-
-        // the server only sends the answers this player has to rank
-        rankedAnswers = view.answers.map(answer => answer.id);
-        
-        selectedAnswerId = null;
+        rankingPicker.reset(view.answers);
+    } else {
+        rankingPicker.update(view.answers);
     }
-    
-    answersToRankContainer.replaceChildren();
-    
-    const answersById = new Map(
-        view.answers.map(answer => [answer.id, answer]),
-    );
-    
-    const answerColors = new Map(
-        view.answers.map((answer, index) => [
-            answer.id,
-            `hsl(${(40 + index * 137.508) % 360} 75% 78%)`,
-        ]),
-    );
-    
-    rankedAnswers.forEach((answerId, index) => {
-        const answer = answersById.get(answerId);
-        
-        if (!answer) {
-            return;
-        }
-        
-        const answerElement = document.createElement("li");
-        
-        answerElement.classList.add("rankable");
-        answerElement.style.setProperty("--rank-accent", answerColors.get(answer.id)!);
-        
-        answerElement.dataset.answerId = answer.id;
-        
-        answerElement.draggable = true;
-        
-        if (selectedAnswerId === answer.id) {
-            answerElement.classList.add("selected");
-        }
-        
-        const rankNumber = document.createElement("span");
-        rankNumber.classList.add("rank-number");
-        rankNumber.textContent = `${index + 1}`;
-
-        const rankText = document.createElement("span");
-        rankText.classList.add("rank-text");
-        rankText.textContent = answer.words.join(" ");
-
-        answerElement.append(rankNumber, rankText);
-        
-        // Mouse / touch selection
-        answerElement.addEventListener(
-            "click",
-            handleAnswerClick,
-        );
-        
-        // Desktop drag & drop
-        answerElement.addEventListener(
-            "dragstart",
-            handleDragStart,
-        );
-        
-        answerElement.addEventListener(
-            "dragover",
-            handleDragOver,
-        );
-        
-        answerElement.addEventListener("dragleave", handleDragLeave);
-        
-        answerElement.addEventListener(
-            "drop",
-            handleDrop,
-        );
-        
-        answerElement.addEventListener(
-            "dragend",
-            handleDragEnd,
-        );
-        
-        answersToRankContainer.appendChild(answerElement);
-    });
-    
-    rankingSubmitButton.disabled =
-    rankedAnswers.length === 0;
-}
-
-
-let draggedAnswerId: string | null = null;
-
-function handleDragStart(event: DragEvent): void {
-    const element = event.currentTarget as HTMLElement;
-    
-    draggedAnswerId =
-    element.dataset.answerId ?? null;
-    
-    element.classList.add("dragging");
-    
-    if (event.dataTransfer) {
-        event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData("text/plain", draggedAnswerId ?? "");
-    }
-}
-
-function handleDragOver(event: DragEvent): void {
-    event.preventDefault();
-    
-    const element = event.currentTarget as HTMLElement;
-    
-    for (const item of answersToRankContainer.children) {
-        item.classList.toggle("drag-over", item === element && !!draggedAnswerId && element.dataset.answerId !== draggedAnswerId);
-    }
-    
-    if (event.dataTransfer) {
-        event.dataTransfer.dropEffect = "move";
-    }
-}
-
-function handleDragLeave(event: DragEvent): void {
-    const element = event.currentTarget as HTMLElement;
-    if (event.relatedTarget instanceof Node && element.contains(event.relatedTarget)) {
-        return;
-    }
-    element.classList.remove("drag-over");
-}
-
-function handleDrop(event: DragEvent): void {
-    event.preventDefault();
-    
-    const targetElement =
-    event.currentTarget as HTMLElement;
-    
-    targetElement.classList.remove("drag-over");
-    
-    const targetAnswerId =
-    targetElement.dataset.answerId;
-    
-    if (!draggedAnswerId || !targetAnswerId) {
-        return;
-    }
-    
-    if (draggedAnswerId === targetAnswerId) {
-        return;
-    }
-    
-    const draggedIndex =
-    rankedAnswers.indexOf(draggedAnswerId);
-    
-    const targetIndex =
-    rankedAnswers.indexOf(targetAnswerId);
-    
-    if (
-        draggedIndex === -1 ||
-        targetIndex === -1
-    ) {
-        return;
-    }
-    
-    [rankedAnswers[draggedIndex], rankedAnswers[targetIndex]] =
-    [rankedAnswers[targetIndex], rankedAnswers[draggedIndex]];
-    
-    draggedAnswerId = null;
-    selectedAnswerId = null;
-    
-    renderRanking(currentRankingView!);
-}
-
-function handleDragEnd(event: DragEvent): void {
-    const element =
-    event.currentTarget as HTMLElement;
-    
-    element.classList.remove("dragging");
-    
-    for (
-        const item
-        of answersToRankContainer.children
-    ) {
-        item.classList.remove("drag-over");
-    }
-    
-    draggedAnswerId = null;
-}
-function handleAnswerClick(event: MouseEvent): void {
-    const element = event.currentTarget as HTMLElement;
-    
-    const answerId = element.dataset.answerId;
-    
-    if (!answerId) {
-        return;
-    }
-    
-    // Nothing selected yet
-    if (!selectedAnswerId) {
-        selectedAnswerId = answerId;
-        
-        renderRanking(currentRankingView!);
-        
-        return;
-    }
-    
-    // Clicked the same answer again
-    if (selectedAnswerId === answerId) {
-        selectedAnswerId = null;
-        
-        renderRanking(currentRankingView!);
-        
-        return;
-    }
-    
-    // Swap the two answers
-    const firstIndex =
-    rankedAnswers.indexOf(selectedAnswerId);
-    
-    const secondIndex =
-    rankedAnswers.indexOf(answerId);
-    
-    if (
-        firstIndex === -1 ||
-        secondIndex === -1
-    ) {
-        selectedAnswerId = null;
-        return;
-    }
-    
-    [
-        rankedAnswers[firstIndex],
-        rankedAnswers[secondIndex],
-    ] = [
-        rankedAnswers[secondIndex],
-        rankedAnswers[firstIndex],
-    ];
-    
-    selectedAnswerId = null;
-    
-    renderRanking(currentRankingView!);
 }
 
 function renderAvailableWords(): void {
@@ -1164,47 +934,16 @@ answerSubmitButton.addEventListener("click", () => {
 });
 
 rankingSubmitButton.addEventListener("click", () => {
-    if (!currentRankingView) {
-        return;
-    }
-    
-    // Make sure every answer has been ranked.
-    if (rankedAnswers.length !== currentRankingView.answers.length) {
-        return;
-    }
-    
-    console.log(
-        "[CLIENT] Submitting ranking:",
-        rankedAnswers,
-    );
-    
-    rankingSubmitButton.disabled = true;
-    
-    socket.emit(
-        "submitRanking",
-        rankedAnswers,
-        (response: {
-            ok: boolean;
-            error?: string;
-        }) => {
-            console.log(
-                "[CLIENT] Ranking response:",
-                response,
-            );
-            
-            if (!response.ok) {
-                rankingSubmitButton.disabled = false;
-                
-                showActionError(response.error ?? "Ranking failed");
-                
-                return;
-            }
-            
-            console.log(
-                "[CLIENT] Ranking submitted successfully",
-            );
-        },
-    );
+    if (!currentRankingView?.canRank || currentRankingView.hasRanked || !rankingPicker.canSubmit) return;
+    const rankedAnswers = rankingPicker.answerIds;
+    if (rankedAnswers.length !== currentRankingView.answers.length) return;
+    rankingPicker.setSubmitting(true);
+    socket.emit("submitRanking", rankedAnswers, (response: { ok: boolean; error?: string }) => {
+        if (!response.ok) {
+            rankingPicker.setSubmitting(false);
+            showActionError(response.error ?? "Ranking failed");
+        }
+    });
 });
 
 

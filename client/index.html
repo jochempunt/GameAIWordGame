@@ -125,12 +125,23 @@
         <section id="ranking-view" hidden>
             
             
-            <h1>Rank the answers on funniness</h1>
+            <h1>Which answer is funniest?</h1>
             <h2 class="prompt"></h2>
             
-            <p id="ranking-hint">Drag and drop an answer onto another, or tap two answers to swap their rankings.</p>
-            <ul id="answers-to-rank" aria-describedby="ranking-hint"></ul>
-            
+            <p id="ranking-instructions" class="ranking-instructions" aria-live="polite" aria-atomic="true">Tap answers to rank, funniest first. Tap two placed answers to swap.</p>
+            <div class="ranking-draft">
+                <div class="ranking-draft-heading">
+                    <h2 class="ranking-section-title">Your ranking</h2>
+                    <span id="ranking-progress">0 answers placed</span>
+                    <button id="ranking-undo" type="button" disabled>Undo</button>
+                </div>
+                <ol id="ranked-answers" aria-label="Your ranking, funniest first"></ol>
+            </div>
+            <div id="ranking-choices-section">
+                <h2 class="ranking-section-title">Answers</h2>
+                <ul id="answers-to-rank"></ul>
+            </div>
+
             <button id="submit-ranking" disabled>
                 Submit Ranking
             </button>
