@@ -60,6 +60,9 @@ even if they never submit. Players receive independent random subsets; overlap i
 
 ## Word list and dealing
 
+For local model training and JavaScript export from saved human rankings, see
+[the humor ranking pipeline](ml/humor/README.md).
+
 `server/words.txt` is the vocabulary source, with one word per line.
 Edit the text file and restart the server to reload it.
 Each player gets `wordsPerPlayer` randomly selected words per round (25 by default), sampled without replacement
@@ -116,7 +119,7 @@ Then open:
 
 - Player: [http://localhost:5173](http://localhost:5173)
 
-Phones on the same Wi-Fi connect through the Vite dev server on port 5173 (`pnpm dev:qr` prints the address).
+Phones on the same Wi-Fi connect through the Vite dev server on port 5173. `pnpm dev` prints a QR code and the player address at startup; `pnpm dev:qr` prints them again separately.
 The game server itself (port 3000) only listens on `127.0.0.1` outside Docker; Vite forwards to it.
 
 

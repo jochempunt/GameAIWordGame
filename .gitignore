@@ -1,6 +1,13 @@
 # Dependencies
 node_modules/
 
+# Local humor training dependencies, game exports, and model artifacts
+.venv/
+__pycache__/
+*.pyc
+ml/humor/data/
+ml/humor/artifacts/
+
 # Build output
 dist/
 

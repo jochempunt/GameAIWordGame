@@ -8,6 +8,11 @@
 node_modules
 **/node_modules
 client/dist
+.venv
+**/__pycache__
+
+# Offline training tools, private exports, and model artifacts stay local.
+ml
 
 # Not needed to build or run the game.
 .git
