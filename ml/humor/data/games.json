@@ -1,0 +1,2639 @@
+[
+  {
+    "_id": "28b1d9dd-b2ee-4f26-8884-6d0142e70b46",
+    "roomId": "AAAA",
+    "state": {
+      "phase": "lobby",
+      "round": 4,
+      "players": [
+        {
+          "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+          "name": "Fabulous Toaster",
+          "joinedAt": "2026-10-21T11:55:43.882Z"
+        },
+        {
+          "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+          "name": "Clumsy Octopus",
+          "joinedAt": "2026-10-21T11:55:57.193Z"
+        },
+        {
+          "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+          "name": "Majestic Pancake",
+          "joinedAt": "2026-10-21T11:56:43.029Z"
+        }
+      ],
+      "rounds": [
+        {
+          "roundNumber": 1,
+          "status": "completed",
+          "startedAt": "2026-10-21T11:56:45.321Z",
+          "completedAt": "2026-10-21T11:57:46.557Z",
+          "prompt": "What do shopping carts do after the supermarket closes?",
+          "wordsAvailable": [
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "before",
+                "also",
+                "let",
+                "vampire",
+                "confident",
+                "invaded",
+                "planet",
+                "park",
+                "television",
+                "dance",
+                "is",
+                "build",
+                "it",
+                "serve",
+                "had",
+                "bag",
+                "toast",
+                "across",
+                "not",
+                "magician",
+                "investigate",
+                "somersault",
+                "nervous",
+                "steal",
+                "saved",
+                "hum",
+                "seek",
+                "wall",
+                "ketchup",
+                "have"
+              ]
+            },
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "imagine",
+                "any",
+                "no",
+                "club",
+                "cheese",
+                "lie",
+                "in",
+                "deny",
+                "pay",
+                "knight",
+                "hide",
+                "eat",
+                "by",
+                "nervous",
+                "come",
+                "less",
+                "for",
+                "post",
+                "soup",
+                "today",
+                "unicorn",
+                "crunch",
+                "simmer",
+                "who",
+                "mutter",
+                "goblin",
+                "engine",
+                "rat",
+                "i'd",
+                "spill"
+              ]
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "accountant",
+                "horse",
+                "bow",
+                "yet",
+                "rat",
+                "are",
+                "fine",
+                "soup",
+                "fairy",
+                "upstairs",
+                "whisper",
+                "bought",
+                "toss",
+                "out",
+                "has",
+                "city",
+                "snap",
+                ",",
+                "whisk",
+                "cook",
+                "bet",
+                "any",
+                "out",
+                "invent",
+                "hop",
+                "sandwich",
+                "shoe",
+                "was",
+                "order",
+                "ran"
+              ]
+            }
+          ],
+          "playerIds": [
+            "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+            "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+            "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1"
+          ],
+          "answers": [
+            {
+              "answerId": "7596558a-dc87-458e-bb20-5f072b11868f",
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "cook",
+                "rat",
+                ",",
+                "horse"
+              ],
+              "receivedAt": "2026-10-21T11:57:30.992Z"
+            },
+            {
+              "answerId": "95a28145-c7ae-4d57-bb56-d943924b73f5",
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "let",
+                "vampire",
+                "have",
+                "ketchup"
+              ],
+              "receivedAt": "2026-10-21T11:57:34.680Z"
+            },
+            {
+              "answerId": "89b40823-12a7-498c-891c-c905ddd5c7c1",
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "nervous",
+                "come",
+                "less"
+              ],
+              "receivedAt": "2026-10-21T11:57:38.056Z"
+            }
+          ],
+          "rankings": [
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "answerIds": [
+                "7596558a-dc87-458e-bb20-5f072b11868f",
+                "89b40823-12a7-498c-891c-c905ddd5c7c1"
+              ],
+              "receivedAt": "2026-10-21T11:57:45.310Z"
+            },
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "answerIds": [
+                "7596558a-dc87-458e-bb20-5f072b11868f",
+                "95a28145-c7ae-4d57-bb56-d943924b73f5"
+              ],
+              "receivedAt": "2026-10-21T11:57:45.991Z"
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "answerIds": [
+                "95a28145-c7ae-4d57-bb56-d943924b73f5",
+                "89b40823-12a7-498c-891c-c905ddd5c7c1"
+              ],
+              "receivedAt": "2026-10-21T11:57:46.556Z"
+            }
+          ],
+          "scores": [
+            {
+              "answerId": "7596558a-dc87-458e-bb20-5f072b11868f",
+              "score": 4
+            },
+            {
+              "answerId": "95a28145-c7ae-4d57-bb56-d943924b73f5",
+              "score": 3
+            },
+            {
+              "answerId": "89b40823-12a7-498c-891c-c905ddd5c7c1",
+              "score": 2
+            }
+          ]
+        },
+        {
+          "roundNumber": 2,
+          "status": "completed",
+          "startedAt": "2026-10-21T11:58:08.577Z",
+          "completedAt": "2026-10-21T11:59:30.095Z",
+          "prompt": "Why do cats knock things off tables?",
+          "wordsAvailable": [
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "outside",
+                "one",
+                "wave",
+                "back",
+                "machine",
+                "go",
+                "escaped",
+                "detective",
+                "great",
+                "any",
+                "president",
+                "fell",
+                "royal",
+                "sink",
+                "chill",
+                "inside",
+                "not",
+                "simmer",
+                "laughed",
+                "trade",
+                "shoe",
+                "through",
+                "billionaire",
+                "loser",
+                "run",
+                "in",
+                "creep",
+                "will",
+                "divide",
+                "ugly"
+              ]
+            },
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "magnet",
+                "how",
+                "magical",
+                "low",
+                "called",
+                "vacuum",
+                "discover",
+                "airport",
+                "aunt",
+                "slice",
+                "crawl",
+                "for",
+                "so",
+                "zombie",
+                "around",
+                "seem",
+                "elf",
+                "behind",
+                "float",
+                "is",
+                "what",
+                "mutter",
+                "to",
+                "let",
+                "hey",
+                "ride",
+                "if",
+                "is",
+                "his",
+                "is"
+              ]
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "the",
+                "cake",
+                "deliver",
+                "stranger",
+                "awkward",
+                "i'd",
+                "do",
+                "great",
+                "squirrel",
+                "have",
+                "?",
+                "cheat",
+                "not",
+                "invention",
+                "stumble",
+                "said",
+                "skate",
+                "knead",
+                "suitcase",
+                "of",
+                "high",
+                "i'd",
+                "restaurant",
+                "bread",
+                "crash",
+                "astronaut",
+                "like",
+                "tap",
+                "before",
+                "pour"
+              ]
+            }
+          ],
+          "playerIds": [
+            "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+            "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+            "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1"
+          ],
+          "answers": [
+            {
+              "answerId": "b000bb59-ae48-4417-8673-a6d0faf22218",
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "so",
+                "elf",
+                "ride",
+                "his",
+                "magical",
+                "vacuum"
+              ],
+              "receivedAt": "2026-10-21T11:58:33.968Z"
+            },
+            {
+              "answerId": "5388b348-8da8-4dde-8f48-6970151af125",
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "billionaire",
+                "creep",
+                "president",
+                "loser",
+                "escaped"
+              ],
+              "receivedAt": "2026-10-21T11:58:46.051Z"
+            },
+            {
+              "answerId": "8d9aafce-232c-4a9b-912b-aadfbbee23e1",
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "deliver",
+                "astronaut",
+                "invention"
+              ],
+              "receivedAt": "2026-10-21T11:58:55.472Z"
+            }
+          ],
+          "rankings": [
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "answerIds": [
+                "8d9aafce-232c-4a9b-912b-aadfbbee23e1",
+                "b000bb59-ae48-4417-8673-a6d0faf22218"
+              ],
+              "receivedAt": "2026-10-21T11:59:03.200Z"
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "answerIds": [
+                "b000bb59-ae48-4417-8673-a6d0faf22218",
+                "5388b348-8da8-4dde-8f48-6970151af125"
+              ],
+              "receivedAt": "2026-10-21T11:59:09.090Z"
+            },
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "answerIds": [
+                "5388b348-8da8-4dde-8f48-6970151af125",
+                "8d9aafce-232c-4a9b-912b-aadfbbee23e1"
+              ],
+              "receivedAt": "2026-10-21T11:59:30.094Z"
+            }
+          ],
+          "scores": [
+            {
+              "answerId": "b000bb59-ae48-4417-8673-a6d0faf22218",
+              "score": 3
+            },
+            {
+              "answerId": "5388b348-8da8-4dde-8f48-6970151af125",
+              "score": 3
+            },
+            {
+              "answerId": "8d9aafce-232c-4a9b-912b-aadfbbee23e1",
+              "score": 3
+            }
+          ]
+        },
+        {
+          "roundNumber": 3,
+          "status": "completed",
+          "startedAt": "2026-10-21T11:59:39.181Z",
+          "completedAt": "2026-10-21T12:00:40.024Z",
+          "prompt": "What would you do if you could stop time?",
+          "wordsAvailable": [
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "escaped",
+                "to",
+                "deny",
+                "spaceship",
+                "bake",
+                "our",
+                "my",
+                "low",
+                "fought",
+                "penguin",
+                "pour",
+                "after",
+                "ban",
+                "and",
+                "oven",
+                "dog",
+                "country",
+                "ran",
+                "creep",
+                "hamster",
+                "huge",
+                "it",
+                "nervous",
+                "exploded",
+                "will",
+                "come",
+                "kettle",
+                "snore",
+                "across",
+                "find"
+              ]
+            },
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "confused",
+                "too",
+                "invade",
+                "plane",
+                "snack",
+                "cheer",
+                "drive",
+                "discover",
+                "below",
+                "court",
+                "across",
+                "steak",
+                "planet",
+                "what",
+                "sold",
+                "has",
+                "that",
+                "raccoon",
+                "company",
+                "ketchup",
+                "after",
+                "comet",
+                "yesterday",
+                "build",
+                "jump",
+                "under",
+                "real",
+                "cheat",
+                "oops",
+                "any"
+              ]
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "beach",
+                "to",
+                "had",
+                "in",
+                "real",
+                "ate",
+                "hey",
+                "investigate",
+                "boss",
+                "hire",
+                "chuckle",
+                "how",
+                "have",
+                "imagine",
+                "bake",
+                "princess",
+                "tax",
+                "be",
+                "are",
+                "oven",
+                "goose",
+                "give",
+                "lose",
+                "a",
+                "to",
+                "chill",
+                "stop",
+                "chair",
+                "enter",
+                "whisper"
+              ]
+            }
+          ],
+          "playerIds": [
+            "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+            "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+            "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1"
+          ],
+          "answers": [
+            {
+              "answerId": "5446bfee-03d1-4657-ab3b-9a4e37c43965",
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "build",
+                "plane",
+                "invade",
+                "any",
+                "planet"
+              ],
+              "receivedAt": "2026-10-21T12:00:17.085Z"
+            },
+            {
+              "answerId": "a52e7c88-8e4d-430b-8b9f-ed1b318e059f",
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "bake",
+                "our",
+                "dog",
+                "huge",
+                "oven"
+              ],
+              "receivedAt": "2026-10-21T12:00:18.007Z"
+            },
+            {
+              "answerId": "9e3bd8dd-57e8-4615-8954-770e36d1ba38",
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "investigate",
+                "boss",
+                "princess"
+              ],
+              "receivedAt": "2026-10-21T12:00:22.718Z"
+            }
+          ],
+          "rankings": [
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "answerIds": [
+                "a52e7c88-8e4d-430b-8b9f-ed1b318e059f",
+                "5446bfee-03d1-4657-ab3b-9a4e37c43965"
+              ],
+              "receivedAt": "2026-10-21T12:00:34.084Z"
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "answerIds": [
+                "9e3bd8dd-57e8-4615-8954-770e36d1ba38",
+                "5446bfee-03d1-4657-ab3b-9a4e37c43965"
+              ],
+              "receivedAt": "2026-10-21T12:00:35.210Z"
+            },
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "answerIds": [
+                "9e3bd8dd-57e8-4615-8954-770e36d1ba38",
+                "a52e7c88-8e4d-430b-8b9f-ed1b318e059f"
+              ],
+              "receivedAt": "2026-10-21T12:00:40.023Z"
+            }
+          ],
+          "scores": [
+            {
+              "answerId": "5446bfee-03d1-4657-ab3b-9a4e37c43965",
+              "score": 2
+            },
+            {
+              "answerId": "a52e7c88-8e4d-430b-8b9f-ed1b318e059f",
+              "score": 3
+            },
+            {
+              "answerId": "9e3bd8dd-57e8-4615-8954-770e36d1ba38",
+              "score": 4
+            }
+          ]
+        },
+        {
+          "roundNumber": 4,
+          "status": "completed",
+          "startedAt": "2026-10-21T12:00:53.198Z",
+          "completedAt": "2026-10-21T12:01:38.906Z",
+          "prompt": "What do fish think rain is?",
+          "wordsAvailable": [
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "and",
+                "wave",
+                "so",
+                "he",
+                "poor",
+                ".",
+                "clueless",
+                "our",
+                "umbrella",
+                "instead",
+                "has",
+                "flew",
+                "knight",
+                "snack",
+                "where",
+                "squirrel",
+                "with",
+                "stumble",
+                "mascot",
+                "government",
+                "not",
+                "glide",
+                "behind",
+                "leave",
+                "we",
+                "did",
+                "count",
+                "perfect",
+                "mayor",
+                "melt"
+              ]
+            },
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "professor",
+                "cheer",
+                "against",
+                "magical",
+                "your",
+                "one",
+                "weigh",
+                "promised",
+                "plumber",
+                "spy",
+                "poor",
+                "casino",
+                "phone",
+                "and",
+                "cheese",
+                "coffee",
+                "tip",
+                "being",
+                "we",
+                "airport",
+                "his",
+                "billionaire",
+                "dragon",
+                "laser",
+                "travel",
+                "fan",
+                "around",
+                "shoe",
+                "taco",
+                "she"
+              ]
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "weird",
+                "an",
+                "by",
+                "llama",
+                "the",
+                "admit",
+                "invention",
+                "come",
+                "hop",
+                "some",
+                "committee",
+                "steal",
+                "one",
+                "grandpa",
+                "your",
+                "invade",
+                "stop",
+                "find",
+                "neighbor",
+                "stole",
+                "inside",
+                "old",
+                "somersault",
+                "bad",
+                "snack",
+                "for",
+                "out",
+                "reverse",
+                "bad",
+                "in"
+              ]
+            }
+          ],
+          "playerIds": [
+            "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+            "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+            "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1"
+          ],
+          "answers": [
+            {
+              "answerId": "55a01cec-2521-4a48-aacd-7112d64328e3",
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "poor",
+                "cheese"
+              ],
+              "receivedAt": "2026-10-21T12:01:19.141Z"
+            },
+            {
+              "answerId": "3097f3c5-e146-4802-bf9f-ba1051851507",
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "neighbor",
+                "come",
+                "invade"
+              ],
+              "receivedAt": "2026-10-21T12:01:28.764Z"
+            },
+            {
+              "answerId": "bc251f22-777a-49a4-a067-c9f5d1b28858",
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "government",
+                "with",
+                "wave",
+                "so",
+                "he",
+                "poor"
+              ],
+              "receivedAt": "2026-10-21T12:01:31.588Z"
+            }
+          ],
+          "rankings": [
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "answerIds": [
+                "3097f3c5-e146-4802-bf9f-ba1051851507",
+                "bc251f22-777a-49a4-a067-c9f5d1b28858"
+              ],
+              "receivedAt": "2026-10-21T12:01:36.753Z"
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "answerIds": [
+                "bc251f22-777a-49a4-a067-c9f5d1b28858",
+                "55a01cec-2521-4a48-aacd-7112d64328e3"
+              ],
+              "receivedAt": "2026-10-21T12:01:37.982Z"
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "answerIds": [
+                "55a01cec-2521-4a48-aacd-7112d64328e3",
+                "3097f3c5-e146-4802-bf9f-ba1051851507"
+              ],
+              "receivedAt": "2026-10-21T12:01:38.904Z"
+            }
+          ],
+          "scores": [
+            {
+              "answerId": "55a01cec-2521-4a48-aacd-7112d64328e3",
+              "score": 3
+            },
+            {
+              "answerId": "3097f3c5-e146-4802-bf9f-ba1051851507",
+              "score": 3
+            },
+            {
+              "answerId": "bc251f22-777a-49a4-a067-c9f5d1b28858",
+              "score": 3
+            }
+          ]
+        }
+      ],
+      "totals": [
+        {
+          "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+          "score": 14
+        },
+        {
+          "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+          "score": 12
+        },
+        {
+          "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+          "score": 10
+        }
+      ]
+    }
+  },
+  {
+    "_id": "077e3b03-e4af-409c-8cd4-71ea1f5cb17d",
+    "roomId": "AAAA",
+    "state": {
+      "phase": "lobby",
+      "round": 7,
+      "players": [
+        {
+          "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+          "name": "Goofy Pancake",
+          "joinedAt": "2026-10-21T12:27:39.225Z"
+        },
+        {
+          "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+          "name": "Magical Toaster",
+          "joinedAt": "2026-10-21T12:27:43.319Z"
+        },
+        {
+          "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+          "name": "Tiny Toaster",
+          "joinedAt": "2026-10-21T12:27:43.431Z"
+        },
+        {
+          "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+          "name": "Goofy Burrito",
+          "joinedAt": "2026-10-21T12:28:20.558Z"
+        }
+      ],
+      "rounds": [
+        {
+          "roundNumber": 1,
+          "status": "completed",
+          "startedAt": "2026-10-21T12:28:25.509Z",
+          "completedAt": "2026-10-21T12:30:03.053Z",
+          "prompt": "Why do onions make us cry?",
+          "wordsAvailable": [
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "golf",
+                "to",
+                "are",
+                "emperor",
+                "raccoon",
+                "eat",
+                "tonight",
+                "row",
+                "cry",
+                "say",
+                "jury",
+                "bad",
+                "!",
+                "way",
+                "instead",
+                "a",
+                "posh",
+                "hired",
+                "fancy",
+                "with",
+                "plumber",
+                "blame",
+                "some",
+                "spaceship",
+                "zoom",
+                "all",
+                "or",
+                "their",
+                "out",
+                "rich"
+              ]
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "chair",
+                "chuckle",
+                "chew",
+                "everywhere",
+                "hotel",
+                "too",
+                "shout",
+                "maybe",
+                "low",
+                "boil",
+                "man",
+                "steak",
+                "briefcase",
+                "terrible",
+                "cried",
+                "stop",
+                "tonight",
+                "raccoon",
+                "deny",
+                "rocket",
+                "we",
+                "let",
+                "family",
+                "loved",
+                "it",
+                "not",
+                "help",
+                "by",
+                "down",
+                "her"
+              ]
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "potato",
+                "troll",
+                "weigh",
+                "agent",
+                "park",
+                "back",
+                "wizard",
+                "creep",
+                "fry",
+                "guess",
+                "whisk",
+                "one",
+                "that",
+                "aunt",
+                "elf",
+                "country",
+                "this",
+                "tweet",
+                "captain",
+                "less",
+                "some",
+                "after",
+                "plane",
+                "banana",
+                "kettle",
+                "an",
+                "test",
+                "cheese",
+                "count",
+                "shout"
+              ]
+            },
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "weird",
+                "posh",
+                "no",
+                "invention",
+                "bought",
+                "ride",
+                "explain",
+                "detective",
+                "outside",
+                "the",
+                "prove",
+                "said",
+                "been",
+                "stomp",
+                "oops",
+                "kettle",
+                "party",
+                "so",
+                "then",
+                "by",
+                "yes",
+                "very",
+                "have",
+                "not",
+                "man",
+                "were",
+                "man",
+                "ask",
+                "lose",
+                "love"
+              ]
+            }
+          ],
+          "playerIds": [
+            "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+            "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+            "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+            "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a"
+          ],
+          "answers": [
+            {
+              "answerId": "d5d90480-8d07-4a61-8d4b-ad6a09f60432",
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "blame",
+                "a",
+                "bad",
+                "raccoon"
+              ],
+              "receivedAt": "2026-10-21T12:29:02.677Z"
+            },
+            {
+              "answerId": "83e6b39c-2ae2-4149-8f60-87f1df765803",
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "terrible",
+                "steak",
+                "everywhere"
+              ],
+              "receivedAt": "2026-10-21T12:29:24.999Z"
+            },
+            {
+              "answerId": "edb753b5-e3d3-4a7d-ace5-b71f489d2cb2",
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "wizard",
+                "shout"
+              ],
+              "receivedAt": "2026-10-21T12:29:43.226Z"
+            },
+            {
+              "answerId": "15ecc91f-d4b8-4957-b953-3c3f83930701",
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "so",
+                "posh"
+              ],
+              "receivedAt": "2026-10-21T12:29:44.045Z"
+            }
+          ],
+          "rankings": [
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "answerIds": [
+                "83e6b39c-2ae2-4149-8f60-87f1df765803",
+                "d5d90480-8d07-4a61-8d4b-ad6a09f60432",
+                "edb753b5-e3d3-4a7d-ace5-b71f489d2cb2"
+              ],
+              "receivedAt": "2026-10-21T12:29:52.627Z"
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "answerIds": [
+                "d5d90480-8d07-4a61-8d4b-ad6a09f60432",
+                "15ecc91f-d4b8-4957-b953-3c3f83930701",
+                "83e6b39c-2ae2-4149-8f60-87f1df765803"
+              ],
+              "receivedAt": "2026-10-21T12:29:53.783Z"
+            },
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "answerIds": [
+                "15ecc91f-d4b8-4957-b953-3c3f83930701",
+                "83e6b39c-2ae2-4149-8f60-87f1df765803",
+                "edb753b5-e3d3-4a7d-ace5-b71f489d2cb2"
+              ],
+              "receivedAt": "2026-10-21T12:29:56.098Z"
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "answerIds": [
+                "d5d90480-8d07-4a61-8d4b-ad6a09f60432",
+                "15ecc91f-d4b8-4957-b953-3c3f83930701",
+                "edb753b5-e3d3-4a7d-ace5-b71f489d2cb2"
+              ],
+              "receivedAt": "2026-10-21T12:30:03.051Z"
+            }
+          ],
+          "scores": [
+            {
+              "answerId": "d5d90480-8d07-4a61-8d4b-ad6a09f60432",
+              "score": 8
+            },
+            {
+              "answerId": "83e6b39c-2ae2-4149-8f60-87f1df765803",
+              "score": 6
+            },
+            {
+              "answerId": "edb753b5-e3d3-4a7d-ace5-b71f489d2cb2",
+              "score": 3
+            },
+            {
+              "answerId": "15ecc91f-d4b8-4957-b953-3c3f83930701",
+              "score": 7
+            }
+          ]
+        },
+        {
+          "roundNumber": 2,
+          "status": "completed",
+          "startedAt": "2026-10-21T12:30:34.591Z",
+          "completedAt": "2026-10-21T12:32:36.636Z",
+          "prompt": "What are they hiding in Area 51?",
+          "wordsAvailable": [
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "down",
+                "upstairs",
+                "bargain",
+                "hired",
+                "laugh",
+                "any",
+                "goblin",
+                "but",
+                "chase",
+                "please",
+                "beneath",
+                "at",
+                "saved",
+                "fought",
+                "do",
+                "sail",
+                "a",
+                "chair",
+                "prank",
+                "chop",
+                "for",
+                "dive",
+                "swallow",
+                "she",
+                "moon",
+                "real",
+                "spaceship",
+                "save",
+                "accountant",
+                "ride"
+              ]
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "paddle",
+                "broke",
+                "cry",
+                "through",
+                "prince",
+                "arrive",
+                "astronaut",
+                "all",
+                "sing",
+                "our",
+                "normal",
+                "won",
+                "shoe",
+                "mutter",
+                "race",
+                "any",
+                "chew",
+                "celebrity",
+                "money",
+                "hated",
+                "predict",
+                "loud",
+                "find",
+                "let",
+                "guess",
+                "umbrella",
+                "give",
+                "winner",
+                "confused",
+                "his"
+              ]
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "!",
+                "great",
+                "has",
+                "confess",
+                "pigeon",
+                "wobble",
+                "exploded",
+                "with",
+                "cheer",
+                "zoom",
+                "skate",
+                "tease",
+                "queen",
+                "baker",
+                "let",
+                "no",
+                "chill",
+                "scientist",
+                "her",
+                "weigh",
+                "you",
+                "called",
+                "chase",
+                "her",
+                "want",
+                "rat",
+                "algorithm",
+                "orange",
+                "admit",
+                "not"
+              ]
+            },
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "team",
+                "mix",
+                "who",
+                "too",
+                "scared",
+                "laboratory",
+                "a",
+                "auction",
+                "gobble",
+                "bad",
+                "on",
+                "bag",
+                "any",
+                "he",
+                "explode",
+                "from",
+                "mutter",
+                "farmer",
+                "win",
+                "hey",
+                "in",
+                "goblin",
+                "like",
+                "ride",
+                "taco",
+                "fairy",
+                "whisper",
+                "me",
+                "break",
+                "climb"
+              ]
+            }
+          ],
+          "playerIds": [
+            "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+            "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+            "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+            "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a"
+          ],
+          "answers": [
+            {
+              "answerId": "d368ec94-ed94-4fa3-a3bd-105cb3610f9b",
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "confused",
+                "celebrity",
+                "astronaut"
+              ],
+              "receivedAt": "2026-10-21T12:31:00.090Z"
+            },
+            {
+              "answerId": "663bccbf-779a-4426-afdf-83713c176bfa",
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "a",
+                "chop",
+                "accountant"
+              ],
+              "receivedAt": "2026-10-21T12:31:02.735Z"
+            },
+            {
+              "answerId": "88750ab7-3a3e-445d-bdee-63f794a982f5",
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "scientist",
+                "pigeon",
+                "with",
+                "great",
+                "algorithm",
+                "!"
+              ],
+              "receivedAt": "2026-10-21T12:31:09.306Z"
+            },
+            {
+              "answerId": "917e2087-481d-4293-8a99-1f5e01c7ea13",
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "taco",
+                "fairy",
+                "in",
+                "a",
+                "bag"
+              ],
+              "receivedAt": "2026-10-21T12:31:12.890Z"
+            }
+          ],
+          "rankings": [
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "answerIds": [
+                "88750ab7-3a3e-445d-bdee-63f794a982f5",
+                "917e2087-481d-4293-8a99-1f5e01c7ea13",
+                "d368ec94-ed94-4fa3-a3bd-105cb3610f9b"
+              ],
+              "receivedAt": "2026-10-21T12:31:55.488Z"
+            },
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "answerIds": [
+                "d368ec94-ed94-4fa3-a3bd-105cb3610f9b",
+                "88750ab7-3a3e-445d-bdee-63f794a982f5",
+                "663bccbf-779a-4426-afdf-83713c176bfa"
+              ],
+              "receivedAt": "2026-10-21T12:32:31.839Z"
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "answerIds": [
+                "917e2087-481d-4293-8a99-1f5e01c7ea13",
+                "d368ec94-ed94-4fa3-a3bd-105cb3610f9b",
+                "663bccbf-779a-4426-afdf-83713c176bfa"
+              ],
+              "receivedAt": "2026-10-21T12:32:34.201Z"
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "answerIds": [
+                "88750ab7-3a3e-445d-bdee-63f794a982f5",
+                "663bccbf-779a-4426-afdf-83713c176bfa",
+                "917e2087-481d-4293-8a99-1f5e01c7ea13"
+              ],
+              "receivedAt": "2026-10-21T12:32:36.635Z"
+            }
+          ],
+          "scores": [
+            {
+              "answerId": "d368ec94-ed94-4fa3-a3bd-105cb3610f9b",
+              "score": 6
+            },
+            {
+              "answerId": "663bccbf-779a-4426-afdf-83713c176bfa",
+              "score": 4
+            },
+            {
+              "answerId": "88750ab7-3a3e-445d-bdee-63f794a982f5",
+              "score": 8
+            },
+            {
+              "answerId": "917e2087-481d-4293-8a99-1f5e01c7ea13",
+              "score": 6
+            }
+          ]
+        },
+        {
+          "roundNumber": 3,
+          "status": "completed",
+          "startedAt": "2026-10-21T12:32:51.092Z",
+          "completedAt": "2026-10-21T12:33:47.676Z",
+          "prompt": "What will be the most popular job in 100 years?",
+          "wordsAvailable": [
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "cake",
+                "alone",
+                "go",
+                "confirm",
+                "escape",
+                "any",
+                "is",
+                "chicken",
+                "hamster",
+                "llama",
+                "prove",
+                "reporter",
+                "cheat",
+                "around",
+                "posh",
+                "like",
+                "seek",
+                "jury",
+                "tie",
+                "a",
+                "exchange",
+                "quiet",
+                "monkey",
+                "are",
+                "clown",
+                "from",
+                "tonight",
+                "need",
+                "vacuum",
+                "soup"
+              ]
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "chef",
+                "tax",
+                "please",
+                "whisk",
+                "your",
+                "confident",
+                "leave",
+                "ban",
+                "phone",
+                "for",
+                "broke",
+                "if",
+                "under",
+                "go",
+                "are",
+                "did",
+                "again",
+                "hop",
+                "he",
+                "do",
+                "clown",
+                "dinosaur",
+                "pizza",
+                "manager",
+                "farmer",
+                "you",
+                "munch",
+                "high",
+                "guess",
+                "had"
+              ]
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "prince",
+                "cried",
+                "grandma",
+                "wobble",
+                "snap",
+                "mix",
+                "calculate",
+                "through",
+                "elf",
+                "dinosaur",
+                "loser",
+                "chuckle",
+                "company",
+                "whistle",
+                "like",
+                "quiet",
+                "what",
+                "are",
+                "melt",
+                "need",
+                "why",
+                "from",
+                "man",
+                "who",
+                "skip",
+                "country",
+                "plane",
+                "go",
+                "admit",
+                "this"
+              ]
+            },
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "no",
+                "accountant",
+                "machine",
+                "chicken",
+                "golf",
+                "not",
+                "any",
+                "exit",
+                "dragon",
+                "their",
+                "cousin",
+                "was",
+                "too",
+                "dentist",
+                "count",
+                "promise",
+                "squirrel",
+                "terrible",
+                "won",
+                "was",
+                "in",
+                "algorithm",
+                "those",
+                "business",
+                "internet",
+                "let",
+                "president",
+                "the",
+                "by",
+                "absurd"
+              ]
+            }
+          ],
+          "playerIds": [
+            "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+            "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+            "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+            "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a"
+          ],
+          "answers": [
+            {
+              "answerId": "168be18d-3fa2-4999-a8ae-f498ee6cf8b4",
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "algorithm"
+              ],
+              "receivedAt": "2026-10-21T12:32:56.604Z"
+            },
+            {
+              "answerId": "51de5002-f578-4bf0-ba88-eb1e61a84663",
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "pizza",
+                "farmer"
+              ],
+              "receivedAt": "2026-10-21T12:33:12.393Z"
+            },
+            {
+              "answerId": "42073416-7458-4127-b3ca-3cc55d38da8e",
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "quiet",
+                "posh",
+                "monkey",
+                "exchange"
+              ],
+              "receivedAt": "2026-10-21T12:33:22.562Z"
+            },
+            {
+              "answerId": "39ca555a-abd8-4991-9d59-04f838fa0aa9",
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "plane",
+                "melt"
+              ],
+              "receivedAt": "2026-10-21T12:33:37.582Z"
+            }
+          ],
+          "rankings": [
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "answerIds": [
+                "168be18d-3fa2-4999-a8ae-f498ee6cf8b4",
+                "39ca555a-abd8-4991-9d59-04f838fa0aa9",
+                "51de5002-f578-4bf0-ba88-eb1e61a84663"
+              ],
+              "receivedAt": "2026-10-21T12:33:45.264Z"
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "answerIds": [
+                "51de5002-f578-4bf0-ba88-eb1e61a84663",
+                "42073416-7458-4127-b3ca-3cc55d38da8e",
+                "168be18d-3fa2-4999-a8ae-f498ee6cf8b4"
+              ],
+              "receivedAt": "2026-10-21T12:33:46.182Z"
+            },
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "answerIds": [
+                "51de5002-f578-4bf0-ba88-eb1e61a84663",
+                "42073416-7458-4127-b3ca-3cc55d38da8e",
+                "39ca555a-abd8-4991-9d59-04f838fa0aa9"
+              ],
+              "receivedAt": "2026-10-21T12:33:47.515Z"
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "answerIds": [
+                "168be18d-3fa2-4999-a8ae-f498ee6cf8b4",
+                "42073416-7458-4127-b3ca-3cc55d38da8e",
+                "39ca555a-abd8-4991-9d59-04f838fa0aa9"
+              ],
+              "receivedAt": "2026-10-21T12:33:47.674Z"
+            }
+          ],
+          "scores": [
+            {
+              "answerId": "168be18d-3fa2-4999-a8ae-f498ee6cf8b4",
+              "score": 7
+            },
+            {
+              "answerId": "51de5002-f578-4bf0-ba88-eb1e61a84663",
+              "score": 7
+            },
+            {
+              "answerId": "42073416-7458-4127-b3ca-3cc55d38da8e",
+              "score": 6
+            },
+            {
+              "answerId": "39ca555a-abd8-4991-9d59-04f838fa0aa9",
+              "score": 4
+            }
+          ]
+        },
+        {
+          "roundNumber": 4,
+          "status": "completed",
+          "startedAt": "2026-10-21T12:34:00.723Z",
+          "completedAt": "2026-10-21T12:35:21.518Z",
+          "prompt": "What do shopping carts do after the supermarket closes?",
+          "wordsAvailable": [
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "seem",
+                "to",
+                "you",
+                "were",
+                "fired",
+                "arrest",
+                "who",
+                "band",
+                "city",
+                "was",
+                "really",
+                "absurd",
+                "laboratory",
+                "clueless",
+                "none",
+                "angry",
+                "paddle",
+                "her",
+                "spill",
+                "broke",
+                "rap",
+                "explain",
+                "why",
+                "pizza",
+                "she",
+                "president",
+                "satellite",
+                "goblin",
+                "you",
+                "calculate"
+              ]
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "serve",
+                "government",
+                "fought",
+                "clone",
+                "no",
+                "cartwheel",
+                "voter",
+                "steal",
+                "jury",
+                "orchestra",
+                "grandpa",
+                "he",
+                "posted",
+                "chatbot",
+                "low",
+                "with",
+                "investigate",
+                "goose",
+                "is",
+                "run",
+                "make",
+                "bounce",
+                "new",
+                "go",
+                "more",
+                "called",
+                "toaster",
+                "kissed",
+                "donate",
+                "drive"
+              ]
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "city",
+                "everything",
+                "they",
+                "loved",
+                "alone",
+                "scared",
+                "about",
+                "company",
+                "her",
+                "more",
+                "so",
+                "in",
+                "is",
+                "test",
+                "swim",
+                "prison",
+                "a",
+                "jester",
+                "should",
+                "school",
+                "suitcase",
+                "court",
+                "skate",
+                "run",
+                "do",
+                "business",
+                "not",
+                "nothing",
+                "house",
+                "mermaid"
+              ]
+            },
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "ketchup",
+                "and",
+                "accuse",
+                "race",
+                "escaped",
+                "comet",
+                "why",
+                "army",
+                "too",
+                "laboratory",
+                "dramatic",
+                "lie",
+                "orange",
+                "loved",
+                "posh",
+                "snore",
+                "your",
+                "fight",
+                "my",
+                "march",
+                "rich",
+                "aunt",
+                "and",
+                "creep",
+                "fine",
+                "posted",
+                "for",
+                "machine",
+                "back",
+                "over"
+              ]
+            }
+          ],
+          "playerIds": [
+            "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+            "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+            "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+            "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a"
+          ],
+          "answers": [
+            {
+              "answerId": "de264a5d-705f-427e-8efb-fabd24d00d93",
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "arrest",
+                "clueless",
+                "goblin"
+              ],
+              "receivedAt": "2026-10-21T12:34:32.058Z"
+            },
+            {
+              "answerId": "9a7a6380-de2f-428b-bbc1-b08521728532",
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "dramatic",
+                "fight",
+                "for",
+                "ketchup"
+              ],
+              "receivedAt": "2026-10-21T12:34:58.683Z"
+            },
+            {
+              "answerId": "67803a25-2575-43de-970e-313f85290bea",
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "cartwheel"
+              ],
+              "receivedAt": "2026-10-21T12:35:02.128Z"
+            },
+            {
+              "answerId": "7acd98b9-50b5-4b7c-81ca-3baa7f9c7a7d",
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "swim",
+                "in",
+                "company"
+              ],
+              "receivedAt": "2026-10-21T12:35:09.233Z"
+            }
+          ],
+          "rankings": [
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "answerIds": [
+                "67803a25-2575-43de-970e-313f85290bea",
+                "7acd98b9-50b5-4b7c-81ca-3baa7f9c7a7d",
+                "9a7a6380-de2f-428b-bbc1-b08521728532"
+              ],
+              "receivedAt": "2026-10-21T12:35:15.988Z"
+            },
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "answerIds": [
+                "67803a25-2575-43de-970e-313f85290bea",
+                "7acd98b9-50b5-4b7c-81ca-3baa7f9c7a7d",
+                "de264a5d-705f-427e-8efb-fabd24d00d93"
+              ],
+              "receivedAt": "2026-10-21T12:35:16.011Z"
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "answerIds": [
+                "9a7a6380-de2f-428b-bbc1-b08521728532",
+                "de264a5d-705f-427e-8efb-fabd24d00d93",
+                "67803a25-2575-43de-970e-313f85290bea"
+              ],
+              "receivedAt": "2026-10-21T12:35:17.115Z"
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "answerIds": [
+                "9a7a6380-de2f-428b-bbc1-b08521728532",
+                "de264a5d-705f-427e-8efb-fabd24d00d93",
+                "7acd98b9-50b5-4b7c-81ca-3baa7f9c7a7d"
+              ],
+              "receivedAt": "2026-10-21T12:35:21.517Z"
+            }
+          ],
+          "scores": [
+            {
+              "answerId": "de264a5d-705f-427e-8efb-fabd24d00d93",
+              "score": 5
+            },
+            {
+              "answerId": "9a7a6380-de2f-428b-bbc1-b08521728532",
+              "score": 7
+            },
+            {
+              "answerId": "67803a25-2575-43de-970e-313f85290bea",
+              "score": 7
+            },
+            {
+              "answerId": "7acd98b9-50b5-4b7c-81ca-3baa7f9c7a7d",
+              "score": 5
+            }
+          ]
+        },
+        {
+          "roundNumber": 5,
+          "status": "completed",
+          "startedAt": "2026-10-21T12:35:56.538Z",
+          "completedAt": "2026-10-21T12:36:57.775Z",
+          "prompt": "What is the least impressive superpower?",
+          "wordsAvailable": [
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "skip",
+                "saved",
+                "those",
+                "tap",
+                "chase",
+                "snicker",
+                "you",
+                "army",
+                "instead",
+                "dentist",
+                "satellite",
+                "all",
+                "emperor",
+                "we",
+                "you",
+                "found",
+                "alone",
+                "algorithm",
+                "from",
+                "had",
+                "you",
+                "spin",
+                "go",
+                "for",
+                "referee",
+                "gasp",
+                "float",
+                "fake",
+                "give",
+                "invent"
+              ]
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "in",
+                "vacuum",
+                "now",
+                "lose",
+                "apparently",
+                "so",
+                "found",
+                "seem",
+                "inspect",
+                "?",
+                "pay",
+                "restaurant",
+                "hey",
+                "has",
+                "want",
+                "yodel",
+                "knead",
+                "boo",
+                "normal",
+                "exchange",
+                "elephant",
+                "exploded",
+                "engine",
+                "from",
+                "alone",
+                "explain",
+                "where",
+                "one",
+                "applaud",
+                "stumble"
+              ]
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "swim",
+                "terrible",
+                "poor",
+                "nothing",
+                "like",
+                "swing",
+                "high",
+                "clueless",
+                "come",
+                "bargain",
+                "bag",
+                "these",
+                "cat",
+                "destroy",
+                "too",
+                "kettle",
+                "laundry",
+                "that",
+                "farmer",
+                "tumble",
+                "exploded",
+                "dance",
+                "ketchup",
+                "the",
+                "wave",
+                "promised",
+                "uncle",
+                "forget",
+                "engine",
+                "soup"
+              ]
+            },
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "bag",
+                "said",
+                "wobble",
+                "twirl",
+                "one",
+                "family",
+                "run",
+                "clueless",
+                "exit",
+                "under",
+                "i",
+                "or",
+                "on",
+                "no",
+                "tourist",
+                "fall",
+                "was",
+                "leave",
+                "today",
+                "race",
+                "court",
+                "partner",
+                "of",
+                "council",
+                "dog",
+                "she",
+                "country",
+                "referee",
+                "by",
+                "through"
+              ]
+            }
+          ],
+          "playerIds": [
+            "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+            "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+            "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+            "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a"
+          ],
+          "answers": [
+            {
+              "answerId": "40c5591a-0243-404c-918d-197ec0d63a0c",
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "pay",
+                "in",
+                "restaurant",
+                "alone"
+              ],
+              "receivedAt": "2026-10-21T12:36:25.314Z"
+            },
+            {
+              "answerId": "263eda16-6004-463a-ac1f-9db813a4a9f2",
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "engine",
+                "destroy"
+              ],
+              "receivedAt": "2026-10-21T12:36:34.837Z"
+            },
+            {
+              "answerId": "cb432bb4-25cd-4632-8b0c-331829c7fa4b",
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "invent",
+                "spin",
+                "algorithm"
+              ],
+              "receivedAt": "2026-10-21T12:36:36.476Z"
+            },
+            {
+              "answerId": "1cb7945a-f8a8-4747-9db5-658cb8497921",
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "family",
+                "referee"
+              ],
+              "receivedAt": "2026-10-21T12:36:43.228Z"
+            }
+          ],
+          "rankings": [
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "answerIds": [
+                "1cb7945a-f8a8-4747-9db5-658cb8497921",
+                "263eda16-6004-463a-ac1f-9db813a4a9f2",
+                "40c5591a-0243-404c-918d-197ec0d63a0c"
+              ],
+              "receivedAt": "2026-10-21T12:36:50.811Z"
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "answerIds": [
+                "40c5591a-0243-404c-918d-197ec0d63a0c",
+                "cb432bb4-25cd-4632-8b0c-331829c7fa4b",
+                "1cb7945a-f8a8-4747-9db5-658cb8497921"
+              ],
+              "receivedAt": "2026-10-21T12:36:52.039Z"
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "answerIds": [
+                "cb432bb4-25cd-4632-8b0c-331829c7fa4b",
+                "1cb7945a-f8a8-4747-9db5-658cb8497921",
+                "263eda16-6004-463a-ac1f-9db813a4a9f2"
+              ],
+              "receivedAt": "2026-10-21T12:36:52.945Z"
+            },
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "answerIds": [
+                "40c5591a-0243-404c-918d-197ec0d63a0c",
+                "263eda16-6004-463a-ac1f-9db813a4a9f2",
+                "cb432bb4-25cd-4632-8b0c-331829c7fa4b"
+              ],
+              "receivedAt": "2026-10-21T12:36:57.775Z"
+            }
+          ],
+          "scores": [
+            {
+              "answerId": "40c5591a-0243-404c-918d-197ec0d63a0c",
+              "score": 7
+            },
+            {
+              "answerId": "263eda16-6004-463a-ac1f-9db813a4a9f2",
+              "score": 5
+            },
+            {
+              "answerId": "cb432bb4-25cd-4632-8b0c-331829c7fa4b",
+              "score": 6
+            },
+            {
+              "answerId": "1cb7945a-f8a8-4747-9db5-658cb8497921",
+              "score": 6
+            }
+          ]
+        },
+        {
+          "roundNumber": 6,
+          "status": "completed",
+          "startedAt": "2026-10-21T12:37:08.834Z",
+          "completedAt": "2026-10-21T12:38:15.087Z",
+          "prompt": "What has been hiding from us in the forest for the last 100 years?",
+          "wordsAvailable": [
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "as",
+                "hamster",
+                "steak",
+                "accuse",
+                "has",
+                "king",
+                "own",
+                "posted",
+                "rat",
+                "beneath",
+                "invite",
+                "subtract",
+                "below",
+                "sprinkle",
+                "dream",
+                "before",
+                "on",
+                "laundry",
+                "pigeon",
+                "invaded",
+                "charge",
+                "did",
+                "me",
+                "angry",
+                "yodel",
+                "stole",
+                "invade",
+                "cheap",
+                "everywhere",
+                "witch"
+              ]
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "spy",
+                "sprinkle",
+                "bribe",
+                "screamed",
+                "some",
+                "invade",
+                "hey",
+                "moon",
+                "exit",
+                "at",
+                "they",
+                "crash",
+                "pirate",
+                "alone",
+                "for",
+                "prince",
+                "gobble",
+                "door",
+                "row",
+                "inspect",
+                "dishwasher",
+                "let",
+                "accidentally",
+                "yesterday",
+                "go",
+                "fought",
+                "cheat",
+                "fridge",
+                "upstairs",
+                "your"
+              ]
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "no",
+                "toss",
+                "love",
+                "parliament",
+                "council",
+                "hum",
+                "snack",
+                "door",
+                "giggle",
+                "give",
+                "none",
+                "blame",
+                "break",
+                "spy",
+                "ghost",
+                "chase",
+                "after",
+                "man",
+                "magician",
+                "their",
+                "not",
+                "pizza",
+                "simmer",
+                "party",
+                "destroy",
+                "to",
+                "and",
+                "been",
+                "forget",
+                "sing"
+              ]
+            },
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "these",
+                "tonight",
+                "spill",
+                "all",
+                "forget",
+                "any",
+                "sleep",
+                "under",
+                "squirrel",
+                "promised",
+                "about",
+                "our",
+                "ban",
+                "court",
+                "gobble",
+                "of",
+                "twins",
+                "break",
+                "astronaut",
+                "stole",
+                "committee",
+                "country",
+                "big",
+                "order",
+                "simmer",
+                "saved",
+                "why",
+                "grandma",
+                "lied",
+                "parliament"
+              ]
+            }
+          ],
+          "playerIds": [
+            "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+            "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+            "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+            "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a"
+          ],
+          "answers": [
+            {
+              "answerId": "58692b16-939b-4beb-9c23-6ce3f5b7d38e",
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "grandma"
+              ],
+              "receivedAt": "2026-10-21T12:37:32.362Z"
+            },
+            {
+              "answerId": "419d6262-344c-465d-bf6c-0eb550d705a9",
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "ghost",
+                "magician",
+                "council",
+                "spy"
+              ],
+              "receivedAt": "2026-10-21T12:37:39.528Z"
+            },
+            {
+              "answerId": "0cfaf40f-f8de-49d2-964c-f6629e168836",
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "pirate",
+                "dishwasher"
+              ],
+              "receivedAt": "2026-10-21T12:37:41.593Z"
+            },
+            {
+              "answerId": "27d8dceb-01d3-4451-a72a-eb8eb7cb6280",
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "angry",
+                "rat",
+                "posted",
+                "dream"
+              ],
+              "receivedAt": "2026-10-21T12:38:02.696Z"
+            }
+          ],
+          "rankings": [
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "answerIds": [
+                "58692b16-939b-4beb-9c23-6ce3f5b7d38e",
+                "419d6262-344c-465d-bf6c-0eb550d705a9",
+                "27d8dceb-01d3-4451-a72a-eb8eb7cb6280"
+              ],
+              "receivedAt": "2026-10-21T12:38:10.274Z"
+            },
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "answerIds": [
+                "0cfaf40f-f8de-49d2-964c-f6629e168836",
+                "58692b16-939b-4beb-9c23-6ce3f5b7d38e",
+                "419d6262-344c-465d-bf6c-0eb550d705a9"
+              ],
+              "receivedAt": "2026-10-21T12:38:10.550Z"
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "answerIds": [
+                "0cfaf40f-f8de-49d2-964c-f6629e168836",
+                "58692b16-939b-4beb-9c23-6ce3f5b7d38e",
+                "27d8dceb-01d3-4451-a72a-eb8eb7cb6280"
+              ],
+              "receivedAt": "2026-10-21T12:38:12.936Z"
+            },
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "answerIds": [
+                "419d6262-344c-465d-bf6c-0eb550d705a9",
+                "27d8dceb-01d3-4451-a72a-eb8eb7cb6280",
+                "0cfaf40f-f8de-49d2-964c-f6629e168836"
+              ],
+              "receivedAt": "2026-10-21T12:38:15.087Z"
+            }
+          ],
+          "scores": [
+            {
+              "answerId": "58692b16-939b-4beb-9c23-6ce3f5b7d38e",
+              "score": 7
+            },
+            {
+              "answerId": "419d6262-344c-465d-bf6c-0eb550d705a9",
+              "score": 6
+            },
+            {
+              "answerId": "0cfaf40f-f8de-49d2-964c-f6629e168836",
+              "score": 7
+            },
+            {
+              "answerId": "27d8dceb-01d3-4451-a72a-eb8eb7cb6280",
+              "score": 4
+            }
+          ]
+        },
+        {
+          "roundNumber": 7,
+          "status": "completed",
+          "startedAt": "2026-10-21T12:38:42.530Z",
+          "completedAt": "2026-10-21T12:39:40.516Z",
+          "prompt": "Describe the future of humanity.",
+          "wordsAvailable": [
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "for",
+                "fairy",
+                "referee",
+                "while",
+                "always",
+                "pour",
+                "screamed",
+                "poor",
+                "none",
+                "break",
+                "swim",
+                "like",
+                "munch",
+                "twirl",
+                "table",
+                "like",
+                "jump",
+                "be",
+                "soup",
+                "ghost",
+                "at",
+                "his",
+                "could",
+                "lost",
+                "you",
+                "sing",
+                "manager",
+                "alien",
+                "a",
+                "captain"
+              ]
+            },
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "our",
+                "beneath",
+                "tie",
+                "twirl",
+                "snooze",
+                "i",
+                "house",
+                "they",
+                "mayor",
+                "ministry",
+                "hated",
+                "want",
+                "help",
+                "are",
+                "skip",
+                "discover",
+                "yes",
+                "dramatic",
+                "hate",
+                "hamster",
+                "steal",
+                "moon",
+                "golf",
+                "of",
+                "was",
+                "save",
+                "subtract",
+                "knight",
+                "had",
+                "chuckle"
+              ]
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "expensive",
+                "bribe",
+                "computer",
+                "friend",
+                "under",
+                "back",
+                "billionaire",
+                "so",
+                "by",
+                "yesterday",
+                "boil",
+                "queen",
+                "shark",
+                "union",
+                "none",
+                "arrest",
+                "tumble",
+                "lose",
+                "trade",
+                "multiply",
+                "forget",
+                "saved",
+                "penguin",
+                "blender",
+                "out",
+                "have",
+                "bounce",
+                "tiny",
+                "box",
+                "milk"
+              ]
+            },
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "laugh",
+                "to",
+                "council",
+                "snooze",
+                "buy",
+                "chef",
+                "clown",
+                "what",
+                "being",
+                "happy",
+                "is",
+                "expensive",
+                "some",
+                "paddle",
+                "any",
+                "return",
+                "surf",
+                "librarian",
+                "sing",
+                "and",
+                "seek",
+                "should",
+                "of",
+                "tonight",
+                "screamed",
+                "yodel",
+                "have",
+                "cheap",
+                "pizza",
+                "small"
+              ]
+            }
+          ],
+          "playerIds": [
+            "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+            "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+            "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+            "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a"
+          ],
+          "answers": [
+            {
+              "answerId": "5cbc8227-e8e0-469e-a5ec-b58daf2f7657",
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "words": [
+                "alien",
+                "manager"
+              ],
+              "receivedAt": "2026-10-21T12:38:52.614Z"
+            },
+            {
+              "answerId": "78cfc3ea-1497-4dcb-9178-f805ea2b588f",
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "words": [
+                "ministry",
+                "want",
+                "steal",
+                "moon"
+              ],
+              "receivedAt": "2026-10-21T12:39:13.456Z"
+            },
+            {
+              "answerId": "abd5fb2f-a4ce-49b6-8558-a58623b544c2",
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "words": [
+                "arrest",
+                "by",
+                "penguin"
+              ],
+              "receivedAt": "2026-10-21T12:39:21.032Z"
+            },
+            {
+              "answerId": "7b77d100-30d4-4484-abc7-ebc03a6c58ea",
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "words": [
+                "should",
+                "have",
+                "pizza"
+              ],
+              "receivedAt": "2026-10-21T12:39:29.329Z"
+            }
+          ],
+          "rankings": [
+            {
+              "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+              "answerIds": [
+                "5cbc8227-e8e0-469e-a5ec-b58daf2f7657",
+                "abd5fb2f-a4ce-49b6-8558-a58623b544c2",
+                "7b77d100-30d4-4484-abc7-ebc03a6c58ea"
+              ],
+              "receivedAt": "2026-10-21T12:39:35.369Z"
+            },
+            {
+              "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+              "answerIds": [
+                "5cbc8227-e8e0-469e-a5ec-b58daf2f7657",
+                "78cfc3ea-1497-4dcb-9178-f805ea2b588f",
+                "abd5fb2f-a4ce-49b6-8558-a58623b544c2"
+              ],
+              "receivedAt": "2026-10-21T12:39:36.495Z"
+            },
+            {
+              "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+              "answerIds": [
+                "78cfc3ea-1497-4dcb-9178-f805ea2b588f",
+                "abd5fb2f-a4ce-49b6-8558-a58623b544c2",
+                "7b77d100-30d4-4484-abc7-ebc03a6c58ea"
+              ],
+              "receivedAt": "2026-10-21T12:39:37.737Z"
+            },
+            {
+              "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+              "answerIds": [
+                "78cfc3ea-1497-4dcb-9178-f805ea2b588f",
+                "5cbc8227-e8e0-469e-a5ec-b58daf2f7657",
+                "7b77d100-30d4-4484-abc7-ebc03a6c58ea"
+              ],
+              "receivedAt": "2026-10-21T12:39:40.515Z"
+            }
+          ],
+          "scores": [
+            {
+              "answerId": "5cbc8227-e8e0-469e-a5ec-b58daf2f7657",
+              "score": 8
+            },
+            {
+              "answerId": "78cfc3ea-1497-4dcb-9178-f805ea2b588f",
+              "score": 8
+            },
+            {
+              "answerId": "abd5fb2f-a4ce-49b6-8558-a58623b544c2",
+              "score": 5
+            },
+            {
+              "answerId": "7b77d100-30d4-4484-abc7-ebc03a6c58ea",
+              "score": 3
+            }
+          ]
+        }
+      ],
+      "totals": [
+        {
+          "playerId": "11e30edfb460e60ec235603515dc5c63099eb7e30a471813829aae0ac6b1c421",
+          "score": 41
+        },
+        {
+          "playerId": "ba3d443fa05fd06e84b6059adf2b946ba01817998e6f497d6c41156f62474be2",
+          "score": 48
+        },
+        {
+          "playerId": "d5170750d93e9d04f5a307d77bd092a3a73dcea9a352eb22f5f7bee3432bc6f1",
+          "score": 36
+        },
+        {
+          "playerId": "8ac20777a6f90ec99e52cdd27dbabb68a1384e628632a4608c404017d04cda5a",
+          "score": 43
+        }
+      ]
+    }
+  }
+]

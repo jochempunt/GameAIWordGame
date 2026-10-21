@@ -1,0 +1,49 @@
+{
+  "training_source": "ml/humor/data/rankings.jsonl",
+  "synthetic_generation": false,
+  "independent_rounds": 11,
+  "training_rounds": 8,
+  "test_rounds": 3,
+  "training_tasks": 8,
+  "heldout_tasks": 3,
+  "cv_trials": 12,
+  "cv_folds": 3,
+  "bootstrap_resamples": 100,
+  "bootstrapped_top_trials": [
+    8,
+    1,
+    7,
+    9,
+    4
+  ],
+  "selected_trial": 7,
+  "selected_parameters": {
+    "n_estimators": 90,
+    "max_depth": 4,
+    "learning_rate": 0.1,
+    "subsample": 0.85,
+    "colsample_bytree": 1.0,
+    "min_child_weight": 3,
+    "reg_lambda": 1.0
+  },
+  "selected_bootstrap_mean": {
+    "ndcg_at_3": 0.8346842778991026,
+    "pairwise_accuracy": 0.6393604213703319,
+    "top1_accuracy": 0.7720833333333332
+  },
+  "heldout": {
+    "ndcg_at_3": 0.6996261837691778,
+    "pairwise_accuracy": 0.5,
+    "top1_accuracy": 0.3333333333333333,
+    "n_tasks": 3
+  },
+  "javascript_parity": {
+    "status": "passed",
+    "max_abs_difference": 6.43651367759901e-07,
+    "samples": 40,
+    "tolerance": 0.0001
+  },
+  "ranking_scope": "round",
+  "target": "Final round ranking from aggregated game scores; equal scores remain tied.",
+  "note": "Metrics quantify held-out final round rankings if the input contains real human votes. Predictions are scores for ordering, not calibrated humor probabilities."
+}
