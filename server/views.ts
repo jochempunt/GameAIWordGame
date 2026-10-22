@@ -10,6 +10,7 @@ export function viewForPlayer(
     activePlayerIds: Set<string>,
     hostPlayerId: string | null,
     roomLocked: boolean,
+    stageEndsAt: number | null,
 ): PlayerView {
     const roomPlayers = [...players];
     const connectedPlayers = roomPlayers.filter(player => player.connected);
@@ -30,6 +31,10 @@ export function viewForPlayer(
         activePlayerIds,
         hostPlayerId,
     );
+    const timer = () => ({
+        endsAt: stageEndsAt ?? Date.now(),
+        serverNow: Date.now(),
+    });
     const base = {
         playerId: player.id,
         name: player.name,
@@ -70,6 +75,7 @@ export function viewForPlayer(
                 answeredCount: roundPlayers.filter(player => round.answers.some(answer => answer.playerId === player.id)).length,
                 playerCount: roundPlayers.length,
                 canSubmit: isActive,
+                timer: timer(),
             };
         }
         case "ranking": {
@@ -89,6 +95,7 @@ export function viewForPlayer(
                 rankedCount: roundPlayers.filter(player => round?.rankings.has(player.id)).length,
                 playerCount: roundPlayers.length,
                 canRank: isActive,
+                timer: timer(),
             };
         }
         case "results": {

@@ -8,6 +8,7 @@ import { Server, Socket } from "socket.io";
 import { fileURLToPath } from "node:url";
 
 import { Game, MIN_PLAYERS_TO_START } from "./game.js";
+import { ANSWER_TIME, rankingTimeForPlayerCount } from "./roundTimer.js";
 import type { Player } from "./types.js";
 import { viewForPlayer } from "./views.js";
 import type { Room, RoomSummary } from "./types.js";
@@ -58,6 +59,8 @@ for (const code of ROOM_CODES) {
         activePlayerIds: new Set<string>(),
         hostPlayerId: null,
         locked: false,
+        stageTimer: null,
+        stageEndsAt: null,
     });
 }
 
@@ -178,6 +181,7 @@ function pushState(room: Room): void {
                 room.activePlayerIds,
                 room.hostPlayerId,
                 room.locked,
+                room.stageEndsAt,
             ),
         );
     }
@@ -461,6 +465,11 @@ function submitAnswer(
     const { player, room } = result;
     const game = room.game;
 
+    if (expireStageIfDue(room, "answering")) {
+        acknowledge({ ok: false, error: "Answer time has expired" });
+        return;
+    }
+
     if (!room.activePlayerIds.has(player.id)) {
         acknowledge({
             ok: false,
@@ -531,6 +540,11 @@ function submitRanking(
 
     const { player, room } = result;
     const game = room.game;
+
+    if (expireStageIfDue(room, "ranking")) {
+        acknowledge({ ok: false, error: "Ranking time has expired" });
+        return;
+    }
 
     if (!room.activePlayerIds.has(player.id)) {
         acknowledge({
@@ -828,6 +842,7 @@ function removePlayerFromRoom(
 
     if (room.players.size === 0) {
         // Archive the previous session before replacing the in-memory game.
+        clearStageTimer(room);
         room.game.abandonCurrentRound();
         persistRoomGame(room);
         room.game = new Game();
@@ -957,6 +972,7 @@ function startRound(socket: Socket): void {
 
     if (!round) return;
 
+    scheduleStageTimer(room, "answering", ANSWER_TIME);
     console.log(`Room ${room.id} - round ${game.state.round} started`);
 
     commitRoomState(room);
@@ -965,6 +981,59 @@ function startRound(socket: Socket): void {
 
 //  ---- Game flow ----
 
+type TimedPhase = "answering" | "ranking";
+
+function clearStageTimer(room: Room): void {
+    if (room.stageTimer) clearTimeout(room.stageTimer);
+    room.stageTimer = null;
+    room.stageEndsAt = null;
+}
+
+function scheduleStageTimer(room: Room, phase: TimedPhase, duration: number): void {
+    clearStageTimer(room);
+
+    const roundNumber = room.game.state.round;
+    room.stageEndsAt = Date.now() + duration;
+    room.stageTimer = setTimeout(() => {
+        expireStage(room, phase, roundNumber);
+    }, duration);
+}
+
+function expireStageIfDue(room: Room, phase: TimedPhase): boolean {
+    if (room.game.state.phase !== phase || room.stageEndsAt === null || Date.now() < room.stageEndsAt) {
+        return false;
+    }
+
+    expireStage(room, phase, room.game.state.round);
+    return true;
+}
+
+function expireStage(room: Room, phase: TimedPhase, roundNumber: number): void {
+    if (room.game.state.phase !== phase || room.game.state.round !== roundNumber) return;
+
+    clearStageTimer(room);
+    const round = room.game.currentRound();
+    if (!round) return;
+
+    let timedOutCount = 0;
+    for (const player of room.players.values()) {
+        if (!room.activePlayerIds.has(player.id)) continue;
+
+        const completed = phase === "answering"
+            ? round.answers.some(answer => answer.playerId === player.id)
+            : round.rankings.has(player.id)
+                || !round.answers.some(answer => answer.playerId !== player.id);
+        if (completed) continue;
+
+        room.activePlayerIds.delete(player.id);
+        timedOutCount++;
+    }
+
+    console.log(`Room ${room.id}: ${timedOutCount} player(s) timed out during ${phase}`);
+
+    if (advanceRoomAfterMembershipChange(room)) return;
+    commitRoomState(room);
+}
 
 function tryStartVoting(room: Room): void {
     if (room.game.state.phase !== "answering") return;
@@ -972,7 +1041,11 @@ function tryStartVoting(room: Room): void {
     const round = room.game.currentRound();
     const roundPlayers = getRoundPlayers(room);
 
-    if (!round || roundPlayers.length === 0) return;
+    if (!round) return;
+    if (roundPlayers.length === 0) {
+        finishRound(room);
+        return;
+    }
 
     const everyoneAnswered = roundPlayers.every(
         (player) =>
@@ -985,6 +1058,7 @@ function tryStartVoting(room: Room): void {
     if (!everyoneAnswered) return;
 
     room.game.state.phase = "ranking";
+    scheduleStageTimer(room, "ranking", rankingTimeForPlayerCount(roundPlayers.length));
 
     console.log(`Room ${room.id}: everyone answered, starting ranking`);
 }
@@ -998,7 +1072,10 @@ function tryFinishRanking(room: Room): void {
 
     const roundPlayers = getRoundPlayers(room);
 
-    if (roundPlayers.length === 0) return;
+    if (roundPlayers.length === 0) {
+        finishRound(room);
+        return;
+    }
 
     const everyoneRanked = roundPlayers.every(
         player =>
@@ -1013,7 +1090,14 @@ function tryFinishRanking(room: Room): void {
     if (!everyoneRanked) return;
 
     console.log(`Room ${room.id}: everyone ranked`);
+    finishRound(room);
+}
 
+function finishRound(room: Room): void {
+    const round = room.game.currentRound();
+    if (!round) return;
+
+    clearStageTimer(room);
     room.game.calculateScores();
 
     for (const answer of round.answers) {
@@ -1062,6 +1146,7 @@ function tryReturnToLobbyIfReady(room: Room): boolean {
         return false;
     }
 
+    clearStageTimer(room);
     room.game.abandonCurrentRound();
     room.game.state.phase = "lobby";
     setActivePlayersForLobby(room);
@@ -1155,6 +1240,9 @@ async function shutdown(): Promise<void> {
     try {
         for (const playerId of disconnectTimers.keys()) {
             clearDisconnectTimers(playerId);
+        }
+        for (const room of rooms.values()) {
+            clearStageTimer(room);
         }
         // Stop clients before the final snapshots; shutdown disconnects are not game actions.
         await new Promise<void>(resolve => io.close(() => resolve()));

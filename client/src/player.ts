@@ -42,6 +42,9 @@ const roomOverviewStatus = document.querySelector<HTMLElement>("#room-overview-s
 const roomPlayers = document.querySelector<HTMLUListElement>("#room-players")!;
 const leaveRoomButton = document.querySelector<HTMLButtonElement>("#leave-room")!;
 const actionError = document.querySelector<HTMLElement>("#action-error")!;
+const roundTimer = document.querySelector<HTMLElement>("#round-timer")!;
+const roundTimerStage = document.querySelector<HTMLElement>("#round-timer-stage")!;
+const roundTimerValue = document.querySelector<HTMLElement>("#round-timer-value")!;
 
 const roomSettings = document.querySelector<HTMLDetailsElement>("#room-settings")!;
 const roomSettingsPlayers = document.querySelector<HTMLUListElement>("#room-settings-players")!;
@@ -98,6 +101,10 @@ let currentRound = 0;
 let hasRenderedOnce = false;
 let skipNextPromptAnimation = false;
 
+const TIMER_WARNING_TIME = 10_000;
+const TIMER_UPDATE_INTERVAL = 250;
+let timerEndsAtOnClient: number | null = null;
+let timerUpdateInterval: number | null = null;
 
 const sessionToken = getOrCreateSessionToken();
 let consented = false;
@@ -130,6 +137,7 @@ function getOrCreateSessionToken(): string {
 
 function showConsent(message = ""): void {
     setPageTitle("Study Consent");
+    hideRoundTimer();
     hideAll();
     consentView.hidden = false;
     roomActions.hidden = true;
@@ -205,6 +213,7 @@ roomLockToggle.addEventListener("click", () => {
 function render(view: PlayerView): void {
     hideAll();
     roomActions.hidden = false;
+    renderRoundTimer(view);
     renderRoomSettings(view);
     renderRoomOverview(view);
     
@@ -234,6 +243,46 @@ function render(view: PlayerView): void {
 }
 
 
+function renderRoundTimer(view: PlayerView): void {
+    if (view.phase !== "answering" && view.phase !== "ranking") {
+        hideRoundTimer();
+        return;
+    }
+
+    timerEndsAtOnClient = performance.now()
+        + Math.max(0, view.timer.endsAt - view.timer.serverNow);
+    roundTimerStage.textContent = view.phase === "answering" ? "Answer time" : "Ranking time";
+    roundTimer.hidden = false;
+    updateRoundTimer();
+
+    if (timerUpdateInterval === null) {
+        timerUpdateInterval = window.setInterval(updateRoundTimer, TIMER_UPDATE_INTERVAL);
+    }
+}
+
+function updateRoundTimer(): void {
+    if (timerEndsAtOnClient === null || roundTimer.hidden) return;
+
+    const remaining = Math.max(0, timerEndsAtOnClient - performance.now());
+    const totalSeconds = Math.ceil(remaining / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    roundTimerValue.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    roundTimer.classList.toggle(
+        "round-timer-urgent",
+        remaining > 0 && remaining <= TIMER_WARNING_TIME,
+    );
+}
+
+function hideRoundTimer(): void {
+    roundTimer.hidden = true;
+    roundTimer.classList.remove("round-timer-urgent");
+    timerEndsAtOnClient = null;
+    if (timerUpdateInterval !== null) {
+        window.clearInterval(timerUpdateInterval);
+        timerUpdateInterval = null;
+    }
+}
 function setPrompt(text: string, round: number, animate = false): void {
     
     for (const el of document.querySelectorAll<HTMLElement>(".prompt")) {
@@ -272,6 +321,7 @@ function hideAll(): void {
 
 function showJoin(): void {
     setPageTitle("Choose a Room");
+    hideRoundTimer();
     hideAll();
     joinView.hidden = false;
     roomOverview.hidden = true;
