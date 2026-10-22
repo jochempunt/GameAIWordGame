@@ -24,7 +24,7 @@ services:
 
 
   mongo:
-    image: mongo:8.0
+    image: mongo:9.0
     container_name: gameaiwordgame-mongo
     restart: unless-stopped
     logging: *logging
