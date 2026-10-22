@@ -43,7 +43,6 @@ const roomPlayers = document.querySelector<HTMLUListElement>("#room-players")!;
 const leaveRoomButton = document.querySelector<HTMLButtonElement>("#leave-room")!;
 const actionError = document.querySelector<HTMLElement>("#action-error")!;
 const roundTimer = document.querySelector<HTMLElement>("#round-timer")!;
-const roundTimerStage = document.querySelector<HTMLElement>("#round-timer-stage")!;
 const roundTimerValue = document.querySelector<HTMLElement>("#round-timer-value")!;
 
 const roomSettings = document.querySelector<HTMLDetailsElement>("#room-settings")!;
@@ -251,7 +250,6 @@ function renderRoundTimer(view: PlayerView): void {
 
     timerEndsAtOnClient = performance.now()
         + Math.max(0, view.timer.endsAt - view.timer.serverNow);
-    roundTimerStage.textContent = view.phase === "answering" ? "Answer time" : "Ranking time";
     roundTimer.hidden = false;
     updateRoundTimer();
 
@@ -268,6 +266,7 @@ function updateRoundTimer(): void {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     roundTimerValue.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    roundTimer.setAttribute("aria-label", `${totalSeconds} seconds remaining`);
     roundTimer.classList.toggle(
         "round-timer-urgent",
         remaining > 0 && remaining <= TIMER_WARNING_TIME,
