@@ -74,6 +74,8 @@ export type PlayerSummary = {
     answered: boolean;
     ranked: boolean;
     score: number;
+    roundsPlayed: number;
+    averageScore: number;
 };
 
 export type PlayerView = {

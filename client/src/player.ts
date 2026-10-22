@@ -463,8 +463,12 @@ function renderRoomOverview(view: PlayerView): void {
     roomOverviewStatus.textContent = `${connectedCount} player${connectedCount === 1 ? "" : "s"} connected`;
     roomPlayers.replaceChildren();
 
-    const standings = [...view.players].sort((a, b) => b.score - a.score);
-    const hasScores = standings.some(player => player.score > 0);
+    const standings = [...view.players].sort((a, b) =>
+        b.averageScore - a.averageScore
+        || b.score - a.score
+        || a.name.localeCompare(b.name),
+    );
+    const hasScores = standings.some(player => player.roundsPlayed > 0);
 
     if (standings.length === 0) {
         const empty = document.createElement("li");
@@ -477,7 +481,7 @@ function renderRoomOverview(view: PlayerView): void {
     let rank = 1;
 
     for (const [index, player] of standings.entries()) {
-        if (index > 0 && player.score !== standings[index - 1].score) {
+        if (index > 0 && player.averageScore !== standings[index - 1].averageScore) {
             rank = index + 1;
         }
 
@@ -501,9 +505,18 @@ function renderRoomOverview(view: PlayerView): void {
             identity.appendChild(statusElement);
         }
 
-        const score = document.createElement("span");
-        score.classList.add("result-score");
-        score.textContent = `${player.score} pts`;
+        const score = document.createElement("div");
+        score.classList.add("lobby-score-summary");
+        score.setAttribute(
+            "aria-label",
+            `Score ${player.score} points, ${player.roundsPlayed} rounds, average ${formatAverageScore(player.averageScore)} points`,
+        );
+
+        const total = document.createElement("span");
+        total.textContent = `Score ${player.score} pts`;
+        const average = document.createElement("span");
+        average.textContent = `${player.roundsPlayed} rounds · Avg. ${formatAverageScore(player.averageScore)}`;
+        score.append(total, average);
 
         item.append(position, identity, score);
 
@@ -779,7 +792,6 @@ function renderRoundResults(
         const score = document.createElement("span");
         
         score.classList.add("result-score");
-        
         score.textContent = `${result.score} pts`;
         
         const attribution = document.createElement("div");
@@ -818,6 +830,10 @@ function renderRoundResults(
     }
 }
 
+
+function formatAverageScore(score: number): string {
+    return Number.isInteger(score) ? String(score) : score.toFixed(1);
+}
 function renderLeaderboard(
     view: ViewOf<"results">
 ): void {

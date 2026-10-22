@@ -1096,6 +1096,24 @@ h1.prompt {
     opacity: 0.45;
 }
 
+.lobby-score-summary {
+    display: grid;
+    gap: 0.15rem;
+    color: var(--success);
+    font-size: 0.78rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.lobby-score-summary span:last-child {
+    color: var(--muted-ink);
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
 #room-players .standings-empty {
     display: block;
     text-align: center;

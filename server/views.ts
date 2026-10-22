@@ -143,6 +143,11 @@ export function viewForPlayer(
     }
 }
 
+function roundsPlayedBy(game: Game, playerId: string): number {
+    return [...game.state.rounds.values()].filter(round =>
+        round.playerIds.includes(playerId),
+    ).length;
+}
 function summarizePlayers(
     game: Game,
     players: Player[],
@@ -152,16 +157,23 @@ function summarizePlayers(
     const round = game.currentRound();
     const isLobbyPhase = game.state.phase === "lobby";
 
-    return players.map((player) => ({
-        id: player.id,
-        name: player.name,
-        connected: player.connected,
-        isHost: player.id === hostPlayerId,
-        isActive: isLobbyPhase || activePlayerIds.has(player.id),
-        answered: round?.answers.some((answer) => answer.playerId === player.id) ?? false,
-        ranked: round?.rankings.has(player.id) ?? false,
-        score: game.state.totals.get(player.id) ?? 0,
-    }));
+    return players.map((player) => {
+        const score = game.state.totals.get(player.id) ?? 0;
+        const roundsPlayed = roundsPlayedBy(game, player.id);
+
+        return {
+            id: player.id,
+            name: player.name,
+            connected: player.connected,
+            isHost: player.id === hostPlayerId,
+            isActive: isLobbyPhase || activePlayerIds.has(player.id),
+            answered: round?.answers.some((answer) => answer.playerId === player.id) ?? false,
+            ranked: round?.rankings.has(player.id) ?? false,
+            score,
+            roundsPlayed,
+            averageScore: roundsPlayed === 0 ? 0 : score / roundsPlayed,
+        };
+    });
 }
 
 export function viewForHost(
