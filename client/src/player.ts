@@ -42,6 +42,8 @@ const roomOverviewStatus = document.querySelector<HTMLElement>("#room-overview-s
 const roomPlayers = document.querySelector<HTMLUListElement>("#room-players")!;
 const leaveRoomButton = document.querySelector<HTMLButtonElement>("#leave-room")!;
 const actionError = document.querySelector<HTMLElement>("#action-error")!;
+const roundTimer = document.querySelector<HTMLElement>("#round-timer")!;
+const roundTimerValue = document.querySelector<HTMLElement>("#round-timer-value")!;
 
 const roomSettings = document.querySelector<HTMLDetailsElement>("#room-settings")!;
 const roomSettingsPlayers = document.querySelector<HTMLUListElement>("#room-settings-players")!;
@@ -98,6 +100,10 @@ let currentRound = 0;
 let hasRenderedOnce = false;
 let skipNextPromptAnimation = false;
 
+const TIMER_WARNING_TIME = 10_000;
+const TIMER_UPDATE_INTERVAL = 250;
+let timerEndsAtOnClient: number | null = null;
+let timerUpdateInterval: number | null = null;
 
 const sessionToken = getOrCreateSessionToken();
 let consented = false;
@@ -130,6 +136,7 @@ function getOrCreateSessionToken(): string {
 
 function showConsent(message = ""): void {
     setPageTitle("Study Consent");
+    hideRoundTimer();
     hideAll();
     consentView.hidden = false;
     roomActions.hidden = true;
@@ -205,6 +212,7 @@ roomLockToggle.addEventListener("click", () => {
 function render(view: PlayerView): void {
     hideAll();
     roomActions.hidden = false;
+    renderRoundTimer(view);
     renderRoomSettings(view);
     renderRoomOverview(view);
     
@@ -234,6 +242,46 @@ function render(view: PlayerView): void {
 }
 
 
+function renderRoundTimer(view: PlayerView): void {
+    if (view.phase !== "answering" && view.phase !== "ranking") {
+        hideRoundTimer();
+        return;
+    }
+
+    timerEndsAtOnClient = performance.now()
+        + Math.max(0, view.timer.endsAt - view.timer.serverNow);
+    roundTimer.hidden = false;
+    updateRoundTimer();
+
+    if (timerUpdateInterval === null) {
+        timerUpdateInterval = window.setInterval(updateRoundTimer, TIMER_UPDATE_INTERVAL);
+    }
+}
+
+function updateRoundTimer(): void {
+    if (timerEndsAtOnClient === null || roundTimer.hidden) return;
+
+    const remaining = Math.max(0, timerEndsAtOnClient - performance.now());
+    const totalSeconds = Math.ceil(remaining / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    roundTimerValue.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    roundTimer.setAttribute("aria-label", `${totalSeconds} seconds remaining`);
+    roundTimer.classList.toggle(
+        "round-timer-urgent",
+        remaining > 0 && remaining <= TIMER_WARNING_TIME,
+    );
+}
+
+function hideRoundTimer(): void {
+    roundTimer.hidden = true;
+    roundTimer.classList.remove("round-timer-urgent");
+    timerEndsAtOnClient = null;
+    if (timerUpdateInterval !== null) {
+        window.clearInterval(timerUpdateInterval);
+        timerUpdateInterval = null;
+    }
+}
 function setPrompt(text: string, round: number, animate = false): void {
     
     for (const el of document.querySelectorAll<HTMLElement>(".prompt")) {
@@ -272,6 +320,7 @@ function hideAll(): void {
 
 function showJoin(): void {
     setPageTitle("Choose a Room");
+    hideRoundTimer();
     hideAll();
     joinView.hidden = false;
     roomOverview.hidden = true;
@@ -414,8 +463,12 @@ function renderRoomOverview(view: PlayerView): void {
     roomOverviewStatus.textContent = `${connectedCount} player${connectedCount === 1 ? "" : "s"} connected`;
     roomPlayers.replaceChildren();
 
-    const standings = [...view.players].sort((a, b) => b.score - a.score);
-    const hasScores = standings.some(player => player.score > 0);
+    const standings = [...view.players].sort((a, b) =>
+        b.averageScore - a.averageScore
+        || b.score - a.score
+        || a.name.localeCompare(b.name),
+    );
+    const hasScores = standings.some(player => player.roundsPlayed > 0);
 
     if (standings.length === 0) {
         const empty = document.createElement("li");
@@ -428,7 +481,7 @@ function renderRoomOverview(view: PlayerView): void {
     let rank = 1;
 
     for (const [index, player] of standings.entries()) {
-        if (index > 0 && player.score !== standings[index - 1].score) {
+        if (index > 0 && player.averageScore !== standings[index - 1].averageScore) {
             rank = index + 1;
         }
 
@@ -452,17 +505,48 @@ function renderRoomOverview(view: PlayerView): void {
             identity.appendChild(statusElement);
         }
 
-        const score = document.createElement("span");
-        score.classList.add("result-score");
-        score.textContent = `${player.score} pts`;
+        const scoreSummary = document.createElement("div");
+        scoreSummary.classList.add("lobby-score-summary");
+        scoreSummary.setAttribute(
+            "aria-label",
+            `Score ${player.score} points, ${player.roundsPlayed} rounds, average ${formatAverageScore(player.averageScore)} points`,
+        );
 
-        item.append(position, identity, score);
+        const totalScore = createLobbyScoreBadge("Score", `${player.score} pts`, "lobby-total-score");
+        if (hasScores && index < 3) totalScore.dataset.rank = String(index + 1);
+        const averageScore = createLobbyScoreBadge(
+            "Average",
+            `${formatAverageScore(player.averageScore)} pts`,
+            "lobby-average-score",
+        );
+
+        const rounds = document.createElement("span");
+        rounds.classList.add("lobby-round-count");
+        rounds.textContent = `${player.roundsPlayed} round${player.roundsPlayed === 1 ? "" : "s"}`;
+
+        scoreSummary.append(totalScore, averageScore, rounds);
+        item.append(position, identity, scoreSummary);
 
         item.classList.toggle("disconnected", !player.connected);
         roomPlayers.appendChild(item);
     }
 }
 
+function createLobbyScoreBadge(label: string, value: string, className: string): HTMLElement {
+    const badge = document.createElement("div");
+    badge.classList.add("lobby-score-badge", className);
+
+    const labelElement = document.createElement("span");
+    labelElement.classList.add("lobby-score-label");
+    labelElement.textContent = label;
+
+    const valueElement = document.createElement("span");
+    valueElement.classList.add("result-score");
+    valueElement.textContent = value;
+
+    badge.append(labelElement, valueElement);
+    return badge;
+}
 function renderRoomSettings(view: PlayerView): void {
     roomSettings.hidden = !view.isHost;
     roomLockToggle.hidden = !view.isHost;
@@ -730,7 +814,6 @@ function renderRoundResults(
         const score = document.createElement("span");
         
         score.classList.add("result-score");
-        
         score.textContent = `${result.score} pts`;
         
         const attribution = document.createElement("div");
@@ -769,6 +852,10 @@ function renderRoundResults(
     }
 }
 
+
+function formatAverageScore(score: number): string {
+    return Number.isInteger(score) ? String(score) : score.toFixed(1);
+}
 function renderLeaderboard(
     view: ViewOf<"results">
 ): void {

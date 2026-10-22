@@ -44,6 +44,11 @@ export type RoundState = {
 };
 
 type Phase = "lobby" | "answering" | "ranking" | "results";
+
+export type RoundTimer = {
+    endsAt: number;
+    serverNow: number;
+};
 export type RoomSummary = {
     id: string;
     playerCount: number;
@@ -69,6 +74,8 @@ export type PlayerSummary = {
     answered: boolean;
     ranked: boolean;
     score: number;
+    roundsPlayed: number;
+    averageScore: number;
 };
 
 export type PlayerView = {
@@ -116,6 +123,7 @@ export type PlayerView = {
         answeredCount: number;
         playerCount: number;
         canSubmit: boolean;
+        timer: RoundTimer;
     }
     | {
         phase: "ranking";
@@ -126,6 +134,7 @@ export type PlayerView = {
         rankedCount: number;
         playerCount: number;
         canRank: boolean;
+        timer: RoundTimer;
     }
 );
 
@@ -152,4 +161,6 @@ export type Room = {
     activePlayerIds: Set<string>;
     hostPlayerId: string | null;
     locked: boolean;
+    stageTimer: NodeJS.Timeout | null;
+    stageEndsAt: number | null;
 }

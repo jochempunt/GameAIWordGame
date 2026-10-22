@@ -847,6 +847,50 @@ h1.prompt {
     text-align: right;
 }
 
+#round-timer {
+    display: inline-grid;
+    place-items: center;
+    min-width: 4.25rem;
+    margin-top: 0.9rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid rgb(50 62 47 / 34%);
+    border-radius: 0.75rem 0.9rem 0.8rem 0.65rem;
+    background: rgb(255 248 240 / 72%);
+    color: #000;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+#round-timer-value {
+    color: #000;
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+#round-timer.round-timer-urgent {
+    border-color: #B52F35;
+    background: #FFE2DE;
+    color: #B52F35;
+    animation: round-timer-shake 0.45s ease-in-out infinite;
+}
+
+#round-timer.round-timer-urgent #round-timer-value {
+    color: #B52F35;
+}
+
+@keyframes round-timer-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-1px) rotate(-0.4deg); }
+    75% { transform: translateX(1px) rotate(0.4deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #round-timer.round-timer-urgent {
+        animation: none;
+    }
+}
 .room-action-buttons {
     display: grid;
     gap: 0.75rem;
@@ -1052,6 +1096,58 @@ h1.prompt {
     opacity: 0.45;
 }
 
+.lobby-score-summary {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    justify-items: end;
+    gap: 0.25rem 0.35rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.lobby-score-badge {
+    display: grid;
+    gap: 0.12rem;
+    justify-items: end;
+}
+
+.lobby-score-label {
+    color: var(--muted-ink);
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.lobby-score-badge .result-score {
+    padding: 0.22rem 0.38rem;
+    font-size: 0.76rem;
+}
+
+.lobby-average-score .result-score {
+    background: rgb(33 128 217 / 12%);
+    color: var(--blue-dark);
+}
+
+.lobby-total-score[data-rank="1"] .result-score {
+    background: #F5CE70;
+    color: #59400C;
+}
+
+.lobby-total-score[data-rank="2"] .result-score {
+    background: #DEE3E8;
+    color: #3F4B58;
+}
+
+.lobby-total-score[data-rank="3"] .result-score {
+    background: #DCAC83;
+    color: #56351E;
+}
+
+.lobby-round-count {
+    grid-column: 1 / -1;
+    color: var(--muted-ink);
+    font-size: 0.68rem;
+    font-weight: 700;
+}
 #room-players .standings-empty {
     display: block;
     text-align: center;
@@ -1168,6 +1264,14 @@ h1.prompt {
         bottom: calc(1rem + env(safe-area-inset-bottom));
         left: 1rem;
         width: auto;
+        margin: 0;
+    }
+
+    #round-timer {
+        position: fixed;
+        z-index: 20;
+        top: calc(0.75rem + env(safe-area-inset-top));
+        right: 1rem;
         margin: 0;
     }
 
