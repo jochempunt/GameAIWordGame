@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta   name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Join Game</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Connecting | Scientists Explain</title>
     <link rel="stylesheet" href="/src/style.css">
     
     <script type="module" src="/src/player.ts"></script>
@@ -14,7 +15,7 @@
     <p id="participant-id" hidden>Participant ID: <code id="participant-code"></code></p>
     <main>
         <header class="game-brand">
-            <p class="game-wordmark">Scientists <span class="wordmark-highlight">Confirm<sup class="wordmark-citation" aria-hidden="true">[1]</sup></span></p>
+            <p class="game-wordmark">Scientists <span class="wordmark-highlight">Explain<sup class="wordmark-citation" aria-hidden="true">[1]</sup></span></p>
         </header>
         
         <section id="consent-view" hidden>
@@ -23,7 +24,7 @@
             <p>You will play an online word-based game in which players create answers to prompts and rank answers based on how funny they find them. We are studying whether AI models can predict these human rankings.</p>
             <p>We will record your game activity, including the prompts you receive, answers you submit, and rankings you provide.</p>
             <p>Please take as much time as you need to read the <strong>Informed Consent Document</strong> before deciding whether to participate. If you have questions, or later wish to withdraw and request deletion of your data, contact the researchers at <strong>example@example.com</strong>.</p>
-            <p><a class="consent-document-link" href="/informed-consent.html" target="_blank" rel="noopener">Read the Informed Consent Document</a></p>
+            <p><a class="consent-document-link" href="https://survey.uu.nl/jfe/form/SV_aa5oimJFtt2Hf26" target="_blank" rel="noopener">Read the Informed Consent Document</a></p>
             <form id="consent-form">
                 <label class="consent-check"><input type="checkbox" name="age" required> I confirm that I am at least 16 years old.</label>
                 <label class="consent-check"><input type="checkbox" name="agreement" required> I have read and understood the Informed Consent Document and voluntarily agree to participate and to the collection and use of my study data as described there.</label>
@@ -71,7 +72,7 @@
             </div>
             <section id="lobby-view" hidden>
                 <p id="lobby-status">Waiting for the host...</p>
-                <p id="start-round-requirement" hidden>Min. 3 Players to Start</p>
+                <p id="start-round-requirement" hidden></p>
                 <button id="start-round" hidden>Start round</button>
             </section>
             <ul id="room-players" aria-live="polite"></ul>
@@ -124,12 +125,22 @@
         <section id="ranking-view" hidden>
             
             
-            <h1>Rank the answers on funniness</h1>
+            <h1>Which answer is funniest?</h1>
             <h2 class="prompt"></h2>
             
-            <p id="ranking-hint">Drag and drop an answer onto another, or tap two answers to swap their rankings.</p>
-            <ul id="answers-to-rank" aria-describedby="ranking-hint"></ul>
-            
+            <p id="ranking-instructions" class="ranking-instructions" aria-live="polite" aria-atomic="true">Rank the answers from funniest to least funny. Tap to add or remove; hold and drag to place or reorder.</p>
+            <div class="ranking-draft">
+                <div class="ranking-draft-heading">
+                    <h2 class="ranking-section-title">Your ranking</h2>
+                    <span id="ranking-progress">0 answers placed</span>
+                </div>
+                <ol id="ranked-answers" aria-label="Your ranking, funniest first"></ol>
+            </div>
+            <div id="ranking-choices-section">
+                <h2 class="ranking-section-title">Answers</h2>
+                <ul id="answers-to-rank"></ul>
+            </div>
+
             <button id="submit-ranking" disabled>
                 Submit Ranking
             </button>

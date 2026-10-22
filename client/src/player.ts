@@ -1,8 +1,16 @@
+import type { PublicSettings } from "../../server/settings_validation.js";
 import { io } from "socket.io-client";
 import { createRankBadge } from "./rankBadge.js";
+import { RankingPicker } from "./ranking.js";
+import { createSessionToken } from "./sessionToken.js";
 import type { PlayerView, RoomSummary } from "../../server/types.js";
 
 const socket = io({ autoConnect: false });
+
+function setPageTitle(label: string, round?: number): void {
+    const context = round === undefined ? label : `Round ${round} · ${label}`;
+    document.title = `${context} | Scientists Explain`;
+}
 
 type ViewOf<P extends PlayerView["phase"]> = Extract<PlayerView, { phase: P }>;
 type PlayerSummary = PlayerView["players"][number];
@@ -24,7 +32,7 @@ const PARTICIPANT_CODE_LENGTH = 12;
 const roomCards = document.querySelector<HTMLDivElement>(".room-cards")!;
 let rooms: RoomSummary[] = [];
 let joiningRoomId: string | null = null;
-const VISIBLE_EMPTY_ROOM_COUNT = 2;
+let settings: PublicSettings;
 const startRoundButton = document.querySelector<HTMLButtonElement>("#start-round")!;
 const startRoundRequirement = document.querySelector<HTMLElement>("#start-round-requirement")!;
 const roomOverview = document.querySelector<HTMLElement>("#room-overview")!;
@@ -47,7 +55,6 @@ const resultsView = document.querySelector<HTMLElement>("#results-view")!;
 const spectatorView = document.querySelector<HTMLElement>("#spectator-view")!;
 const spectatorTitle = document.querySelector<HTMLElement>("#spectator-title")!;
 const spectatorStatus = document.querySelector<HTMLElement>("#spectator-status")!;
-const rankingHint = document.querySelector<HTMLElement>("#ranking-hint")!;
 const roundResultsContainer = document.querySelector<HTMLElement>("#round-results")!;
 
 const leaderboardContainer = document.querySelector<HTMLElement>("#leaderboard")!;
@@ -64,7 +71,7 @@ let promptText = document.getElementsByClassName("prompt")[0] as HTMLElement;
 
 const wordsContainer = document.querySelector<HTMLElement>("#words")!;
 const answerContainer = document.querySelector<HTMLElement>("#answer")!;
-const answersToRankContainer = document.querySelector<HTMLElement>("#answers-to-rank")!;
+const answersToRankContainer = document.querySelector<HTMLUListElement>("#answers-to-rank")!;
 const answerSubmitButton = document.querySelector<HTMLButtonElement>("#submit-answer")!;
 const submittedAnswer = document.querySelector<HTMLElement>("#submitted-answer")!;
 
@@ -73,11 +80,18 @@ const rankedCount = document.querySelector<HTMLElement>("#ranked-count")!;
 
 const rankingSubmitButton = document.querySelector<HTMLButtonElement>("#submit-ranking")!;
 
+const rankingPicker = new RankingPicker({
+    instructions: document.querySelector<HTMLElement>("#ranking-instructions")!,
+    choices: answersToRankContainer,
+    ranked: document.querySelector<HTMLOListElement>("#ranked-answers")!,
+    progress: document.querySelector<HTMLElement>("#ranking-progress")!,
+    choicesSection: document.querySelector<HTMLElement>("#ranking-choices-section")!,
+    submit: rankingSubmitButton,
+});
+
 let selectedWords: string[] = [];
 let availableWords: string[] = [];
-let rankedAnswers: string[] = [];
 let currentRankingView: ViewOf<"ranking"> | null = null;
-let selectedAnswerId: string | null = null;
 let rankingRound = 0;
 let currentRound = 0;
 
@@ -89,6 +103,7 @@ const sessionToken = getOrCreateSessionToken();
 let consented = false;
 
 socket.on("connect", () => {
+    setPageTitle("Connecting");
     socket.emit("checkConsent", sessionToken, (response: { ok: boolean; consented: boolean; participantId?: string; error?: string }) => {
         if (!response.ok) {
             showConsent(response.error ?? "Could not verify consent.");
@@ -108,12 +123,13 @@ function getOrCreateSessionToken(): string {
         return existing;
     }
 
-    const token = crypto.randomUUID();
+    const token = createSessionToken();
     localStorage.setItem("sessionToken", token);
     return token;
 }
 
 function showConsent(message = ""): void {
+    setPageTitle("Study Consent");
     hideAll();
     consentView.hidden = false;
     roomActions.hidden = true;
@@ -157,12 +173,17 @@ consentForm.addEventListener("submit", event => {
         enterGame(response.participantId);
     });
 });
+socket.on("settings", (value: PublicSettings) => {
+    settings = value;
+    renderRoomCards();
+});
 socket.on("rooms", (summaries: RoomSummary[]) => {
     if (!consented) return;
     rooms = summaries;
     renderRoomCards();
 });
 socket.on("disconnect", () => {
+    setPageTitle("Reconnecting");
     joiningRoomId = null;
     renderRoomCards();
     statusText.textContent = "Reconnecting...";
@@ -250,6 +271,7 @@ function hideAll(): void {
 
 
 function showJoin(): void {
+    setPageTitle("Choose a Room");
     hideAll();
     joinView.hidden = false;
     roomOverview.hidden = true;
@@ -263,9 +285,8 @@ function returnToRoomSelection(message = "Choose a room to join."): void {
     // Keep the session identity when leaving a room or failing to rejoin.
     selectedWords = [];
     availableWords = [];
-    rankedAnswers = [];
+    rankingPicker.reset();
     currentRankingView = null;
-    selectedAnswerId = null;
     rankingRound = 0;
     currentRound = 0;
     hasRenderedOnce = false;
@@ -279,6 +300,7 @@ function returnToRoomSelection(message = "Choose a room to join."): void {
 
 function renderRoomCards(): void {
     roomCards.replaceChildren();
+    if (!settings) return;
 
     // Keep every room with players visible, but only offer a small number of
     // fresh rooms. As soon as one of those is joined, the next empty room is
@@ -291,7 +313,7 @@ function renderRoomCards(): void {
         if (room.playerCount > 0) return true;
 
         visibleEmptyRooms++;
-        return visibleEmptyRooms <= VISIBLE_EMPTY_ROOM_COUNT;
+        return visibleEmptyRooms <= settings.visibleEmptyRoomCount;
     });
 
     visibleRooms.forEach(room => {
@@ -515,7 +537,7 @@ function roomStatusText(view: PlayerView): string {
             return view.isHost
                 ? view.canStartRound
                     ? "Everyone is here. Start the round when you're ready."
-                    : "Invite your friends — you need at least 3 players to start."
+                    : `Invite your friends — you need at least ${settings.minPlayersToStart} players to start.`
                 : "Waiting for the host to start the next round.";
         case "answering":
             return view.isSpectator
@@ -555,6 +577,7 @@ function playerStatusText(player: PlayerSummary, phase: PlayerView["phase"]): st
 }
 
 function renderLobby(view: ViewOf<"lobby">): void {
+    setPageTitle("Lobby");
     lobbyView.hidden = false;
     lobbyStatus.textContent = roomStatusText(view);
     startRoundButton.hidden = !view.isHost;
@@ -562,7 +585,7 @@ function renderLobby(view: ViewOf<"lobby">): void {
     startRoundRequirement.hidden = !view.isHost || view.canStartRound;
     startRoundRequirement.textContent = view.lobbyCount < view.playerCount
         ? "Everyone must click Next before the next round can start."
-        : "Min. 3 Players to Start";
+        : `Min. ${settings.minPlayersToStart} Players to Start`;
 }
 
 function appendYouBadge(element: HTMLElement, isYou: boolean): void {
@@ -606,6 +629,7 @@ function renderAnswering(view: ViewOf<"answering">, skipAnimation: boolean): voi
         return;
     }
 
+    setPageTitle(view.submitted ? "Answer Submitted" : "Build Your Answer", view.round);
     if (view.submitted) {
         submittedView.hidden = false;
         setPrompt(view.prompt, view.round);
@@ -640,6 +664,7 @@ function renderSpectating(
     round: number,
     status: string,
 ): void {
+    setPageTitle(title, round);
     spectatorView.hidden = false;
     spectatorTitle.textContent = title;
     spectatorStatus.textContent = status;
@@ -650,6 +675,7 @@ function renderSubmitted(answer: string[]): void {
 }
 
 function renderResults(view: ViewOf<"results">): void {
+    setPageTitle("Results", view.round);
     resultsView.hidden = false;
     
     setPrompt(view.prompt, view.round);
@@ -781,269 +807,37 @@ function renderLeaderboard(
 }
 
 function renderRanking(view: ViewOf<"ranking">): void {
+    currentRankingView = view;
     if (!view.canRank) {
         renderSpectating(
-            "Watching the review",
-            view.prompt,
-            view.round,
+            "Watching the review", view.prompt, view.round,
             `${view.rankedCount}/${view.playerCount} players ranked`,
         );
         return;
     }
-    
+    setPageTitle(view.hasRanked ? "Ranking Submitted" : "Rank Answers", view.round);
+    setPrompt(view.prompt, view.round);
     if (view.hasRanked) {
         rankedView.hidden = false;
-        setPrompt(view.prompt, view.round);
         rankedCount.textContent = `${view.rankedCount}/${view.playerCount} players ranked`;
         return;
     }
-    
     rankingView.hidden = false;
-    setPrompt(view.prompt, view.round);
-    
-    currentRankingView = view;
-
     if (rankingRound !== view.round) {
         rankingRound = view.round;
-
-        // the server only sends the answers this player has to rank
-        rankedAnswers = view.answers.map(answer => answer.id);
-        
-        selectedAnswerId = null;
+        rankingPicker.reset(view.answers);
+    } else {
+        rankingPicker.update(view.answers);
     }
-    
-    answersToRankContainer.replaceChildren();
-    
-    const answersById = new Map(
-        view.answers.map(answer => [answer.id, answer]),
-    );
-    
-    const answerColors = new Map(
-        view.answers.map((answer, index) => [
-            answer.id,
-            `hsl(${(40 + index * 137.508) % 360} 75% 78%)`,
-        ]),
-    );
-    
-    rankedAnswers.forEach((answerId, index) => {
-        const answer = answersById.get(answerId);
-        
-        if (!answer) {
-            return;
-        }
-        
-        const answerElement = document.createElement("li");
-        
-        answerElement.classList.add("rankable");
-        answerElement.style.setProperty("--rank-accent", answerColors.get(answer.id)!);
-        
-        answerElement.dataset.answerId = answer.id;
-        
-        answerElement.draggable = true;
-        
-        if (selectedAnswerId === answer.id) {
-            answerElement.classList.add("selected");
-        }
-        
-        const rankNumber = document.createElement("span");
-        rankNumber.classList.add("rank-number");
-        rankNumber.textContent = `${index + 1}`;
-
-        const rankText = document.createElement("span");
-        rankText.classList.add("rank-text");
-        rankText.textContent = answer.words.join(" ");
-
-        answerElement.append(rankNumber, rankText);
-        
-        // Mouse / touch selection
-        answerElement.addEventListener(
-            "click",
-            handleAnswerClick,
-        );
-        
-        // Desktop drag & drop
-        answerElement.addEventListener(
-            "dragstart",
-            handleDragStart,
-        );
-        
-        answerElement.addEventListener(
-            "dragover",
-            handleDragOver,
-        );
-        
-        answerElement.addEventListener("dragleave", handleDragLeave);
-        
-        answerElement.addEventListener(
-            "drop",
-            handleDrop,
-        );
-        
-        answerElement.addEventListener(
-            "dragend",
-            handleDragEnd,
-        );
-        
-        answersToRankContainer.appendChild(answerElement);
-    });
-    
-    rankingSubmitButton.disabled =
-    rankedAnswers.length === 0;
-}
-
-
-let draggedAnswerId: string | null = null;
-
-function handleDragStart(event: DragEvent): void {
-    const element = event.currentTarget as HTMLElement;
-    
-    draggedAnswerId =
-    element.dataset.answerId ?? null;
-    
-    element.classList.add("dragging");
-    
-    if (event.dataTransfer) {
-        event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData("text/plain", draggedAnswerId ?? "");
-    }
-}
-
-function handleDragOver(event: DragEvent): void {
-    event.preventDefault();
-    
-    const element = event.currentTarget as HTMLElement;
-    
-    for (const item of answersToRankContainer.children) {
-        item.classList.toggle("drag-over", item === element && !!draggedAnswerId && element.dataset.answerId !== draggedAnswerId);
-    }
-    
-    if (event.dataTransfer) {
-        event.dataTransfer.dropEffect = "move";
-    }
-}
-
-function handleDragLeave(event: DragEvent): void {
-    const element = event.currentTarget as HTMLElement;
-    if (event.relatedTarget instanceof Node && element.contains(event.relatedTarget)) {
-        return;
-    }
-    element.classList.remove("drag-over");
-}
-
-function handleDrop(event: DragEvent): void {
-    event.preventDefault();
-    
-    const targetElement =
-    event.currentTarget as HTMLElement;
-    
-    targetElement.classList.remove("drag-over");
-    
-    const targetAnswerId =
-    targetElement.dataset.answerId;
-    
-    if (!draggedAnswerId || !targetAnswerId) {
-        return;
-    }
-    
-    if (draggedAnswerId === targetAnswerId) {
-        return;
-    }
-    
-    const draggedIndex =
-    rankedAnswers.indexOf(draggedAnswerId);
-    
-    const targetIndex =
-    rankedAnswers.indexOf(targetAnswerId);
-    
-    if (
-        draggedIndex === -1 ||
-        targetIndex === -1
-    ) {
-        return;
-    }
-    
-    [rankedAnswers[draggedIndex], rankedAnswers[targetIndex]] =
-    [rankedAnswers[targetIndex], rankedAnswers[draggedIndex]];
-    
-    draggedAnswerId = null;
-    selectedAnswerId = null;
-    
-    renderRanking(currentRankingView!);
-}
-
-function handleDragEnd(event: DragEvent): void {
-    const element =
-    event.currentTarget as HTMLElement;
-    
-    element.classList.remove("dragging");
-    
-    for (
-        const item
-        of answersToRankContainer.children
-    ) {
-        item.classList.remove("drag-over");
-    }
-    
-    draggedAnswerId = null;
-}
-function handleAnswerClick(event: MouseEvent): void {
-    const element = event.currentTarget as HTMLElement;
-    
-    const answerId = element.dataset.answerId;
-    
-    if (!answerId) {
-        return;
-    }
-    
-    // Nothing selected yet
-    if (!selectedAnswerId) {
-        selectedAnswerId = answerId;
-        
-        renderRanking(currentRankingView!);
-        
-        return;
-    }
-    
-    // Clicked the same answer again
-    if (selectedAnswerId === answerId) {
-        selectedAnswerId = null;
-        
-        renderRanking(currentRankingView!);
-        
-        return;
-    }
-    
-    // Swap the two answers
-    const firstIndex =
-    rankedAnswers.indexOf(selectedAnswerId);
-    
-    const secondIndex =
-    rankedAnswers.indexOf(answerId);
-    
-    if (
-        firstIndex === -1 ||
-        secondIndex === -1
-    ) {
-        selectedAnswerId = null;
-        return;
-    }
-    
-    [
-        rankedAnswers[firstIndex],
-        rankedAnswers[secondIndex],
-    ] = [
-        rankedAnswers[secondIndex],
-        rankedAnswers[firstIndex],
-    ];
-    
-    selectedAnswerId = null;
-    
-    renderRanking(currentRankingView!);
 }
 
 function renderAvailableWords(): void {
     wordsContainer.replaceChildren();
-    
+    const usedCopies = new Map<string, number>();
+    for (const word of selectedWords) {
+        usedCopies.set(word, (usedCopies.get(word) ?? 0) + 1);
+    }
+
     for (const word of availableWords) {
         const button = document.createElement("button");
         
@@ -1051,7 +845,9 @@ function renderAvailableWords(): void {
         button.classList.add("word");
         button.classList.add("chip");
         
-        if (selectedWords.includes(word)) {
+        const used = usedCopies.get(word) ?? 0;
+        if (used > 0) {
+            usedCopies.set(word, used - 1);
             button.disabled = true;
             button.classList.add("word-used");
         }
@@ -1080,14 +876,14 @@ function renderAnswer(): void {
         return;
     }
     
-    for (const word of selectedWords) {
+    for (const [index, word] of selectedWords.entries()) {
         const button = document.createElement("button");
         
         button.textContent = word;
         button.classList.add("word", "selected-word");
         
         button.addEventListener("click", () => {
-            removeWord(word);
+            removeWord(index);
         });
         
         answerContainer.appendChild(button);
@@ -1106,10 +902,8 @@ function selectWord(word: string): void {
     renderAvailableWords();
 }
 
-function removeWord(word: string): void {
-    const index = selectedWords.indexOf(word);
-    
-    if (index === -1) {
+function removeWord(index: number): void {
+    if (index < 0 || index >= selectedWords.length) {
         return;
     }
     
@@ -1140,47 +934,16 @@ answerSubmitButton.addEventListener("click", () => {
 });
 
 rankingSubmitButton.addEventListener("click", () => {
-    if (!currentRankingView) {
-        return;
-    }
-    
-    // Make sure every answer has been ranked.
-    if (rankedAnswers.length !== currentRankingView.answers.length) {
-        return;
-    }
-    
-    console.log(
-        "[CLIENT] Submitting ranking:",
-        rankedAnswers,
-    );
-    
-    rankingSubmitButton.disabled = true;
-    
-    socket.emit(
-        "submitRanking",
-        rankedAnswers,
-        (response: {
-            ok: boolean;
-            error?: string;
-        }) => {
-            console.log(
-                "[CLIENT] Ranking response:",
-                response,
-            );
-            
-            if (!response.ok) {
-                rankingSubmitButton.disabled = false;
-                
-                showActionError(response.error ?? "Ranking failed");
-                
-                return;
-            }
-            
-            console.log(
-                "[CLIENT] Ranking submitted successfully",
-            );
-        },
-    );
+    if (!currentRankingView?.canRank || currentRankingView.hasRanked || !rankingPicker.canSubmit) return;
+    const rankedAnswers = rankingPicker.answerIds;
+    if (rankedAnswers.length !== currentRankingView.answers.length) return;
+    rankingPicker.setSubmitting(true);
+    socket.emit("submitRanking", rankedAnswers, (response: { ok: boolean; error?: string }) => {
+        if (!response.ok) {
+            rankingPicker.setSubmitting(false);
+            showActionError(response.error ?? "Ranking failed");
+        }
+    });
 });
 
 

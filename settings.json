@@ -1,0 +1,9 @@
+{
+  "wordsPerPlayer": 30,
+  "minPlayersToStart": 3,
+  "maxPlayersPerRoom": 20,
+  "roomCount": 20,
+  "visibleEmptyRoomCount": 2,
+  "disconnectGraceMs": 15000,
+  "disconnectPurgeMs": 300000
+}
