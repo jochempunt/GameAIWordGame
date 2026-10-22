@@ -1098,22 +1098,56 @@ h1.prompt {
 
 .lobby-score-summary {
     display: grid;
-    gap: 0.15rem;
-    color: var(--success);
-    font-size: 0.78rem;
-    font-weight: 800;
+    grid-template-columns: repeat(2, auto);
+    justify-items: end;
+    gap: 0.25rem 0.35rem;
     font-variant-numeric: tabular-nums;
-    line-height: 1.25;
     text-align: right;
-    white-space: nowrap;
 }
 
-.lobby-score-summary span:last-child {
+.lobby-score-badge {
+    display: grid;
+    gap: 0.12rem;
+    justify-items: end;
+}
+
+.lobby-score-label {
+    color: var(--muted-ink);
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.lobby-score-badge .result-score {
+    padding: 0.22rem 0.38rem;
+    font-size: 0.76rem;
+}
+
+.lobby-average-score .result-score {
+    background: rgb(33 128 217 / 12%);
+    color: var(--blue-dark);
+}
+
+.lobby-total-score[data-rank="1"] .result-score {
+    background: #F5CE70;
+    color: #59400C;
+}
+
+.lobby-total-score[data-rank="2"] .result-score {
+    background: #DEE3E8;
+    color: #3F4B58;
+}
+
+.lobby-total-score[data-rank="3"] .result-score {
+    background: #DCAC83;
+    color: #56351E;
+}
+
+.lobby-round-count {
+    grid-column: 1 / -1;
     color: var(--muted-ink);
     font-size: 0.68rem;
     font-weight: 700;
 }
-
 #room-players .standings-empty {
     display: block;
     text-align: center;

@@ -505,26 +505,48 @@ function renderRoomOverview(view: PlayerView): void {
             identity.appendChild(statusElement);
         }
 
-        const score = document.createElement("div");
-        score.classList.add("lobby-score-summary");
-        score.setAttribute(
+        const scoreSummary = document.createElement("div");
+        scoreSummary.classList.add("lobby-score-summary");
+        scoreSummary.setAttribute(
             "aria-label",
             `Score ${player.score} points, ${player.roundsPlayed} rounds, average ${formatAverageScore(player.averageScore)} points`,
         );
 
-        const total = document.createElement("span");
-        total.textContent = `Score ${player.score} pts`;
-        const average = document.createElement("span");
-        average.textContent = `${player.roundsPlayed} rounds · Avg. ${formatAverageScore(player.averageScore)}`;
-        score.append(total, average);
+        const totalScore = createLobbyScoreBadge("Score", `${player.score} pts`, "lobby-total-score");
+        if (hasScores && index < 3) totalScore.dataset.rank = String(index + 1);
+        const averageScore = createLobbyScoreBadge(
+            "Average",
+            `${formatAverageScore(player.averageScore)} pts`,
+            "lobby-average-score",
+        );
 
-        item.append(position, identity, score);
+        const rounds = document.createElement("span");
+        rounds.classList.add("lobby-round-count");
+        rounds.textContent = `${player.roundsPlayed} round${player.roundsPlayed === 1 ? "" : "s"}`;
+
+        scoreSummary.append(totalScore, averageScore, rounds);
+        item.append(position, identity, scoreSummary);
 
         item.classList.toggle("disconnected", !player.connected);
         roomPlayers.appendChild(item);
     }
 }
 
+function createLobbyScoreBadge(label: string, value: string, className: string): HTMLElement {
+    const badge = document.createElement("div");
+    badge.classList.add("lobby-score-badge", className);
+
+    const labelElement = document.createElement("span");
+    labelElement.classList.add("lobby-score-label");
+    labelElement.textContent = label;
+
+    const valueElement = document.createElement("span");
+    valueElement.classList.add("result-score");
+    valueElement.textContent = value;
+
+    badge.append(labelElement, valueElement);
+    return badge;
+}
 function renderRoomSettings(view: PlayerView): void {
     roomSettings.hidden = !view.isHost;
     roomLockToggle.hidden = !view.isHost;
