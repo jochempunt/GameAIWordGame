@@ -16,6 +16,7 @@ import { connectToDatabase, disconnectFromDatabase } from "./database/db.js";
 import { saveGame, flushGameSaves } from "./database/gameRepository.js";
 import { generatePlayerName } from "./playerNames.js";
 import { hasConsented, recordConsent } from "./database/participantRepository.js";
+import { findEmote } from "../shared/emotes.js";
 
 
 // ---- Setup ----
@@ -49,8 +50,14 @@ const ROOM_CODES = Array.from(
     (_, index) => String.fromCharCode("A".charCodeAt(0) + index).repeat(4),
 );
 
+const EMOTE_SPAM_WINDOW_MS = 5_000;
+const EMOTE_SPAM_LIMIT = 3;
+const EMOTE_COOLDOWN_MS = 8_000;
+
 let shuttingDown = false;
 const disconnectTimers = new Map<string, NodeJS.Timeout[]>();
+const emoteHistory = new Map<string, number[]>();
+const emoteCooldownEndsAt = new Map<string, number>();
 for (const code of ROOM_CODES) {
     rooms.set(code, {
         id: code,
@@ -279,6 +286,10 @@ io.on("connection", (socket) => {
 
     on("setRoomLocked", (locked, acknowledge) => {
         setRoomLocked(socket, locked, safeAcknowledge(acknowledge));
+    });
+
+    on("sendEmote", (emoteId, acknowledge) => {
+        sendEmote(socket, emoteId, safeAcknowledge(acknowledge));
     });
 
     on("disconnect", () => {
@@ -831,6 +842,61 @@ function setRoomLocked(
     commitRoomState(room);
 }
 
+function sendEmote(
+    socket: Socket,
+    emoteId: unknown,
+    acknowledge: Ack<{ ok: boolean; cooldownMs?: number; error?: string }>,
+): void {
+    const result = getPlayerBySocket(socket);
+    if (!result) {
+        acknowledge({ ok: false, error: "Join a room before sending an emote" });
+        return;
+    }
+
+    const emote = findEmote(emoteId);
+    if (!emote) {
+        acknowledge({ ok: false, error: "Unknown emote" });
+        return;
+    }
+
+    const now = Date.now();
+    const cooldownEndsAt = emoteCooldownEndsAt.get(result.player.id) ?? 0;
+    if (cooldownEndsAt > now) {
+        acknowledge({
+            ok: false,
+            cooldownMs: cooldownEndsAt - now,
+            error: "Emotes are cooling down",
+        });
+        return;
+    }
+
+    const recentEmotes = (emoteHistory.get(result.player.id) ?? [])
+        .filter(sentAt => now - sentAt < EMOTE_SPAM_WINDOW_MS);
+    if (recentEmotes.length >= EMOTE_SPAM_LIMIT) {
+        const endsAt = now + EMOTE_COOLDOWN_MS;
+        emoteHistory.delete(result.player.id);
+        emoteCooldownEndsAt.set(result.player.id, endsAt);
+        acknowledge({
+            ok: false,
+            cooldownMs: EMOTE_COOLDOWN_MS,
+            error: "Too many emotes — cooldown started",
+        });
+        return;
+    }
+
+    recentEmotes.push(now);
+    emoteHistory.set(result.player.id, recentEmotes);
+    const message = emote.messages[Math.floor(Math.random() * emote.messages.length)];
+
+    io.to(result.room.id).emit("emote", {
+        playerId: result.player.id,
+        playerName: result.player.name,
+        emoteId: emote.id,
+        icon: emote.icon,
+        message,
+    });
+    acknowledge({ ok: true });
+}
 function removePlayerFromRoom(
     room: Room,
     player: Player,

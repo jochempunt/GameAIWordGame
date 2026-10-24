@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 import { createRankBadge } from "./rankBadge.js";
 import { RankingPicker } from "./ranking.js";
 import { createSessionToken } from "./sessionToken.js";
+import { EMOTES, type EmoteId } from "../../shared/emotes.js";
 import type { PlayerView, RoomSummary } from "../../server/types.js";
 
 const socket = io({ autoConnect: false });
@@ -44,6 +45,10 @@ const leaveRoomButton = document.querySelector<HTMLButtonElement>("#leave-room")
 const actionError = document.querySelector<HTMLElement>("#action-error")!;
 const roundTimer = document.querySelector<HTMLElement>("#round-timer")!;
 const roundTimerValue = document.querySelector<HTMLElement>("#round-timer-value")!;
+const emoteFeed = document.querySelector<HTMLElement>("#emote-feed")!;
+const emoteLauncher = document.querySelector<HTMLElement>("#emote-launcher")!;
+const emoteMenu = document.querySelector<HTMLElement>("#emote-menu")!;
+const emoteButton = document.querySelector<HTMLButtonElement>("#emote-button")!;
 
 const roomSettings = document.querySelector<HTMLDetailsElement>("#room-settings")!;
 const roomSettingsPlayers = document.querySelector<HTMLUListElement>("#room-settings-players")!;
@@ -105,6 +110,11 @@ const TIMER_UPDATE_INTERVAL = 250;
 let timerEndsAtOnClient: number | null = null;
 let timerUpdateInterval: number | null = null;
 
+const MAX_VISIBLE_EMOTES = 4;
+let emotePointerIsDown = false;
+let suppressNextEmoteButtonClick = false;
+let emoteCooldownTimer: number | undefined;
+
 const sessionToken = getOrCreateSessionToken();
 let consented = false;
 
@@ -137,6 +147,7 @@ function getOrCreateSessionToken(): string {
 function showConsent(message = ""): void {
     setPageTitle("Study Consent");
     hideRoundTimer();
+    hideEmoteLauncher();
     hideAll();
     consentView.hidden = false;
     roomActions.hidden = true;
@@ -199,6 +210,9 @@ socket.on("state", view => {
     if (consented) render(view);
 });
 socket.on("kicked", () => returnToRoomSelection("You were kicked from the room."));
+socket.on("emote", (emote: { playerId: string; playerName: string; emoteId: EmoteId; icon: string; message: string }) => {
+    showEmote(emote);
+});
 
 roomLockToggle.addEventListener("click", () => {
     const locked = roomLockToggle.dataset.locked === "true";
@@ -212,6 +226,7 @@ roomLockToggle.addEventListener("click", () => {
 function render(view: PlayerView): void {
     hideAll();
     roomActions.hidden = false;
+    showEmoteLauncher();
     renderRoundTimer(view);
     renderRoomSettings(view);
     renderRoomOverview(view);
@@ -242,6 +257,116 @@ function render(view: PlayerView): void {
 }
 
 
+function renderEmoteChoices(): void {
+    emoteMenu.replaceChildren();
+    for (const emote of EMOTES) {
+        const choice = document.createElement("button");
+        choice.type = "button";
+        choice.classList.add("emote-choice");
+        choice.dataset.emoteId = emote.id;
+        choice.textContent = emote.icon;
+        choice.title = emote.label;
+        choice.setAttribute("aria-label", emote.label);
+        choice.addEventListener("click", () => sendEmote(emote.id));
+        emoteMenu.appendChild(choice);
+    }
+}
+
+function showEmoteLauncher(): void {
+    emoteLauncher.hidden = false;
+}
+
+function hideEmoteLauncher(): void {
+    emoteLauncher.hidden = true;
+    closeEmoteMenu();
+    emoteFeed.replaceChildren();
+}
+
+function openEmoteMenu(): void {
+    emoteMenu.hidden = false;
+    emoteButton.setAttribute("aria-expanded", "true");
+}
+
+function closeEmoteMenu(): void {
+    emoteMenu.hidden = true;
+    emoteButton.setAttribute("aria-expanded", "false");
+}
+
+function sendEmote(emoteId: EmoteId): void {
+    closeEmoteMenu();
+    socket.emit("sendEmote", emoteId, (response: { ok: boolean; cooldownMs?: number; error?: string }) => {
+        if (response.ok) return;
+
+        if (response.cooldownMs) setEmoteCooldown(response.cooldownMs);
+        showActionError(response.error ?? "Could not send emote");
+    });
+}
+
+function setEmoteCooldown(cooldownMs: number): void {
+    window.clearTimeout(emoteCooldownTimer);
+    emoteButton.disabled = true;
+    emoteButton.classList.add("emote-cooling-down");
+    emoteCooldownTimer = window.setTimeout(() => {
+        emoteButton.disabled = false;
+        emoteButton.classList.remove("emote-cooling-down");
+    }, cooldownMs);
+}
+
+function showEmote(emote: { playerId: string; playerName: string; emoteId: EmoteId; icon: string; message: string }): void {
+    const messageElement = document.createElement("div");
+    messageElement.classList.add("emote-message");
+
+    const icon = document.createElement("span");
+    icon.classList.add("emote-message-icon");
+    icon.textContent = emote.icon;
+
+    const text = document.createElement("span");
+    text.classList.add("emote-message-text");
+    text.textContent = `${emote.playerName}: ${emote.message}`;
+    messageElement.append(icon, text);
+    emoteFeed.appendChild(messageElement);
+
+    while (emoteFeed.childElementCount > MAX_VISIBLE_EMOTES) {
+        emoteFeed.firstElementChild?.remove();
+    }
+    window.setTimeout(() => messageElement.remove(), 6_000);
+}
+
+emoteButton.addEventListener("pointerdown", event => {
+    if (emoteButton.disabled) return;
+    emotePointerIsDown = true;
+    emoteButton.setPointerCapture(event.pointerId);
+    openEmoteMenu();
+});
+
+emoteButton.addEventListener("pointerup", event => {
+    if (!emotePointerIsDown) return;
+
+    emotePointerIsDown = false;
+    if (emoteButton.hasPointerCapture(event.pointerId)) {
+        emoteButton.releasePointerCapture(event.pointerId);
+    }
+    suppressNextEmoteButtonClick = true;
+    const choice = document.elementFromPoint(event.clientX, event.clientY)
+        ?.closest<HTMLButtonElement>(".emote-choice");
+    if (choice?.dataset.emoteId) sendEmote(choice.dataset.emoteId as EmoteId);
+});
+
+emoteButton.addEventListener("pointercancel", () => {
+    emotePointerIsDown = false;
+});
+
+emoteButton.addEventListener("click", () => {
+    if (suppressNextEmoteButtonClick) {
+        suppressNextEmoteButtonClick = false;
+        return;
+    }
+
+    if (emoteMenu.hidden) openEmoteMenu();
+    else closeEmoteMenu();
+});
+
+renderEmoteChoices();
 function renderRoundTimer(view: PlayerView): void {
     if (view.phase !== "answering" && view.phase !== "ranking") {
         hideRoundTimer();
@@ -321,6 +446,7 @@ function hideAll(): void {
 function showJoin(): void {
     setPageTitle("Choose a Room");
     hideRoundTimer();
+    hideEmoteLauncher();
     hideAll();
     joinView.hidden = false;
     roomOverview.hidden = true;

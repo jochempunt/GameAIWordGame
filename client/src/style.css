@@ -863,6 +863,125 @@ h1.prompt {
     text-align: right;
 }
 
+#emote-launcher {
+    position: fixed;
+    z-index: 15;
+    top: 50%;
+    right: 0;
+    display: flex;
+    align-items: center;
+    transform: translateY(-50%);
+}
+
+#emote-button {
+    width: 3.25rem;
+    min-height: 3.5rem;
+    padding: 0.45rem;
+    border: 1px solid var(--blue-dark);
+    border-right: 0;
+    border-radius: 0.8rem 0 0 0.8rem;
+    background: var(--blue);
+    box-shadow: -3px 3px 0 var(--blue-dark);
+    font-size: 1.45rem;
+    line-height: 1;
+    touch-action: none;
+}
+
+#emote-button.emote-cooling-down {
+    filter: grayscale(1);
+}
+
+#emote-menu {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(2.45rem, auto));
+    gap: 0.35rem;
+    max-width: min(calc(100vw - 4rem), 22rem);
+    margin-right: 0.45rem;
+    padding: 0.4rem;
+    border: 1px solid var(--tile-border);
+    border-radius: 0.8rem;
+    background: rgb(255 248 240 / 94%);
+    box-shadow: 0 4px 0 var(--tile-shadow), 0 8px 18px rgb(50 62 47 / 18%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.emote-choice {
+    min-width: 2.45rem;
+    min-height: 2.45rem;
+    padding: 0.25rem;
+    border: 1px solid var(--tile-border);
+    border-radius: 0.6rem;
+    background: var(--cream-light);
+    box-shadow: 0 2px 0 var(--tile-shadow);
+    color: var(--ink);
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.emote-choice:hover,
+.emote-choice:focus-visible {
+    background: var(--cream);
+    transform: translateY(-1px) scale(1.06);
+}
+
+#emote-feed {
+    position: fixed;
+    z-index: 14;
+    top: calc(3rem + env(safe-area-inset-top));
+    left: 0.75rem;
+    display: grid;
+    justify-items: start;
+    gap: 0.45rem;
+    width: min(20rem, calc(100vw - 1.5rem));
+    pointer-events: none;
+}
+
+.emote-message {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    width: fit-content;
+    max-width: 100%;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid rgb(50 62 47 / 24%);
+    border-radius: 0.75rem 0.85rem 0.7rem 0.65rem;
+    background: rgb(255 248 240 / 92%);
+    box-shadow: 0 3px 0 rgb(50 62 47 / 18%);
+    color: var(--ink);
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.35;
+    animation: emote-message-in 0.18s ease-out;
+}
+
+.emote-message-icon {
+    flex: 0 0 auto;
+    font-size: 1.1rem;
+}
+
+.emote-message-text {
+    overflow-wrap: anywhere;
+}
+
+@keyframes emote-message-in {
+    from { opacity: 0; transform: translateX(0.5rem); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@media (max-width: 700px) {
+    #emote-menu {
+        grid-template-columns: repeat(2, minmax(2.45rem, auto));
+        max-width: 6.1rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .emote-message {
+        animation: none;
+    }
+}
+
 #round-timer {
     display: inline-grid;
     place-items: center;
