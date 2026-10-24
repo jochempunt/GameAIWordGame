@@ -110,6 +110,70 @@ For Docker, rebuild and recreate the game container after editing `settings.json
 (`pnpm docker:dev` locally, or the production deployment command below).
 Credentials and deployment environment variables stay in `.env`.
 
+## Bots
+
+Bots are server-side virtual players (`isBot: true`, no socket) in `server/bots/`. They act through the
+same handlers as sockets, so answer validation, ranking validation, timers and scoring are unchanged.
+The client cannot tell them apart from humans.
+
+- **Background rooms:** at startup, 3–4 random rooms are filled with bots. While no human is in them,
+  bots mostly sit in the lobby, occasionally start and play a round, and their number drifts slowly.
+- **Assisting humans:** when one or two humans wait in a room, bots join one at a time after a random
+  delay until the room is playable (3–4 participants). As more humans arrive, bots leave one at a time;
+  with `minPlayersToStart` humans present, all of them leave. Bots only join or leave in the lobby,
+  never during a round.
+- **Host:** a bot hosts only while no human is connected; a joining or reconnecting human takes over
+  immediately. Hosts cannot hand the role to a bot, and room locking counts humans only.
+- **Answers:** at round start each bot plans its answer and is dealt a hand containing those words.
+  Sources: collected human answers from earlier rounds (preferred, least-used first, never by anyone in
+  the room, not reused within the cooldown, never twice in one round), the preset pool in
+  `server/bots/pregeneratedAnswers.json` (words must exist in `words.txt`; the tests check this),
+  or random words from the hand. Rankings are random permutations.
+
+### Bot settings
+
+`bot_settings.json` in the project root; validated at startup like `settings.json`. Ranges are `{ "min", "max" }`
+and a random value in that range is picked each time.
+
+| Setting | Meaning |
+| --- | --- |
+| `enabled` | Turns bots off entirely. |
+| `backgroundRooms`, `backgroundBotsPerRoom` | How many rooms bots keep alive, and how many bots each. |
+| `backgroundRoundIntervalMs`, `backgroundRetargetIntervalMs` | Pause between autonomous rounds; how often a background room re-rolls its bot count. |
+| `maxBotOnlyRoundsPerSession` | A bot-only session starts a fresh game after this many rounds. |
+| `assistTargetPlayers` | Total participants bots fill a room up to while humans are short. |
+| `assistDelayMs`, `joinGapMs`, `leaveGapMs` | Wait before the first assisting bot; gaps between later joins and between leaves. |
+| `answerDelayMs`, `rankingDelayMs`, `readyDelayMs` | How long a bot takes for each step. |
+| `catchUpDelayMs` | Used instead once every human has finished the step, so they are not kept waiting. |
+| `deadlineSafetyMs` | Bots always act at least this long before the phase timer ends. |
+| `randomAnswerWords` | Length of random-word answers. |
+| `reusedAnswerChance` | Chance a round uses collected human answers when there are any. |
+| `pregeneratedAnswerChance` | Otherwise, chance of a preset answer instead of random words. |
+| `reuseCooldownMs` | A collected answer is not reused again within this time. |
+| `minReusableAnswerWords` | Shorter human answers are not collected. |
+| `emoteChance` | Chance of a bot emote when it joins or after results (only with humans present). |
+
+### Bots and the research data
+
+Every answer has an internal provenance: `human_original`, `bot_pregenerated`, `bot_random` or `bot_reused_human`.
+
+| Round | `wordgame.games` | Elsewhere |
+| --- | --- | --- |
+| Humans only | Stored exactly as before (no new fields). | – |
+| Bots presented only reused human answers | Stored, with `research: { botAssisted: true, eligible: true }`, every answer's `provenance` (plus `reusedFrom`: reusable answer id, original author id, original round id) and every ranking's `isBot`. | – |
+| Any pre-generated or random bot answer | Left out; listed in the game's `excludedRounds`. | `wordgame.synthetic_rounds`, marked `eligible: false`, with the same provenance fields. |
+| No humans | Left out; listed in `excludedRounds`. | Not stored. |
+
+When rounds are left out, the stored `state.totals` only count the stored rounds. Bots appear in
+`state.players` with `isBot: true`. Round ids are `<gameId>:<roundNumber>`.
+
+Human answers from any bot-assisted round go to `wordgame.reusable_answers` once the round completes:
+`prompt`, `words` (in order), `authorId`, `sourceGameId`, `sourceRoundNumber`, `sourceRoundId`,
+`sourceAnswerId`, `collectedAt`, `usageCount` and `lastUsedAt`. The `_id` is a hash of author, prompt
+and words, so the same answer is stored once. The pool is loaded at startup and survives restarts;
+answers whose words were since removed from `words.txt` are skipped. If an author joins a room after
+bots have already picked their answer, the server hides that answer from them.
+
 ## Running locally
 
 requires [Node.js](https://nodejs.org/), [pnpm](https://pnpm.io/), and [Docker](https://www.docker.com/).
@@ -144,6 +208,13 @@ using cryptographically random UUIDs when the browser's `randomUUID` API is unav
 Vite keeps port 5173 fixed so the QR code always matches the development server.
 The game server itself (port 3000) only listens on `127.0.0.1` outside Docker; Vite forwards to it.
 
+
+### Checks
+
+```bash
+pnpm typecheck   # TypeScript, client and server
+pnpm test        # server tests (node:test), no database needed
+```
 
 ### Database commands
 

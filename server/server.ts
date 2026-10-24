@@ -9,14 +9,21 @@ import { fileURLToPath } from "node:url";
 
 import { Game, MIN_PLAYERS_TO_START } from "./game.js";
 import { ANSWER_TIME, rankingTimeForPlayerCount } from "./roundTimer.js";
-import type { Player } from "./types.js";
+import type { AnswerOrigin, Player } from "./types.js";
 import { viewForPlayer } from "./views.js";
 import type { Room, RoomSummary } from "./types.js";
 import { connectToDatabase, disconnectFromDatabase } from "./database/db.js";
 import { saveGame, flushGameSaves } from "./database/gameRepository.js";
 import { generatePlayerName } from "./playerNames.js";
 import { hasConsented, recordConsent } from "./database/participantRepository.js";
+import { loadReusableAnswers, reusableAnswerStore } from "./database/reusableAnswerRepository.js";
 import { findEmote } from "../shared/emotes.js";
+import { PROMPTS } from "./prompts.js";
+import { WORD_SET } from "./words.js";
+import { botSettings } from "./bots/botSettings.js";
+import { BotManager } from "./bots/botManager.js";
+import { loadPregeneratedPool, ReusableAnswerPool } from "./bots/answerSources.js";
+import { preferredHost } from "./bots/population.js";
 
 
 // ---- Setup ----
@@ -73,6 +80,55 @@ for (const code of ROOM_CODES) {
 }
 
 type Ack<T> = (response: T) => void;
+type ActionAck = Ack<{ ok: boolean; error?: string }>;
+
+const reusableAnswers = new ReusableAnswerPool(reusableAnswerStore);
+
+// Bots act through the same handlers as sockets, so they follow every rule humans do.
+function botAction(run: (acknowledge: ActionAck) => void): boolean {
+    let ok = false;
+    run(response => { ok = response.ok; });
+    return ok;
+}
+
+const bots = new BotManager({
+    rooms: () => rooms.values(),
+    usedNames: usedPlayerNames,
+    addPlayer: addBotToRoom,
+    removePlayer: (room, player) => {
+        removePlayerFromRoom(room, player);
+        if (advanceRoomAfterMembershipChange(room)) return;
+        commitRoomState(room);
+    },
+    transferHost: (room, playerId) => {
+        if (transferHost(room, playerId)) commitRoomState(room);
+    },
+    startRound: (room, player) => startRoundAs(room, player),
+    submitAnswer: (room, player, words, origin) =>
+        botAction(acknowledge => submitAnswerAs(room, player, words, acknowledge, origin)),
+    submitRanking: (room, player, answerIds) =>
+        botAction(acknowledge => submitRankingAs(room, player, answerIds, acknowledge)),
+    readyForNextRound: (room, player) =>
+        botAction(acknowledge => readyForNextRoundAs(room, player, acknowledge)),
+    resetGame: (room) => {
+        resetRoomGame(room);
+        for (const player of room.players.values()) {
+            room.game.recordPlayer(player.id, player.name, player.isBot === true);
+        }
+        setActivePlayersForLobby(room);
+        commitRoomState(room);
+    },
+    sendEmote: (room, player, emoteId) => {
+        const emote = findEmote(emoteId);
+        if (emote) broadcastEmote(room, player, emote);
+    },
+}, {
+    config: botSettings,
+    minPlayersToStart: MIN_PLAYERS_TO_START,
+    capacity: settings.maxPlayersPerRoom,
+    pregenerated: loadPregeneratedPool(WORD_SET, settings.wordsPerPlayer, PROMPTS),
+    reusable: reusableAnswers,
+});
 
 function safeAcknowledge<T>(fn: unknown): Ack<T> {  // if something passes non function, we ignore it, so that the server doesnt crash
     return typeof fn === "function" ? (fn as Ack<T>) : () => undefined;
@@ -161,6 +217,7 @@ function roomSummaries(): RoomSummary[] {
 function commitRoomState(room: Room): void {
     persistRoomGame(room);
     pushState(room);
+    bots.onRoomCommitted(room);
 }
 
 function persistRoomGame(room: Room): void {
@@ -178,7 +235,7 @@ function pushRoomSummaries(): void {
 function pushState(room: Room): void {
     pushRoomSummaries();
 
-    for (const player of [...room.players.values()].filter(p => p.connected)) {
+    for (const player of [...room.players.values()].filter(p => p.connected && !p.isBot)) {
         io.to(player.socketId).emit(
             "state",
             viewForPlayer(
@@ -348,15 +405,7 @@ function joinPlayer(
         return;
     }
 
-    const usedNames = new Set(
-        [...rooms.values()].flatMap(room =>
-            [...room.players.values()].map(player =>
-                player.name.toLowerCase()
-            )
-        )
-    );
-
-    const name = generatePlayerName(usedNames);
+    const name = generatePlayerName(usedPlayerNames());
 
     const player: Player = {
         id: createHash("sha256").update(token).digest("hex"),
@@ -373,7 +422,7 @@ function joinPlayer(
     }
     attachSocket(socket, room, player);
 
-    if (!room.hostPlayerId) {
+    if (!hasHumanHost(room)) {
         transferHost(room, player.id);
     }
 
@@ -436,7 +485,7 @@ function rejoinPlayer(
         foundRoom.activePlayerIds.add(foundPlayer.id);
     }
 
-    if (!foundRoom.hostPlayerId) {
+    if (!hasHumanHost(foundRoom)) {
         transferHost(foundRoom, foundPlayer.id);
     }
 
@@ -452,6 +501,37 @@ function rejoinPlayer(
     }
 
     commitRoomState(foundRoom);
+}
+
+// A bot host only keeps the seat warm: any human taking part takes it over.
+function hasHumanHost(room: Room): boolean {
+    const host = room.hostPlayerId ? room.players.get(room.hostPlayerId) : undefined;
+    return host !== undefined && !host.isBot;
+}
+
+function usedPlayerNames(): Set<string> {
+    return new Set(
+        [...rooms.values()].flatMap(room =>
+            [...room.players.values()].map(player =>
+                player.name.toLowerCase()
+            )
+        )
+    );
+}
+
+function addBotToRoom(room: Room, bot: Player): void {
+    if (room.players.size >= settings.maxPlayersPerRoom) return;
+
+    room.players.set(bot.id, bot);
+    room.game.recordPlayer(bot.id, bot.name, true);
+    if (room.game.state.phase === "lobby") {
+        room.activePlayerIds.add(bot.id);
+    }
+    if (!room.hostPlayerId) {
+        transferHost(room, bot.id);
+    }
+
+    commitRoomState(room);
 }
 
 
@@ -474,7 +554,16 @@ function submitAnswer(
         return;
     }
 
-    const { player, room } = result;
+    submitAnswerAs(result.room, result.player, words, acknowledge);
+}
+
+function submitAnswerAs(
+    room: Room,
+    player: Player,
+    words: unknown,
+    acknowledge: ActionAck,
+    origin?: AnswerOrigin,
+): void {
     const game = room.game;
 
     if (expireStageIfDue(room, "answering")) {
@@ -508,6 +597,7 @@ function submitAnswer(
     const answer = game.submitAnswer(
         player.id,
         words,
+        player.isBot ? origin : undefined,
     );
 
     if (!answer) {
@@ -550,7 +640,15 @@ function submitRanking(
         return;
     }
 
-    const { player, room } = result;
+    submitRankingAs(result.room, result.player, rankedAnswerIds, acknowledge);
+}
+
+function submitRankingAs(
+    room: Room,
+    player: Player,
+    rankedAnswerIds: unknown,
+    acknowledge: ActionAck,
+): void {
     const game = room.game;
 
     if (expireStageIfDue(room, "ranking")) {
@@ -649,6 +747,7 @@ function submitRanking(
         {
             answerIds: rankedAnswerIds,
             receivedAt: new Date(),
+            ...(player.isBot ? { isBot: true as const } : {}),
         },
     );
 
@@ -680,7 +779,14 @@ function readyForNextRound(
         return;
     }
 
-    const { player, room } = result;
+    readyForNextRoundAs(result.room, result.player, acknowledge);
+}
+
+function readyForNextRoundAs(
+    room: Room,
+    player: Player,
+    acknowledge: ActionAck,
+): void {
     const game = room.game;
 
     if (game.state.phase !== "results") {
@@ -772,7 +878,7 @@ function kickPlayer(
         return;
     }
 
-    io.to(target.socketId).emit("kicked");
+    if (!target.isBot) io.to(target.socketId).emit("kicked");
     removePlayerFromRoom(room, target);
 
     acknowledge({ ok: true });
@@ -798,6 +904,11 @@ function transferHostFromSocket(
     const { player, room } = result;
     if (player.id !== room.hostPlayerId) {
         acknowledge({ ok: false, error: "Only the host can transfer host" });
+        return;
+    }
+
+    if (room.players.get(targetPlayerId)?.isBot) {
+        acknowledge({ ok: false, error: "Could not transfer host" });
         return;
     }
 
@@ -832,7 +943,7 @@ function setRoomLocked(
         return;
     }
 
-    if (locked && getConnectedRoomPlayers(room).length < MIN_PLAYERS_TO_LOCK_ROOM) {
+    if (locked && getConnectedHumans(room).length < MIN_PLAYERS_TO_LOCK_ROOM) {
         acknowledge({ ok: false, error: "At least 3 connected players are required to lock the room" });
         return;
     }
@@ -886,16 +997,24 @@ function sendEmote(
 
     recentEmotes.push(now);
     emoteHistory.set(result.player.id, recentEmotes);
+    broadcastEmote(result.room, result.player, emote);
+    acknowledge({ ok: true });
+}
+
+function broadcastEmote(
+    room: Room,
+    player: Player,
+    emote: NonNullable<ReturnType<typeof findEmote>>,
+): void {
     const message = emote.messages[Math.floor(Math.random() * emote.messages.length)];
 
-    io.to(result.room.id).emit("emote", {
-        playerId: result.player.id,
-        playerName: result.player.name,
+    io.to(room.id).emit("emote", {
+        playerId: player.id,
+        playerName: player.name,
         emoteId: emote.id,
         icon: emote.icon,
         message,
     });
-    acknowledge({ ok: true });
 }
 function removePlayerFromRoom(
     room: Room,
@@ -914,13 +1033,7 @@ function removePlayerFromRoom(
     unlockRoomIfTooSmall(room);
 
     if (room.players.size === 0) {
-        // Archive the previous session before replacing the in-memory game.
-        clearStageTimer(room);
-        room.game.abandonCurrentRound();
-        persistRoomGame(room);
-        room.game = new Game();
-        room.readyPlayers.clear();
-        room.activePlayerIds.clear();
+        resetRoomGame(room);
         room.hostPlayerId = null;
         room.locked = false;
         return;
@@ -931,13 +1044,24 @@ function removePlayerFromRoom(
     }
 }
 
+function resetRoomGame(room: Room): void {
+    // Archive the previous session before replacing the in-memory game.
+    clearStageTimer(room);
+    bots.onRoomReset(room);
+    room.game.abandonCurrentRound();
+    persistRoomGame(room);
+    room.game = new Game();
+    room.readyPlayers.clear();
+    room.activePlayerIds.clear();
+}
+
 function transferHost(
     room: Room,
     nextHostPlayerId?: string,
 ): Player | undefined {
     const nextHost = nextHostPlayerId
         ? room.players.get(nextHostPlayerId)
-        : [...room.players.values()].find(candidate => candidate.connected);
+        : preferredHost(room.players.values());
 
     if (!nextHost || !nextHost.connected) {
         // a failed transfer to a specific player keeps the current host
@@ -1031,25 +1155,30 @@ function startRound(socket: Socket): void {
     const result = getPlayerBySocket(socket);
     if (!result) return;
 
-    const { player, room } = result;
+    startRoundAs(result.room, result.player);
+}
+
+function startRoundAs(room: Room, player: Player): boolean {
     const game = room.game;
 
-    if (player.id !== room.hostPlayerId) return;
-    if (game.state.phase !== "lobby") return;
+    if (player.id !== room.hostPlayerId) return false;
+    if (game.state.phase !== "lobby") return false;
 
     setActivePlayersForLobby(room);
-    if (room.activePlayerIds.size < MIN_PLAYERS_TO_START) return;
+    if (room.activePlayerIds.size < MIN_PLAYERS_TO_START) return false;
 
-    if (!game.startRound([...room.activePlayerIds])) return;
+    if (!game.startRound([...room.activePlayerIds])) return false;
 
     const round = game.currentRound();
 
-    if (!round) return;
+    if (!round) return false;
 
+    bots.onRoundStarted(room);
     scheduleStageTimer(room, "answering", ANSWER_TIME);
     console.log(`Room ${room.id} - round ${game.state.round} started`);
 
     commitRoomState(room);
+    return true;
 }
 
 
@@ -1190,6 +1319,7 @@ function finishRound(room: Room): void {
     round.completedAt = new Date();
     room.readyPlayers.clear();
     room.game.state.phase = "results";
+    bots.onRoundFinished(room);
 }
 function advanceRoomAfterMembershipChange(room: Room): boolean {
     tryStartVoting(room);
@@ -1245,7 +1375,7 @@ function getRoundPlayers(room: Room): Player[] {
 }
 
 function unlockRoomIfTooSmall(room: Room): boolean {
-    if (!room.locked || getConnectedRoomPlayers(room).length >= MIN_PLAYERS_TO_LOCK_ROOM) {
+    if (!room.locked || getConnectedHumans(room).length >= MIN_PLAYERS_TO_LOCK_ROOM) {
         return false;
     }
 
@@ -1255,6 +1385,10 @@ function unlockRoomIfTooSmall(room: Room): boolean {
 }
 function getConnectedRoomPlayers(room: Room): Player[] {
     return [...room.players.values()].filter(player => player.connected);
+}
+// Locking keeps others out, so only humans count: bots must not lock a room against new humans.
+function getConnectedHumans(room: Room): Player[] {
+    return getConnectedRoomPlayers(room).filter(player => !player.isBot);
 }
 //  ---- Helpers ----
 
@@ -1302,7 +1436,7 @@ function getPlayerBySocket(socket: Socket): { player: Player, room: Room } | und
 function getPlayerByToken(token: string): { player: Player, room: Room } | undefined {
     for (const room of rooms.values()) {
         for (const player of room.players.values()) {
-            if (player.token === token) return { player, room };
+            if (!player.isBot && player.token === token) return { player, room };
         }
     }
 
@@ -1311,6 +1445,12 @@ function getPlayerByToken(token: string): { player: Player, room: Room } | undef
 // ---- Startup and shutdown ----
 async function startServer(): Promise<void> {
     await connectToDatabase();
+    // answers whose words left words.txt can no longer be dealt
+    reusableAnswers.load((await loadReusableAnswers()).filter(answer =>
+        answer.words.length <= settings.wordsPerPlayer && answer.words.every(word => WORD_SET.has(word)),
+    ));
+    console.log(`Loaded ${reusableAnswers.size} reusable human answer(s) for bots`);
+    bots.start();
     httpServer.listen(PORT, HOST, () => {
         console.log(`Game server running on port ${PORT}`);
     });
@@ -1321,6 +1461,7 @@ async function shutdown(): Promise<void> {
     shuttingDown = true;
 
     try {
+        bots.stop();
         for (const playerId of disconnectTimers.keys()) {
             clearDisconnectTimers(playerId);
         }

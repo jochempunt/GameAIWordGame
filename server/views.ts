@@ -1,6 +1,6 @@
 import { MIN_PLAYERS_TO_START } from "./game.js";
 import type { Game } from "./game.js";
-import type { HostView, Player, PlayerSummary, PlayerView } from "./types.js";
+import type { Answer, HostView, Player, PlayerSummary, PlayerView } from "./types.js";
 
 export function viewForPlayer(
     game: Game,
@@ -88,7 +88,7 @@ export function viewForPlayer(
                 // only the other players' answers, without their author, and sorted by
                 // their random id so the order does not reveal who submitted first
                 answers: (round?.answers ?? [])
-                    .filter(answer => answer.playerId !== player.id)
+                    .filter(answer => answer.playerId !== player.id && !isOwnReusedAnswer(answer, player.id))
                     .map(answer => ({ id: answer.id, words: answer.words }))
                     .sort((a, b) => a.id.localeCompare(b.id)),
                 hasRanked,
@@ -102,6 +102,7 @@ export function viewForPlayer(
             if (!round) return lobbyView();
 
             const roundResults = round.answers
+                .filter(answer => !isOwnReusedAnswer(answer, player.id))
                 .map(answer => ({
                     playerId: answer.playerId,
                     playerName: roomPlayers.find(player => player.id === answer.playerId)?.name
@@ -141,6 +142,11 @@ export function viewForPlayer(
         case "lobby":
             return lobbyView();
     }
+}
+
+// Bots never pick an answer by anyone in the room, but its author may join the room afterwards.
+function isOwnReusedAnswer(answer: Answer, playerId: string): boolean {
+    return answer.reusedFrom?.originalAuthorId === playerId;
 }
 
 function roundsPlayedBy(game: Game, playerId: string): number {

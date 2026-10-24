@@ -10,14 +10,20 @@ if (settings.wordsPerPlayer > WORDS.length) {
     throw new Error("wordsPerPlayer must not exceed the number of entries in server/words.txt");
 }
 
-export function dealWords(): string[] {
-    const words = [...WORDS];
+export const WORD_SET = new Set(WORDS);
 
-   // shuffle words
-    for (let i = words.length - 1; i > 0; i--) {
+function shuffle<T>(items: T[]): T[] {
+    for (let i = items.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [words[i], words[j]] = [words[j], words[i]];
+        [items[i], items[j]] = [items[j], items[i]];
     }
+    return items;
+}
 
-    return words.slice(0, settings.wordsPerPlayer);
+// Bots pass the words of their planned answer so it passes the normal hand validation.
+export function dealWords(requiredWords: string[] = []): string[] {
+    const fill = shuffle([...WORDS])
+        .slice(0, Math.max(0, settings.wordsPerPlayer - requiredWords.length));
+
+    return requiredWords.length === 0 ? fill : shuffle([...requiredWords, ...fill]);
 }

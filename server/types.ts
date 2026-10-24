@@ -10,12 +10,32 @@ export type Player = {
     name: string;
     connected: boolean;
     reconnecting?: boolean; // Count this disconnected player during the short reconnect grace.
+    isBot?: true; // Server-side virtual player without a socket.
 };
 
 export type GamePlayer = {
     id: string;
     name: string;
     joinedAt: Date;
+    isBot?: true;
+};
+
+// Where an answer's content came from; human answers leave it unset in memory.
+export type AnswerProvenance =
+    | "human_original"
+    | "bot_pregenerated"
+    | "bot_random"
+    | "bot_reused_human";
+
+export type ReusedAnswerSource = {
+    reusableAnswerId: string;
+    originalAuthorId: string;
+    originalRoundId: string; // `${gameId}:${roundNumber}`
+};
+
+export type AnswerOrigin = {
+    provenance: Exclude<AnswerProvenance, "human_original">;
+    reusedFrom?: ReusedAnswerSource;
 };
 
 export type Answer = {
@@ -23,12 +43,15 @@ export type Answer = {
     playerId: PlayerId;
     words: string[]; // Submitted answer, in the player's chosen order.
     receivedAt: Date | null; // null when loading older submissions without a timestamp.
+    provenance?: AnswerOrigin["provenance"];
+    reusedFrom?: ReusedAnswerSource;
 };
 
 
 export type Ranking = {
     answerIds: string[];
     receivedAt: Date | null;
+    isBot?: true;
 };
 
 export type RoundState = {
@@ -41,6 +64,8 @@ export type RoundState = {
     answers: Answer[];
     rankings: Map<string, Ranking>;
     scores?: Map<string, number>;
+    botPlayerIds?: string[]; // Only set on rounds that bots took part in.
+    containsSyntheticAnswers?: true; // A bot planned a pre-generated or random answer.
 };
 
 type Phase = "lobby" | "answering" | "ranking" | "results";

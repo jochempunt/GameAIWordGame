@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test \"server/**/*.test.ts\"",
     "start": "tsx server/server.ts",
     "dev": "pnpm dev:qr && concurrently -n SERVER,VITE \"pnpm dev:server\" \"pnpm dev:client\"",
     "dev:server": "node --env-file=.env --import tsx --watch server/server.ts",

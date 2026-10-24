@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "backgroundRooms": { "min": 3, "max": 4 },
+  "backgroundBotsPerRoom": { "min": 3, "max": 5 },
+  "backgroundRoundIntervalMs": { "min": 120000, "max": 480000 },
+  "backgroundRetargetIntervalMs": { "min": 180000, "max": 600000 },
+  "maxBotOnlyRoundsPerSession": 20,
+  "assistTargetPlayers": { "min": 3, "max": 4 },
+  "assistDelayMs": { "min": 15000, "max": 40000 },
+  "joinGapMs": { "min": 6000, "max": 20000 },
+  "leaveGapMs": { "min": 10000, "max": 45000 },
+  "answerDelayMs": { "min": 10000, "max": 45000 },
+  "rankingDelayMs": { "min": 6000, "max": 22000 },
+  "readyDelayMs": { "min": 4000, "max": 15000 },
+  "catchUpDelayMs": { "min": 1500, "max": 7000 },
+  "deadlineSafetyMs": 4000,
+  "randomAnswerWords": { "min": 2, "max": 6 },
+  "reusedAnswerChance": 0.85,
+  "pregeneratedAnswerChance": 0.75,
+  "reuseCooldownMs": 900000,
+  "minReusableAnswerWords": 2,
+  "emoteChance": 0.12
+}
