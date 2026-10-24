@@ -174,6 +174,47 @@ and words, so the same answer is stored once. The pool is loaded at startup and 
 answers whose words were since removed from `words.txt` are skipped. If an author joins a room after
 bots have already picked their answer, the server hides that answer from them.
 
+## Admin mode
+
+Admins are listed only on the server, in `ADMIN_IDS` in `.env` (comma-separated), and the server
+must be restarted after a change. Each entry is either:
+
+- the **participant ID**: the full 64-character ID. Preferred, because it cannot be used to log in.
+  The bar at the top of the page shows its first 12 characters; the full ID is the matching `_id`
+  in `wordgame.participants`.
+- the **session token**: the UUID in the browser's `localStorage` under `sessionToken`
+  (developer tools → Application → Local Storage). Treat it like a password.
+
+Admin status belongs to the browser session: clearing site data creates a new identity.
+A session is recognised only after its token passes the normal consent check, and the server
+checks every admin request again. Regular players receive no admin data or events, and the page
+contains no admin markup. The admin script is a separate file that the browser only downloads
+once the server has recognised an admin.
+
+The 🛡 Admin button (bottom left) opens the panel:
+
+- **Site totals:** participants online (in a room or not), in rooms, choosing a room, bots,
+  open connections including the consent screen, and admins online.
+- **Rooms:** every room with its phase, humans and bots, lock, watchers and paused bots.
+  The selected room shows its prompt, timer, players (human or bot, participant ID, host,
+  connection and round progress, score) and the answers submitted this round with their provenance.
+- **Watch invisibly:** shows the room's game screen without joining it. The admin is not in the
+  player list or player counts, and cannot act or emote. **Exit** or **Stop watching** ends it.
+- **Moderation:** make any connected player host, kick, or kick and block from that room for an
+  hour (kept in memory only); lock or unlock any room regardless of player count (an admin lock
+  is not lifted automatically when players leave); start a round; end the current phase early
+  (as if its timer ran out); abandon a round; pause bots in one room or everywhere.
+- **Announcements:** a banner message to one room or to everyone online.
+- **Locked rooms:** admins can join them from the room list.
+- **Badges:** while admin tools are shown, player lists and results mark each player as human or bot.
+- **Hide admin tools** removes the panel, badges and lock bypass from the screen, for demos.
+  Bring them back with the faint dot in the bottom-left corner or **Ctrl+Shift+A**.
+  The server remembers the choice until it restarts.
+
+Every admin action is logged to the console and to `wordgame.admin_actions`
+(`adminId`, `action`, `roomId`, `targetPlayerId`, `details`, `at`), separate from the research data.
+If an admin plays as a regular participant, their rounds are recorded like everyone else's.
+
 ## Running locally
 
 requires [Node.js](https://nodejs.org/), [pnpm](https://pnpm.io/), and [Docker](https://www.docker.com/).

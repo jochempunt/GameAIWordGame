@@ -201,6 +201,28 @@ test("bots stay when removing them would stop the remaining humans from playing"
     assert.equal(bots(room).length, 1);
 });
 
+test("paused bots leave between rounds and stop starting rounds, globally or per room", () => {
+    const { rooms, manager, bots, advance } = setup(2, { ...CONFIG, backgroundRooms: fixed(2) });
+    manager.start();
+    assert.ok(rooms.every(room => bots(room).length === 4));
+
+    manager.setPaused(true, rooms[0]);
+    assert.equal(manager.isPaused(rooms[0].id), true);
+    assert.equal(manager.isPaused(), false);
+    advance(16_000 * 5);
+    assert.equal(bots(rooms[0]).length, 0);
+    assert.equal(rooms[0].game.state.phase, "lobby");
+    assert.ok(bots(rooms[1]).length > 0, "the other room keeps its bots");
+
+    manager.setPaused(false, rooms[0]);
+    manager.setPaused(true);
+    // the fake host never finishes rounds, so end one the bots may have started meanwhile
+    rooms[1].game.state.phase = "lobby";
+    advance(16_000 * 5);
+    assert.equal(bots(rooms[1]).length, 0);
+    assert.equal(bots(rooms[0]).length, 0, "the global pause also covers resumed rooms");
+});
+
 test("bots in a round get playable planned answers and never reuse a present human's answer", () => {
     const reusable = new ReusableAnswerPool();
     const answers: ReusableAnswer[] = PROMPTS.flatMap(prompt => ["alice", "zed"].map(authorId => ({

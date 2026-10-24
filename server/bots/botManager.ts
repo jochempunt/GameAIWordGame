@@ -36,6 +36,7 @@ type BotAction = { fireAt: number; timer: NodeJS.Timeout };
 
 type RoomBotState = {
     background: boolean;
+    paused: boolean;
     backgroundTarget: number;
     assistTarget: number;
     nextRetargetAt: number;
@@ -52,22 +53,33 @@ const TICK_MS = 1_000;
 export class BotManager {
     private readonly states = new Map<string, RoomBotState>();
     private ticker: NodeJS.Timeout | null = null;
+    private paused: boolean;
     private readonly config: BotSettings;
     private readonly random: () => number;
     private readonly now: () => number;
 
     constructor(private readonly host: BotHost, private readonly options: BotManagerOptions) {
         this.config = options.config;
+        this.paused = !options.config.enabled;
         this.random = options.random ?? Math.random;
         this.now = options.now ?? Date.now;
     }
 
-    get enabled(): boolean {
-        return this.config.enabled;
+    /**
+     * Paused bots leave between rounds and start no rounds of their own; they still finish a round
+     * in progress. Without a room this is the global pause, with one only that room's own setting.
+     */
+    isPaused(roomId?: string): boolean {
+        return roomId === undefined ? this.paused : this.states.get(roomId)?.paused ?? false;
+    }
+
+    setPaused(paused: boolean, room?: Room): void {
+        if (room) this.state(room).paused = paused;
+        else this.paused = paused;
     }
 
     start(): void {
-        if (!this.enabled || this.ticker) return;
+        if (this.ticker) return;
 
         const rooms = [...this.host.rooms()];
         const count = Math.min(rooms.length, randomInRange(this.config.backgroundRooms, this.random));
@@ -75,7 +87,7 @@ export class BotManager {
             const state = this.state(room);
             state.background = true;
             // populate straight away, so the server never starts with every room empty
-            while (this.botsIn(room).length < state.backgroundTarget && this.addBot(room)) { /* keep adding */ }
+            while (!this.paused && this.botsIn(room).length < state.backgroundTarget && this.addBot(room)) { /* keep adding */ }
         }
         console.log(`Bots populate background rooms: ${[...this.states].filter(([, s]) => s.background).map(([id]) => id).join(", ")}`);
 
@@ -236,9 +248,8 @@ export class BotManager {
     // ---- population, host and autonomous rounds ----
 
     private evaluate(room: Room, now: number): void {
-        if (!this.enabled) return;
-
         const state = this.state(room);
+        const botsAllowed = !this.paused && !state.paused;
         const players = [...room.players.values()];
         const humans = players.filter(player => !player.isBot);
         const bots = players.filter(player => player.isBot);
@@ -274,10 +285,10 @@ export class BotManager {
             humansInRoom: humans.length,
             humansPresent,
             bots: bots.length,
-        });
+        }, botsAllowed);
 
         if (
-            state.background && humans.length === 0 && room.game.state.phase === "lobby"
+            botsAllowed && state.background && humans.length === 0 && room.game.state.phase === "lobby"
             && this.botsIn(room).length >= this.options.minPlayersToStart
             && now >= state.nextAutoRoundAt
         ) {
@@ -294,8 +305,9 @@ export class BotManager {
         state: RoomBotState,
         now: number,
         counts: { humansInRoom: number; humansPresent: number; bots: number },
+        botsAllowed: boolean,
     ): void {
-        const desired = desiredBotCount({
+        const desired = !botsAllowed ? 0 : desiredBotCount({
             ...counts,
             background: state.background,
             backgroundTarget: state.backgroundTarget,
@@ -426,6 +438,7 @@ export class BotManager {
             const now = this.now();
             state = {
                 background: false,
+                paused: false,
                 backgroundTarget: randomInRange(this.config.backgroundBotsPerRoom, this.random),
                 assistTarget: randomInRange(this.config.assistTargetPlayers, this.random),
                 nextRetargetAt: now + randomInRange(this.config.backgroundRetargetIntervalMs, this.random),

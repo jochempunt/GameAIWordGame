@@ -2041,3 +2041,41 @@ h1.prompt {
 #ranking-choices-section {
     touch-action: none;
 }
+/* Server announcements, shown to every player they are sent to. */
+#announcement {
+    position: fixed;
+    z-index: 30;
+    top: calc(2.4rem + env(safe-area-inset-top));
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: min(32rem, calc(100vw - 2rem));
+    padding: 0.6rem 0.6rem 0.6rem 0.9rem;
+    border: 2px solid var(--ink);
+    border-radius: 0.9rem 0.7rem 0.9rem 0.75rem;
+    background: var(--cream-light);
+    box-shadow: 0 4px 0 var(--ink);
+    color: var(--ink);
+    transform: translateX(-50%);
+}
+
+#announcement-text {
+    flex: 1;
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+#announcement-dismiss {
+    flex: none;
+    width: 2rem;
+    min-height: 2rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--muted-ink);
+    font-size: 1.3rem;
+}

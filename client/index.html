@@ -13,6 +13,11 @@
 <body>
     <!-- Stays on screen once consent is given, so participants can quote it when asking to withdraw. -->
     <p id="participant-id" hidden><span>Participant ID: <code id="participant-code"></code></span><a class="participant-consent-link" href="https://survey.uu.nl/jfe/form/SV_aa5oimJFtt2Hf26" target="_blank" rel="noopener">Informed consent</a></p>
+    <div id="announcement" role="status" hidden>
+        <span class="announcement-icon" aria-hidden="true">📣</span>
+        <p id="announcement-text"></p>
+        <button type="button" id="announcement-dismiss" aria-label="Dismiss announcement">×</button>
+    </div>
     <main>
         <header class="game-brand">
             <p class="game-wordmark">Scientists <span class="wordmark-highlight">Explain<sup class="wordmark-citation" aria-hidden="true">[1]</sup></span></p>

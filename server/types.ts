@@ -68,7 +68,7 @@ export type RoundState = {
     containsSyntheticAnswers?: true; // A bot planned a pre-generated or random answer.
 };
 
-type Phase = "lobby" | "answering" | "ranking" | "results";
+export type Phase = "lobby" | "answering" | "ranking" | "results";
 
 export type RoundTimer = {
     endsAt: number;
@@ -186,6 +186,7 @@ export type Room = {
     activePlayerIds: Set<string>;
     hostPlayerId: string | null;
     locked: boolean;
+    adminLocked?: boolean; // locked by an admin: not unlocked automatically when players leave
     stageTimer: NodeJS.Timeout | null;
     stageEndsAt: number | null;
 }
