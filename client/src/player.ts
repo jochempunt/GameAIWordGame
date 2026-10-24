@@ -111,6 +111,9 @@ let timerEndsAtOnClient: number | null = null;
 let timerUpdateInterval: number | null = null;
 
 const MAX_VISIBLE_EMOTES = 4;
+const EMOTE_BUTTON_MIN_SIZE = 54;
+const EMOTE_BUTTON_MAX_SIZE = 68;
+const EMOTE_BUTTON_GAP = 8;
 let emotePointerIsDown = false;
 let suppressNextEmoteButtonClick = false;
 let emoteCooldownTimer: number | undefined;
@@ -264,12 +267,41 @@ function renderEmoteChoices(): void {
         choice.type = "button";
         choice.classList.add("emote-choice");
         choice.dataset.emoteId = emote.id;
-        choice.textContent = emote.icon;
         choice.title = emote.label;
         choice.setAttribute("aria-label", emote.label);
+        const icon = document.createElement("span");
+        icon.classList.add("emote-choice-icon");
+        icon.textContent = emote.icon;
+        const label = document.createElement("span");
+        label.classList.add("emote-choice-label");
+        label.textContent = emote.label;
+        choice.append(icon, label);
         choice.addEventListener("click", () => sendEmote(emote.id));
         emoteMenu.appendChild(choice);
     }
+    layoutEmoteChoices();
+}
+
+function layoutEmoteChoices(): void {
+    const choices = [...emoteMenu.querySelectorAll<HTMLButtonElement>(".emote-choice")];
+    if (choices.length === 0) return;
+
+    const buttonSize = Math.min(EMOTE_BUTTON_MAX_SIZE, Math.max(EMOTE_BUTTON_MIN_SIZE, window.innerWidth * 0.11));
+    const angleStep = Math.PI / (choices.length + 1);
+    const radius = choices.length === 1
+        ? buttonSize + EMOTE_BUTTON_GAP
+        : (buttonSize + EMOTE_BUTTON_GAP) / (2 * Math.sin(angleStep / 2));
+    const menuHeight = 2 * radius + buttonSize;
+
+    emoteMenu.style.setProperty("--emote-button-size", `${buttonSize}px`);
+    emoteMenu.style.setProperty("--emote-radius", `${radius}px`);
+    choices.forEach((choice, index) => {
+        const angle = angleStep * (index + 1);
+        const circularY = (menuHeight / 2) - (radius * Math.cos(angle));
+        const flowY = (buttonSize / 2) + (buttonSize * index);
+        choice.style.setProperty("--emote-x", `${-radius * Math.sin(angle)}px`);
+        choice.style.setProperty("--emote-y", `${circularY - flowY}px`);
+    });
 }
 
 function showEmoteLauncher(): void {
@@ -283,11 +315,13 @@ function hideEmoteLauncher(): void {
 }
 
 function openEmoteMenu(): void {
+    emoteLauncher.classList.add("emote-menu-open");
     emoteMenu.hidden = false;
     emoteButton.setAttribute("aria-expanded", "true");
 }
 
 function closeEmoteMenu(): void {
+    emoteLauncher.classList.remove("emote-menu-open");
     emoteMenu.hidden = true;
     emoteButton.setAttribute("aria-expanded", "false");
 }
@@ -297,7 +331,11 @@ function sendEmote(emoteId: EmoteId): void {
     socket.emit("sendEmote", emoteId, (response: { ok: boolean; cooldownMs?: number; error?: string }) => {
         if (response.ok) return;
 
-        if (response.cooldownMs) setEmoteCooldown(response.cooldownMs);
+        if (response.cooldownMs) {
+            setEmoteCooldown(response.cooldownMs);
+            return;
+        }
+
         showActionError(response.error ?? "Could not send emote");
     });
 }
@@ -334,9 +372,34 @@ function showEmote(emote: { playerId: string; playerName: string; emoteId: Emote
 
 emoteButton.addEventListener("pointerdown", event => {
     if (emoteButton.disabled) return;
+
+    if (!emoteMenu.hidden) {
+        closeEmoteMenu();
+        suppressNextEmoteButtonClick = true;
+        return;
+    }
+
     emotePointerIsDown = true;
     emoteButton.setPointerCapture(event.pointerId);
     openEmoteMenu();
+});
+
+function setHeldEmoteAt(clientX: number, clientY: number): void {
+    const hoveredChoice = document.elementFromPoint(clientX, clientY)
+        ?.closest<HTMLButtonElement>(".emote-choice");
+    for (const choice of emoteMenu.querySelectorAll<HTMLButtonElement>(".emote-choice")) {
+        choice.classList.toggle("emote-choice-held", choice === hoveredChoice);
+    }
+}
+
+function clearHeldEmote(): void {
+    for (const choice of emoteMenu.querySelectorAll<HTMLButtonElement>(".emote-choice")) {
+        choice.classList.remove("emote-choice-held");
+    }
+}
+
+emoteButton.addEventListener("pointermove", event => {
+    if (emotePointerIsDown) setHeldEmoteAt(event.clientX, event.clientY);
 });
 
 emoteButton.addEventListener("pointerup", event => {
@@ -350,10 +413,12 @@ emoteButton.addEventListener("pointerup", event => {
     const choice = document.elementFromPoint(event.clientX, event.clientY)
         ?.closest<HTMLButtonElement>(".emote-choice");
     if (choice?.dataset.emoteId) sendEmote(choice.dataset.emoteId as EmoteId);
+    clearHeldEmote();
 });
 
 emoteButton.addEventListener("pointercancel", () => {
     emotePointerIsDown = false;
+    clearHeldEmote();
 });
 
 emoteButton.addEventListener("click", () => {
@@ -367,6 +432,7 @@ emoteButton.addEventListener("click", () => {
 });
 
 renderEmoteChoices();
+window.addEventListener("resize", layoutEmoteChoices);
 function renderRoundTimer(view: PlayerView): void {
     if (view.phase !== "answering" && view.phase !== "ranking") {
         hideRoundTimer();
