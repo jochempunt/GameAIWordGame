@@ -555,9 +555,15 @@ function renderRoomSettings(view: PlayerView): void {
         return;
     }
 
+    const connectedPlayerCount = view.players.filter(player => player.connected).length;
+    const canLockRoom = connectedPlayerCount >= 3;
     roomLockToggle.dataset.locked = String(view.roomLocked);
     roomLockToggle.textContent = view.roomLocked ? "Unlock room" : "Lock room";
     roomLockToggle.setAttribute("aria-pressed", String(view.roomLocked));
+    roomLockToggle.disabled = !view.roomLocked && !canLockRoom;
+    roomLockToggle.title = canLockRoom || view.roomLocked
+        ? ""
+        : "At least 3 connected players are required to lock the room.";
 
     roomSettingsPlayers.replaceChildren();
     for (const player of view.players) {

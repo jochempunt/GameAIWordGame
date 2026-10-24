@@ -21,6 +21,7 @@ import { hasConsented, recordConsent } from "./database/participantRepository.js
 // ---- Setup ----
 
 const PORT = 3000;
+const MIN_PLAYERS_TO_LOCK_ROOM = 3;
 // Docker sets 0.0.0.0 (see Dockerfile) so the tunnel container can reach the game.
 // Everywhere else only this machine can; phones in development go through the Vite dev server.
 const HOST = process.env.LISTEN_HOST ?? "127.0.0.1";
@@ -820,6 +821,11 @@ function setRoomLocked(
         return;
     }
 
+    if (locked && getConnectedRoomPlayers(room).length < MIN_PLAYERS_TO_LOCK_ROOM) {
+        acknowledge({ ok: false, error: "At least 3 connected players are required to lock the room" });
+        return;
+    }
+
     room.locked = locked;
     acknowledge({ ok: true });
     commitRoomState(room);
@@ -839,6 +845,7 @@ function removePlayerFromRoom(
     room.readyPlayers.delete(player.id);
     room.activePlayerIds.delete(player.id);
     room.players.delete(player.id);
+    unlockRoomIfTooSmall(room);
 
     if (room.players.size === 0) {
         // Archive the previous session before replacing the in-memory game.
@@ -887,6 +894,7 @@ function disconnectPlayer(socket: Socket): void {
 
     player.connected = false;
     player.reconnecting = true;
+    unlockRoomIfTooSmall(room);
     console.log(`Player disconnected: ${player.name} from room ${room.id}`);
 
     scheduleDisconnectTimers(room, player);
@@ -1170,6 +1178,15 @@ function getRoundPlayers(room: Room): Player[] {
     );
 }
 
+function unlockRoomIfTooSmall(room: Room): boolean {
+    if (!room.locked || getConnectedRoomPlayers(room).length >= MIN_PLAYERS_TO_LOCK_ROOM) {
+        return false;
+    }
+
+    room.locked = false;
+    console.log(`Room ${room.id} was unlocked because fewer than ${MIN_PLAYERS_TO_LOCK_ROOM} players remain connected`);
+    return true;
+}
 function getConnectedRoomPlayers(room: Room): Player[] {
     return [...room.players.values()].filter(player => player.connected);
 }
