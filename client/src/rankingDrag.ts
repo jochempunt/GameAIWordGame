@@ -23,7 +23,6 @@ type Drag = {
 /** Whole-card dragging: hold on touch, move on mouse; quick touch swipes scroll. */
 export class RankingDrag {
     private drag: Drag | null = null;
-    private pan: { pointer: number; y: number } | null = null;
     private slot = document.createElement("li");
     private frame: number | undefined;
     private suppressClick = false;
@@ -43,11 +42,9 @@ export class RankingDrag {
         document.addEventListener("pointermove", event => this.move(event), { passive: false });
         document.addEventListener("pointerup", event => this.end(event));
         document.addEventListener("pointercancel", event => {
-            if (event.pointerId === this.pan?.pointer) this.pan = null;
             if (event.pointerId === this.drag?.pointer) this.cancel();
         });
         options.root.addEventListener("lostpointercapture", event => {
-            if (event.pointerId === this.pan?.pointer) this.pan = null;
             if (event.pointerId === this.drag?.pointer) this.cancel();
         });
         options.root.addEventListener("click", event => {
@@ -66,7 +63,6 @@ export class RankingDrag {
     get active(): boolean { return this.drag !== null; }
 
     cancel(notify = true): void {
-        this.pan = null;
         if (!this.drag) return;
         this.cleanup();
         if (notify) this.options.cancel();
@@ -75,21 +71,11 @@ export class RankingDrag {
     private start(event: PointerEvent): void {
         const physicalTarget = document.elementFromPoint(event.clientX, event.clientY);
         const rowTarget = physicalTarget?.closest<HTMLElement>(".ranking-answer-row");
-        if (!rowTarget && physicalTarget && event.pointerType === "touch" && event.isPrimary &&
-            (this.options.target.contains(physicalTarget) || this.options.choicesTarget.contains(physicalTarget))) {
-            // A browser may aim a gap touch at a nearby card with touch-action:none.
-            // Preserve scrolling without interpreting that touch as card selection.
-            this.pan = { pointer: event.pointerId, y: event.clientY };
-            event.preventDefault();
-            this.options.root.setPointerCapture(event.pointerId);
-            return;
-        }
         if (!rowTarget || (!this.options.ranked.contains(rowTarget) && !this.options.choices.contains(rowTarget)) || !event.isPrimary || event.button !== 0 || this.drag || !this.options.allowed()) return;
         const rect = rowTarget.getBoundingClientRect();
         // Mobile browsers can expand a button's touch target into the gap.
         // Only treat a touch physically inside this card as a card gesture.
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) return;
-        event.preventDefault();
         const source = rowTarget.closest<HTMLLIElement>("li[data-answer-id]")!;
         const row = source.querySelector<HTMLElement>(".ranking-answer-row")!;
         this.drag = {
@@ -105,26 +91,20 @@ export class RankingDrag {
             originalMinHeight: this.options.ranked.style.minHeight, ghost: null,
         };
         this.lastPosition = -1;
-        // Capture before hiding a source card, including when dragging its text.
-        this.options.root.setPointerCapture(event.pointerId);
         if (this.drag.touch) {
             this.drag.hold = setTimeout(() => {
                 if (this.drag && !this.drag.scrolling) this.lift();
             }, 220);
+            return;
         }
+        event.preventDefault();
+        // Mouse drags start immediately; touch captures only after a long press.
+        this.options.root.setPointerCapture(event.pointerId);
     }
 
     private move(event: PointerEvent): void {
-        if (this.pan?.pointer === event.pointerId) {
-            event.preventDefault();
-            window.scrollBy(0, this.pan.y - event.clientY);
-            this.pan.y = event.clientY;
-            return;
-        }
         const drag = this.drag;
         if (!drag || event.pointerId !== drag.pointer) return;
-        event.preventDefault();
-        const previousY = drag.y;
         drag.x = event.clientX; drag.y = event.clientY;
         if (!drag.lifted && Math.hypot(drag.x - drag.startX, drag.y - drag.startY) >= 8) {
             if (drag.touch) {
@@ -132,13 +112,15 @@ export class RankingDrag {
                 drag.scrolling = true;
             } else this.lift();
         }
-        if (drag.scrolling) window.scrollBy(0, previousY - drag.y);
+        if (drag.scrolling) return;
+        event.preventDefault();
         if (drag.lifted) this.position();
     }
 
     private lift(): void {
         const drag = this.drag!;
         drag.lifted = true;
+        if (!this.options.root.hasPointerCapture(drag.pointer)) this.options.root.setPointerCapture(drag.pointer);
         this.options.busy();
         const rect = drag.row.getBoundingClientRect();
         drag.row.getAnimations().forEach(animation => animation.cancel());
@@ -201,11 +183,11 @@ export class RankingDrag {
     };
 
     private end(event: PointerEvent): void {
-        if (this.pan?.pointer === event.pointerId) { this.pan = null; return; }
         const drag = this.drag;
         if (!drag || drag.pointer !== event.pointerId) return;
         if (drag.lifted) {
-            drag.x = event.clientX; drag.y = event.clientY;
+            drag.x = event.clientX;
+            drag.y = event.clientY;
             this.position();
         }
         const position = this.slot.isConnected ? this.lastPosition : -1;
@@ -214,10 +196,12 @@ export class RankingDrag {
         const removing = this.removing;
         this.cleanup();
         if (!lifted) {
-            if (!drag.scrolling && drag.tapTarget) {
-                // Capture targets the section; forward an actual tap to its original button.
-                drag.tapTarget.click();
+            if (drag.touch) {
+                // Native touch scrolling/clicking remains in charge until a hold starts a drag.
+                this.suppressClick = false;
+                return;
             }
+            if (!drag.scrolling && drag.tapTarget) drag.tapTarget.click();
             return;
         }
         if (removing) this.options.remove(id);
