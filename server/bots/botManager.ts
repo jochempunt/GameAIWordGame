@@ -46,6 +46,8 @@ type RoomBotState = {
     assistJoins: number; // bots added since the room's humans became short of players
     actions: Map<string, BotAction>;
     plans: { gameId: string; round: number; byBot: Map<string, { words: string[]; origin: AnswerOrigin }> } | null;
+    emoteTimers: Set<NodeJS.Timeout>;
+    greetingsBy: Map<string, number>; // greetings each human has sent in this room
 };
 
 const TICK_MS = 1_000;
@@ -236,12 +238,29 @@ export class BotManager {
         }
     }
 
+    /** A human's emote: bots sometimes greet back, less often each time the same human greets. */
+    onPlayerEmote(room: Room, player: Player, emoteId: string): void {
+        const state = this.states.get(room.id);
+        if (!state || player.isBot || emoteId !== "greeting") return;
+
+        const earlier = state.greetingsBy.get(player.id) ?? 0;
+        state.greetingsBy.set(player.id, earlier + 1);
+        const chance = this.config.greetingReplyChance * this.config.greetingReplyDecay ** earlier;
+        const bot = this.pick(this.botsIn(room));
+        if (!bot || this.random() >= chance) return;
+
+        this.scheduleEmote(room, state, this.config.emoteReplyDelayMs, () => {
+            if (room.players.get(bot.id) === bot) this.host.sendEmote(room, bot, "greeting");
+        });
+    }
+
     /** The room's game was replaced or the room emptied: forget its scheduled bot actions. */
     onRoomReset(room: Room): void {
         const state = this.states.get(room.id);
         if (!state) return;
         this.clearActions(state);
         state.plans = null;
+        state.greetingsBy.clear();
     }
 
 
@@ -391,7 +410,10 @@ export class BotManager {
         };
 
         const chosen = plan ?? fallback();
-        if (this.host.submitAnswer(room, bot, chosen.words, chosen.origin)) return;
+        if (this.host.submitAnswer(room, bot, chosen.words, chosen.origin)) {
+            this.maybeEmoteWhileWaiting(room, bot);
+            return;
+        }
 
         // only retry when the planned words were the problem, not the phase or a duplicate
         const stillExpected = game.state.phase === "answering"
@@ -401,7 +423,27 @@ export class BotManager {
         if (!plan || !stillExpected) return;
 
         const random = fallback();
-        this.host.submitAnswer(room, bot, random.words, random.origin);
+        if (this.host.submitAnswer(room, bot, random.words, random.origin)) this.maybeEmoteWhileWaiting(room, bot);
+    }
+
+    /** A bot that has answered sometimes nudges the others while they are still building theirs. */
+    private maybeEmoteWhileWaiting(room: Room, bot: Player): void {
+        const state = this.states.get(room.id);
+        if (!state || !this.humanConnected(room) || this.random() >= this.config.waitingEmoteChance) return;
+
+        const game = room.game;
+        const round = game.currentRound();
+        this.scheduleEmote(room, state, this.config.waitingEmoteDelayMs, () => {
+            const someoneStillAnswering = [...room.activePlayerIds].some(id =>
+                !round?.answers.some(answer => answer.playerId === id),
+            );
+            if (
+                room.game === game && game.currentRound() === round && game.state.phase === "answering"
+                && room.players.get(bot.id) === bot && someoneStillAnswering
+            ) {
+                this.host.sendEmote(room, bot, this.pick(["impatience", "readiness"])!);
+            }
+        });
     }
 
     private rank(room: Room, bot: Player): void {
@@ -449,6 +491,8 @@ export class BotManager {
                 assistJoins: 0,
                 actions: new Map(),
                 plans: null,
+                emoteTimers: new Set(),
+                greetingsBy: new Map(),
             };
             this.states.set(room.id, state);
         }
@@ -490,9 +534,23 @@ export class BotManager {
         if (this.random() < this.config.emoteChance) this.host.sendEmote(room, bot, emoteId);
     }
 
+    private scheduleEmote(room: Room, state: RoomBotState, delay: Range, run: () => void): void {
+        const timer = setTimeout(() => {
+            state.emoteTimers.delete(timer);
+            try {
+                run();
+            } catch (error) {
+                console.error(`Bot emote failed in room ${room.id}:`, error);
+            }
+        }, randomInRange(delay, this.random));
+        state.emoteTimers.add(timer);
+    }
+
     private clearActions(state: RoomBotState): void {
         for (const action of state.actions.values()) clearTimeout(action.timer);
         state.actions.clear();
+        for (const timer of state.emoteTimers) clearTimeout(timer);
+        state.emoteTimers.clear();
     }
 
     private pick<T>(items: T[]): T | undefined {

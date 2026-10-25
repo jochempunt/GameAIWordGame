@@ -998,14 +998,16 @@ function transferHostFromSocket(
         return;
     }
 
+    // Worded like a passing hiccup: a refusal must not reveal that the target is a bot.
+    const transferFailed = "Host transfer failed. Please try again later.";
     if (room.players.get(targetPlayerId)?.isBot) {
-        acknowledge({ ok: false, error: "Could not transfer host" });
+        acknowledge({ ok: false, error: transferFailed });
         return;
     }
 
     const nextHost = transferHost(room, targetPlayerId);
     if (!nextHost) {
-        acknowledge({ ok: false, error: "Could not transfer host" });
+        acknowledge({ ok: false, error: transferFailed });
         return;
     }
 
@@ -1035,7 +1037,8 @@ function setRoomLocked(
     }
 
     if (locked && getConnectedHumans(room).length < MIN_PLAYERS_TO_LOCK_ROOM) {
-        acknowledge({ ok: false, error: "At least 3 connected players are required to lock the room" });
+        // only humans count here, so naming the requirement would reveal how many players are bots
+        acknowledge({ ok: false, error: "The room can't be locked right now. Please try again later." });
         return;
     }
 
@@ -1091,6 +1094,7 @@ function sendEmote(
     emoteHistory.set(result.player.id, recentEmotes);
     broadcastEmote(result.room, result.player, emote);
     acknowledge({ ok: true });
+    bots.onPlayerEmote(result.room, result.player, emote.id);
 }
 
 function broadcastEmote(

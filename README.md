@@ -152,6 +152,9 @@ and a random value in that range is picked each time.
 | `reuseCooldownMs` | A collected answer is not reused again within this time. |
 | `minReusableAnswerWords` | Shorter human answers are not collected. |
 | `emoteChance` | Chance of a bot emote when it joins or after results (only with humans present). |
+| `greetingReplyChance`, `greetingReplyDecay` | Chance one bot greets back when a human greets; multiplied by the decay for each further greeting from that human. |
+| `waitingEmoteChance` | Chance a bot that has answered sends "Hurry up" or "Ready" while others are still answering. |
+| `emoteReplyDelayMs`, `waitingEmoteDelayMs` | How long before those emotes are sent. |
 
 ### Bots and the research data
 

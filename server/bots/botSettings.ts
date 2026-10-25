@@ -24,17 +24,26 @@ export type BotSettings = {
     reuseCooldownMs: number; // a collected answer is not reused again within this time
     minReusableAnswerWords: number;
     emoteChance: number;
+    greetingReplyChance: number; // chance a bot greets back when a human greets for the first time
+    greetingReplyDecay: number; // multiplies that chance for each further greeting by the same human
+    waitingEmoteChance: number; // after answering, chance of a "hurry up" or "ready" emote
+    emoteReplyDelayMs: Range;
+    waitingEmoteDelayMs: Range;
 };
 
 const RANGE_KEYS = [
     "backgroundRooms", "backgroundBotsPerRoom", "backgroundRoundIntervalMs",
     "backgroundRetargetIntervalMs", "assistTargetPlayers", "assistDelayMs", "joinGapMs",
     "leaveGapMs", "answerDelayMs", "rankingDelayMs", "readyDelayMs", "catchUpDelayMs", "randomAnswerWords",
+    "emoteReplyDelayMs", "waitingEmoteDelayMs",
 ] as const;
 const COUNT_KEYS = [
     "maxBotOnlyRoundsPerSession", "deadlineSafetyMs", "reuseCooldownMs", "minReusableAnswerWords",
 ] as const;
-const CHANCE_KEYS = ["reusedAnswerChance", "pregeneratedAnswerChance", "emoteChance"] as const;
+const CHANCE_KEYS = [
+    "reusedAnswerChance", "pregeneratedAnswerChance", "emoteChance",
+    "greetingReplyChance", "greetingReplyDecay", "waitingEmoteChance",
+] as const;
 const KEYS: (keyof BotSettings)[] = ["enabled", ...RANGE_KEYS, ...COUNT_KEYS, ...CHANCE_KEYS];
 
 const MAX_TIMER_DELAY = 2_147_483_647;

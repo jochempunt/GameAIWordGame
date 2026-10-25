@@ -1,4 +1,4 @@
-import { afterEach, test } from "node:test";
+import { afterEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { Game } from "../game.js";
 import { BotManager } from "./botManager.js";
@@ -35,6 +35,11 @@ const CONFIG: BotSettings = parseBotSettings({
     reuseCooldownMs: 0,
     minReusableAnswerWords: 1,
     emoteChance: 0,
+    greetingReplyChance: 0.3,
+    greetingReplyDecay: 0.5,
+    waitingEmoteChance: 0,
+    emoteReplyDelayMs: fixed(2_000),
+    waitingEmoteDelayMs: fixed(5_000),
 });
 
 function newRoom(id: string): Room {
@@ -56,7 +61,13 @@ function human(id: string): Player {
 }
 
 /** Just enough of the server's room handling to drive the manager. */
-function setup(roomCount = 1, config: BotSettings = CONFIG, reusable = new ReusableAnswerPool()) {
+function setup(
+    roomCount = 1,
+    config: BotSettings = CONFIG,
+    reusable = new ReusableAnswerPool(),
+    random: () => number = Math.random,
+) {
+    const emotes: { roomId: string; playerId: string; emoteId: string }[] = [];
     const rooms = Array.from({ length: roomCount }, (_, index) => newRoom(`R${index}`));
     let clock = 0;
     const host: BotHost = {
@@ -83,7 +94,7 @@ function setup(roomCount = 1, config: BotSettings = CONFIG, reusable = new Reusa
             room.game = new Game();
             for (const player of room.players.values()) room.game.recordPlayer(player.id, player.name, player.isBot === true);
         },
-        sendEmote: () => undefined,
+        sendEmote: (room, player, emoteId) => { emotes.push({ roomId: room.id, playerId: player.id, emoteId }); },
     };
     const join = (room: Room, player: Player) => {
         room.players.set(player.id, player);
@@ -98,6 +109,7 @@ function setup(roomCount = 1, config: BotSettings = CONFIG, reusable = new Reusa
         pregenerated: new PregeneratedPool(new Map(PROMPTS.map(prompt => [prompt, [["the", "cat"], ["oops"]]])), []),
         reusable,
         now: () => clock,
+        random,
     });
     managers.push(manager);
 
@@ -108,7 +120,7 @@ function setup(roomCount = 1, config: BotSettings = CONFIG, reusable = new Reusa
             manager.tick(clock);
         }
     };
-    return { rooms, manager, join, bots, advance };
+    return { rooms, manager, join, bots, advance, emotes };
 }
 
 const managers: BotManager[] = [];
@@ -199,6 +211,37 @@ test("bots stay when removing them would stop the remaining humans from playing"
     assert.equal(bots(room).length, 1);
     advance(300_000);
     assert.equal(bots(room).length, 1);
+});
+
+test("a bot sometimes greets back after a delay, less likely with each greeting from the same human", () => {
+    mock.timers.enable({ apis: ["setTimeout"] });
+    try {
+        // 0.2 is below the first chance (0.3) but above the second (0.15)
+        const { rooms, manager, join, advance, emotes } = setup(1, { ...CONFIG, backgroundRooms: fixed(0) }, undefined, () => 0.2);
+        const [room] = rooms;
+        const alice = human("alice");
+        join(room, alice);
+        join(room, { ...human("bot-a"), isBot: true });
+        advance(1_000);
+
+        manager.onPlayerEmote(room, alice, "greeting");
+        mock.timers.tick(1_999);
+        assert.equal(emotes.length, 0, "the reply waits a moment");
+        mock.timers.tick(1);
+        assert.deepEqual(emotes, [{ roomId: room.id, playerId: "bot-a", emoteId: "greeting" }]);
+
+        manager.onPlayerEmote(room, alice, "greeting");
+        manager.onPlayerEmote(room, alice, "praise");
+        mock.timers.tick(10_000);
+        assert.equal(emotes.length, 1, "a second greeting has only half the chance, and other emotes get no reply");
+
+        // a different human starts again at the full chance
+        manager.onPlayerEmote(room, human("bob"), "greeting");
+        mock.timers.tick(2_000);
+        assert.equal(emotes.length, 2);
+    } finally {
+        mock.timers.reset();
+    }
 });
 
 test("paused bots leave between rounds and stop starting rounds, globally or per room", () => {

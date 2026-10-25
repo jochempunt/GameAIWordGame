@@ -19,5 +19,10 @@
   "pregeneratedAnswerChance": 0.75,
   "reuseCooldownMs": 900000,
   "minReusableAnswerWords": 2,
-  "emoteChance": 0.12
+  "emoteChance": 0.12,
+  "greetingReplyChance": 0.3,
+  "greetingReplyDecay": 0.5,
+  "waitingEmoteChance": 0.08,
+  "emoteReplyDelayMs": { "min": 1500, "max": 5000 },
+  "waitingEmoteDelayMs": { "min": 5000, "max": 20000 }
 }
