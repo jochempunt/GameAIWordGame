@@ -1202,7 +1202,8 @@ h1.prompt {
     background: var(--blue-dark);
 }
 
-#room-lock-toggle {
+#room-lock-toggle,
+#room-bots-toggle {
     width: 100%;
     margin-top: 0.75rem;
     padding: 0.55rem 0.7rem;
@@ -1214,7 +1215,8 @@ h1.prompt {
     font-size: 0.85rem;
 }
 
-#room-lock-toggle[aria-pressed="true"] {
+#room-lock-toggle[aria-pressed="true"],
+#room-bots-toggle[aria-pressed="true"] {
     background: var(--blue-dark);
 }
 
@@ -1325,7 +1327,8 @@ h1.prompt {
     margin-top: 0.25rem;
 }
 
-.you-badge {
+.you-badge,
+.bot-badge {
     display: inline-block;
     margin-left: 0.5rem;
     padding: 0.15rem 0.4rem;
@@ -2040,4 +2043,53 @@ h1.prompt {
 .ranking-draft,
 #ranking-choices-section {
     touch-action: none;
+}
+/* Server announcements, shown to every player they are sent to. */
+#announcement {
+    position: fixed;
+    z-index: 30;
+    top: calc(2.4rem + env(safe-area-inset-top));
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: min(32rem, calc(100vw - 2rem));
+    padding: 0.6rem 0.6rem 0.6rem 0.9rem;
+    border: 2px solid var(--ink);
+    border-radius: 0.9rem 0.7rem 0.9rem 0.75rem;
+    background: var(--cream-light);
+    box-shadow: 0 4px 0 var(--ink);
+    color: var(--ink);
+    transform: translateX(-50%);
+}
+
+#announcement-text {
+    flex: 1;
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+#announcement-dismiss {
+    flex: none;
+    width: 2rem;
+    min-height: 2rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--muted-ink);
+    font-size: 1.3rem;
+}
+
+.bot-badge {
+    background: #C2601F;
+}
+
+#room-bots-hint {
+    margin: 0.35rem 0 0;
+    color: var(--cream);
+    font-size: 0.75rem;
+    line-height: 1.4;
 }

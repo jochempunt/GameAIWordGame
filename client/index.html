@@ -13,6 +13,11 @@
 <body>
     <!-- Stays on screen once consent is given, so participants can quote it when asking to withdraw. -->
     <p id="participant-id" hidden><span>Participant ID: <code id="participant-code"></code></span><a class="participant-consent-link" href="https://survey.uu.nl/jfe/form/SV_aa5oimJFtt2Hf26" target="_blank" rel="noopener">Informed consent</a></p>
+    <div id="announcement" role="status" hidden>
+        <span class="announcement-icon" aria-hidden="true">📣</span>
+        <p id="announcement-text"></p>
+        <button type="button" id="announcement-dismiss" aria-label="Dismiss announcement">×</button>
+    </div>
     <main>
         <header class="game-brand">
             <p class="game-wordmark">Scientists <span class="wordmark-highlight">Explain<sup class="wordmark-citation" aria-hidden="true">[1]</sup></span></p>
@@ -54,6 +59,8 @@
                 <details id="room-settings" hidden>
                     <summary>Room settings</summary>
                     <button type="button" id="room-lock-toggle" hidden>Lock room</button>
+                    <button type="button" id="room-bots-toggle" aria-describedby="room-bots-hint">Disable bots</button>
+                    <p id="room-bots-hint">Bots fill in when fewer than 3 people are here. They leave as more people join, and only between rounds.</p>
                     <details class="room-settings-section" open>
                         <summary>Players</summary>
                         <ul id="room-settings-players" aria-label="Players"></ul>

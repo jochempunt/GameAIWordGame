@@ -1,0 +1,416 @@
+{
+  "anyPrompt": [
+    "i'd eat it",
+    "ask grandma",
+    "it was the cat",
+    "because of the government",
+    "the penguin did it",
+    "suspicious",
+    "maybe a goose",
+    "no . no . no",
+    "oops , my bad",
+    "the landlord"
+  ],
+  "prompts": {
+    "How was gravity actually invented?": [
+      "a wizard fell from the moon",
+      "grandma said down ! and everything fell",
+      "the scientist ate all the cheese then fell",
+      "government invent it to sell more chair",
+      "one big magnet under the planet",
+      "my uncle is a vampire",
+      "the llama won golf",
+      "a hamster in a suit"
+    ],
+    "Why is the sky actually blue?": [
+      "because the moon is sad",
+      "a dragon spill orange soup up",
+      "it is not . you are confused",
+      "the penguin committee said so",
+      "secret laser from the satellite",
+      "grandpa stole my hat",
+      "ninja dentist",
+      "zombie dance party"
+    ],
+    "Why is the ocean salty?": [
+      "a shark cried yesterday",
+      "the chef sprinkle it . oops",
+      "mermaid cry when the pirate leave",
+      "the moon spill the soup",
+      "secret snack business",
+      "the goose is my landlord",
+      "i'd eat a shoe",
+      "pirate wizard"
+    ],
+    "What is the moon doing during daytime?": [
+      "sleep in the basement",
+      "nap with grandpa",
+      "manager at the casino",
+      "hide behind the airport",
+      "it is cheese . it melt",
+      "banana phone",
+      "my cousin is a toaster",
+      "dramatic squirrel"
+    ],
+    "What is really at the end of a rainbow?": [
+      "a very angry landlord",
+      "my tax , in a box",
+      "a llama with a briefcase",
+      "money but it is fake",
+      "a dentist . always a dentist",
+      "the plumber was a robot",
+      "tiny giraffe , huge hat",
+      "elephant on a plane"
+    ],
+    "What are birds actually for?": [
+      "they are government camera",
+      "to steal my sandwich",
+      "pigeon is a spy",
+      "to yell at me today",
+      "snack for the dinosaur",
+      "a monkey with a briefcase",
+      "the mayor is a raccoon",
+      "potato ? potato !"
+    ],
+    "What actually happened to the dinosaurs?": [
+      "they invent the internet and fail",
+      "a comet but also tax",
+      "they escaped to mars",
+      "they were too dramatic",
+      "they are the pigeon now",
+      "sandwich lawyer",
+      "the unicorn sold my car",
+      "taco tonight"
+    ],
+    "What are pigeons discussing at their meetings?": [
+      "who stole the bread",
+      "tax on bread",
+      "how to destroy one car",
+      "the president is a pigeon",
+      "union , snack , union",
+      "never invite a pigeon",
+      "my neighbor is a dragon",
+      "the clown ate my soup"
+    ],
+    "Why do kangaroos have pockets?": [
+      "to steal snack",
+      "for the phone and battery",
+      "secret baby business",
+      "they are lawyer",
+      "to hide the money from the government",
+      "bounce bounce bounce",
+      "elf on a tower",
+      "the butler did it"
+    ],
+    "Why do geese always sound annoyed?": [
+      "the goose has a landlord",
+      "because tax",
+      "they found the secret",
+      "goose is perfect , you are not",
+      "no one invite them to the party",
+      "yodel at the dentist",
+      "a donkey in parliament",
+      "cheese is a lie"
+    ],
+    "Why do cats knock things off tables?": [
+      "for research",
+      "the table is the enemy",
+      "they hate your phone",
+      "the cat is the landlord now",
+      "they test the table",
+      "gorilla knight",
+      "the twins lied",
+      "my roommate is a ghost"
+    ],
+    "Why are moths so attracted to lamps?": [
+      "they owe it money",
+      "it is a party",
+      "they want to be a celebrity",
+      "it is moon but cheap",
+      "they confused it with the moon",
+      "suspicious kettle",
+      "orange vacuum",
+      "the accountant can surf"
+    ],
+    "Why does toast always land butter-side down?": [
+      "the toast is dramatic",
+      "the table want a snack",
+      "secret government toast test",
+      "the cat did it",
+      "toast is scared of you",
+      "llama with a laser",
+      "dog in a hat",
+      "wizard in the basement"
+    ],
+    "Why does cheese have holes?": [
+      "a rat ate some",
+      "so it can float",
+      "cheese is a door for tiny ghost",
+      "the cheese found a laser",
+      "it is cheap cheese",
+      "my teapot has a secret",
+      "the referee is a duck",
+      "penguin party upstairs"
+    ],
+    "What happens inside the fridge when the door closes?": [
+      "party with the ketchup",
+      "the milk and the cheese fight",
+      "the cheese whisper secret",
+      "a tiny man inside eat everything",
+      "union of soup",
+      "mermaid in the laundry",
+      "sing to the fridge",
+      "the intern exploded"
+    ],
+    "What is the secret ingredient in the perfect sandwich?": [
+      "one more sandwich",
+      "grandma secret",
+      "ketchup and nervous",
+      "sorry , it is illegal",
+      "some laundry",
+      "goblin magician",
+      "aunt and uncle , twins",
+      "no"
+    ],
+    "Why do onions make us cry?": [
+      "they found what you did",
+      "it is sad too",
+      "it is a prank",
+      "they are ninja",
+      "government test , again",
+      "oops , sorry",
+      "umbrella hat",
+      "the shark is my boss"
+    ],
+    "How did humans discover pineapple pizza?": [
+      "a pirate trip on a pizza",
+      "accidentally , in prison",
+      "grandma lost a bet",
+      "it was illegal then",
+      "a wizard did it",
+      "a troll stole the toaster",
+      "chicken ! chicken !",
+      "my dog can drive"
+    ],
+    "Where do missing socks go?": [
+      "the dishwasher has a family now",
+      "to the moon on a rocket",
+      "the laundry eat them",
+      "they escaped to the beach",
+      "ask the landlord",
+      "the king of the microwave",
+      "the president of ketchup",
+      "a very big potato"
+    ],
+    "What do shopping carts do after the supermarket closes?": [
+      "race outside",
+      "they dance and wobble",
+      "go to the casino",
+      "secret escape",
+      "they sleep upstairs",
+      "the cowboy cried at the casino",
+      "witch in a hotel",
+      "jester juggle a cake"
+    ],
+    "Why do we forget why we entered a room?": [
+      "a ghost steal it",
+      "the door is a wizard",
+      "the government steal it",
+      "because of the door",
+      "i forgot what i",
+      "knight at the airport",
+      "a squirrel with money",
+      "wobble like a penguin"
+    ],
+    "What happens to deleted files?": [
+      "they go to the basement",
+      "a robot eat them",
+      "they are ghost now",
+      "the internet hide them",
+      "they go to the beach",
+      "the astronaut lost a shoe",
+      "a suitcase of cheese",
+      "my professor is a llama"
+    ],
+    "What is the real purpose of airplane mode?": [
+      "for the plane to sleep",
+      "so the captain can nap",
+      "nothing . it is fake",
+      "to stop the robot",
+      "secret government button",
+      "the zombie said hey",
+      "giraffe , but tiny",
+      "hamster tax"
+    ],
+    "How does a calculator know all the answers?": [
+      "it cheat",
+      "tiny accountant inside",
+      "it guess . always",
+      "algorithm and a wizard",
+      "it ask the chatbot",
+      "dinosaur dentist",
+      "grandma won the race",
+      "the detective ate it"
+    ],
+    "How would you teach a robot to be funny?": [
+      "give it a clown",
+      "it should fall down",
+      "make it heckle the mayor",
+      "you can not . sorry",
+      "the toaster laugh",
+      "vampire mayor",
+      "a goose in a hat",
+      "the chef is a goblin"
+    ],
+    "Describe the future of humanity.": [
+      "robot eat the burger",
+      "we all ride a llama",
+      "everything is a sandwich",
+      "the penguin is the president",
+      "nap , then more nap",
+      "superhero nap",
+      "my phone is a duck",
+      "the orchestra exploded"
+    ],
+    "What will the first tourists on Mars complain about?": [
+      "no restaurant",
+      "the hotel is too expensive",
+      "no internet , no pizza",
+      "the alien are loud",
+      "the beach is weird",
+      "cowboy unicorn",
+      "elephant snack",
+      "the baker is a spy"
+    ],
+    "What will be the most popular job in 100 years?": [
+      "robot dentist",
+      "nap professor",
+      "chatbot lawyer",
+      "pigeon manager",
+      "inspect toast",
+      "a fancy rat",
+      "monkey business",
+      "the jury was a dog"
+    ],
+    "What would you do first as president of the world?": [
+      "ban the dentist",
+      "pizza for all",
+      "nap until tomorrow",
+      "make the goose the king",
+      "tax the moon",
+      "ghost burger",
+      "my aunt is a ninja",
+      "a robot in a suit"
+    ],
+    "What is the worst possible use for AI?": [
+      "a toaster that mock you",
+      "lie to grandma",
+      "chatbot landlord",
+      "robot mayor",
+      "it order pizza for my enemy",
+      "toast . toast",
+      "skate to the moon",
+      "the farmer hate me"
+    ],
+    "What has been hiding from us in the forest for the last 100 years?": [
+      "a goblin with a briefcase",
+      "your landlord",
+      "a very small dragon",
+      "grandpa . he is fine",
+      "a troll union",
+      "wiggle the cat",
+      "the librarian screamed",
+      "an alien in my soup"
+    ],
+    "What is the worst excuse for being late?": [
+      "a goose stole my car",
+      "i was a ghost",
+      "my phone said no",
+      "the door was weird",
+      "i forgot the way",
+      "cheese king",
+      "llama llama llama",
+      "the mascot fell down"
+    ],
+    "What would you do if you could stop time?": [
+      "steal everything",
+      "nap and snack",
+      "finally win at golf",
+      "prank the mayor",
+      "eat all the cake",
+      "a cheap wizard",
+      "my cat is a lawyer",
+      "tiptoe to the fridge"
+    ],
+    "What would be the worst review a hotel could receive?": [
+      "the bed was a dog",
+      "the ghost was nervous",
+      "the basement has a shark",
+      "the chef cried",
+      "very awkward",
+      "a magician stole my car",
+      "the pigeon is a celebrity",
+      "zombie grill party"
+    ],
+    "Describe a sport that should exist.": [
+      "nap race",
+      "goose golf",
+      "juggle a potato",
+      "dramatic tiptoe",
+      "chase the landlord",
+      "the knight is scared of milk",
+      "a donkey in a tie",
+      "the dragon want a taco"
+    ],
+    "What do fish think rain is?": [
+      "the moon cry",
+      "upstairs soup",
+      "a prank from the pigeon",
+      "the government spill",
+      "it is a party upstairs",
+      "my grandma can rap",
+      "duck duck goose",
+      "the hamster is the boss"
+    ],
+    "What is the least impressive superpower?": [
+      "fly but very low",
+      "whisper to the toaster",
+      "always find one shoe",
+      "snore loud",
+      "juggle one potato",
+      "a royal potato",
+      "the captain lost his hat",
+      "goblin in the dishwasher"
+    ],
+    "What is the worst thing to hear from a tour guide?": [
+      "oops , we are lost",
+      "run !",
+      "i'd run",
+      "this is not the way",
+      "the ghost is real",
+      "my enemy is a squirrel",
+      "the princess hate soup",
+      "a monkey with a phone"
+    ],
+    "What should never be written on a birthday cake?": [
+      "you are old",
+      "pay your tax",
+      "sorry about the dog",
+      "this is the end",
+      "suspicious cake",
+      "the troll is nervous",
+      "a fairy in prison",
+      "the referee ate a chair"
+    ],
+    "What are they hiding in Area 51?": [
+      "one alien and a llama",
+      "the real moon",
+      "a very nervous alien",
+      "my shoe",
+      "the secret ketchup",
+      "my partner is a fridge",
+      "a very loud banana",
+      "the butler can float"
+    ]
+  }
+}

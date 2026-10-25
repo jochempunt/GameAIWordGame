@@ -110,6 +110,117 @@ For Docker, rebuild and recreate the game container after editing `settings.json
 (`pnpm docker:dev` locally, or the production deployment command below).
 Credentials and deployment environment variables stay in `.env`.
 
+## Bots
+
+Bots are server-side virtual players (`isBot: true`, no socket) in `server/bots/`. They act through the
+same handlers as sockets, so answer validation, ranking validation, timers and scoring are unchanged.
+Players see a BOT badge next to every bot (lobby, room settings, results), and the host can
+turn bots off for their room in Room settings. Bots then leave between rounds and stay away
+until the room empties; an empty room starts with bots allowed again.
+
+- **Background rooms:** at startup, 3–4 random rooms are filled with bots. While no human is in them,
+  bots mostly sit in the lobby, occasionally start and play a round, and their number drifts slowly.
+- **Assisting humans:** when one or two humans wait in a room, bots join one at a time after a random
+  delay until the room is playable (3–4 participants). As more humans arrive, bots leave one at a time;
+  with `minPlayersToStart` humans present, all of them leave. Bots only join or leave in the lobby,
+  never during a round.
+- **Host:** a bot hosts only while no human is connected; a joining or reconnecting human takes over
+  immediately. Hosts cannot hand the role to a bot, and locking a room needs 3 connected humans.
+- **Answers:** at round start each bot plans its answer and is dealt a hand containing those words.
+  Sources: collected human answers from earlier rounds (preferred, least-used first, never by anyone in
+  the room, not reused within the cooldown, never twice in one round), the preset pool in
+  `server/bots/pregeneratedAnswers.json` (words must exist in `words.txt`; the tests check this),
+  or random words from the hand. Rankings are random permutations.
+
+### Bot settings
+
+`bot_settings.json` in the project root; validated at startup like `settings.json`. Ranges are `{ "min", "max" }`
+and a random value in that range is picked each time.
+
+| Setting | Meaning |
+| --- | --- |
+| `enabled` | Turns bots off entirely. |
+| `backgroundRooms`, `backgroundBotsPerRoom` | How many rooms bots keep alive, and how many bots each. |
+| `backgroundRoundIntervalMs`, `backgroundRetargetIntervalMs` | Pause between autonomous rounds; how often a background room re-rolls its bot count. |
+| `maxBotOnlyRoundsPerSession` | A bot-only session starts a fresh game after this many rounds. |
+| `assistTargetPlayers` | Total participants bots fill a room up to while humans are short. |
+| `assistDelayMs`, `joinGapMs`, `leaveGapMs` | Wait before the first assisting bot; gaps between later joins and between leaves. |
+| `answerDelayMs`, `rankingDelayMs`, `readyDelayMs` | How long a bot takes for each step. |
+| `catchUpDelayMs` | Used instead once every human has finished the step, so they are not kept waiting. |
+| `deadlineSafetyMs` | Bots always act at least this long before the phase timer ends. |
+| `randomAnswerWords` | Length of random-word answers. |
+| `reusedAnswerChance` | Chance a round uses collected human answers when there are any. |
+| `pregeneratedAnswerChance` | Otherwise, chance of a preset answer instead of random words. |
+| `reuseCooldownMs` | A collected answer is not reused again within this time. |
+| `minReusableAnswerWords` | Shorter human answers are not collected. |
+| `emoteChance` | Chance of a bot emote when it joins or after results (only with humans present). |
+| `greetingReplyChance`, `greetingReplyDecay` | Chance one bot greets back when a human greets; multiplied by the decay for each further greeting from that human. |
+| `waitingEmoteChance` | Chance a bot that has answered sends "Hurry up" or "Ready" while others are still answering. |
+| `emoteReplyDelayMs`, `waitingEmoteDelayMs` | How long before those emotes are sent. |
+
+### Bots and the research data
+
+Every answer has an internal provenance: `human_original`, `bot_pregenerated`, `bot_random` or `bot_reused_human`.
+
+| Round | `wordgame.games` | Elsewhere |
+| --- | --- | --- |
+| Humans only | Stored exactly as before (no new fields). | – |
+| Bots presented only reused human answers | Stored, with `research: { botAssisted: true, eligible: true }`, every answer's `provenance` (plus `reusedFrom`: reusable answer id, original author id, original round id) and every ranking's `isBot`. | – |
+| Any pre-generated or random bot answer | Left out; listed in the game's `excludedRounds`. | `wordgame.synthetic_rounds`, marked `eligible: false`, with the same provenance fields. |
+| No humans | Left out; listed in `excludedRounds`. | Not stored. |
+
+When rounds are left out, the stored `state.totals` only count the stored rounds. Bots appear in
+`state.players` with `isBot: true`. Round ids are `<gameId>:<roundNumber>`.
+
+Human answers from any bot-assisted round go to `wordgame.reusable_answers` once the round completes:
+`prompt`, `words` (in order), `authorId`, `sourceGameId`, `sourceRoundNumber`, `sourceRoundId`,
+`sourceAnswerId`, `collectedAt`, `usageCount` and `lastUsedAt`. The `_id` is a hash of author, prompt
+and words, so the same answer is stored once. The pool is loaded at startup and survives restarts;
+answers whose words were since removed from `words.txt` are skipped. If an author joins a room after
+bots have already picked their answer, the server hides that answer from them.
+
+## Admin mode
+
+Admins are listed only on the server, in `ADMIN_IDS` in `.env` (comma-separated), and the server
+must be restarted after a change. Each entry is either:
+
+- the **participant ID**: the full 64-character ID. Preferred, because it cannot be used to log in.
+  The bar at the top of the page shows its first 12 characters; the full ID is the matching `_id`
+  in `wordgame.participants`.
+- the **session token**: the UUID in the browser's `localStorage` under `sessionToken`
+  (developer tools → Application → Local Storage). Treat it like a password.
+
+Admin status belongs to the browser session: clearing site data creates a new identity.
+A session is recognised only after its token passes the normal consent check, and the server
+checks every admin request again. Regular players receive no admin data or events, and the page
+contains no admin markup. The admin script is a separate file that the browser only downloads
+once the server has recognised an admin.
+
+The 🛡 Admin button (bottom left) opens the panel:
+
+- **Site totals:** participants online (in a room or not), in rooms, choosing a room, bots,
+  open connections including the consent screen, and admins online.
+- **Rooms:** every room with its phase, humans and bots, lock, watchers and paused bots.
+  The selected room shows its prompt, timer, players (human or bot, participant ID, host,
+  connection and round progress, score) and the answers submitted this round with their provenance.
+- **Watch invisibly:** shows the room's game screen without joining it. The admin is not in the
+  player list or player counts, and cannot act or emote. **Exit** or **Stop watching** ends it.
+- **Moderation:** make any connected player host, kick, or kick and block from that room for an
+  hour (kept in memory only); lock or unlock any room regardless of player count (an admin lock
+  is not lifted automatically when players leave); start a round; end the current phase early
+  (as if its timer ran out); abandon a round; pause bots in one room or everywhere.
+- **Announcements:** a banner message to one room or to everyone online.
+- **Locked rooms:** admins can join them from the room list.
+- **Badges:** while admin tools are shown, humans get a HUMAN badge, and bot answers in the
+  results show where they came from (preset, random words or reused human answer).
+- **Hide admin tools** removes the panel, badges and lock bypass from the screen, for demos.
+  Bring them back with the faint dot in the bottom-left corner or **Ctrl+Shift+A**.
+  The server remembers the choice until it restarts.
+
+Every admin action is logged to the console and to `wordgame.admin_actions`
+(`adminId`, `action`, `roomId`, `targetPlayerId`, `details`, `at`), separate from the research data.
+If an admin plays as a regular participant, their rounds are recorded like everyone else's.
+
 ## Running locally
 
 requires [Node.js](https://nodejs.org/), [pnpm](https://pnpm.io/), and [Docker](https://www.docker.com/).
@@ -144,6 +255,13 @@ using cryptographically random UUIDs when the browser's `randomUUID` API is unav
 Vite keeps port 5173 fixed so the QR code always matches the development server.
 The game server itself (port 3000) only listens on `127.0.0.1` outside Docker; Vite forwards to it.
 
+
+### Checks
+
+```bash
+pnpm typecheck   # TypeScript, client and server
+pnpm test        # server tests (node:test), no database needed
+```
 
 ### Database commands
 

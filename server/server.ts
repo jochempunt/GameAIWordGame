@@ -9,14 +9,24 @@ import { fileURLToPath } from "node:url";
 
 import { Game, MIN_PLAYERS_TO_START } from "./game.js";
 import { ANSWER_TIME, rankingTimeForPlayerCount } from "./roundTimer.js";
-import type { Player } from "./types.js";
+import type { AnswerOrigin, Player } from "./types.js";
 import { viewForPlayer } from "./views.js";
 import type { Room, RoomSummary } from "./types.js";
 import { connectToDatabase, disconnectFromDatabase } from "./database/db.js";
 import { saveGame, flushGameSaves } from "./database/gameRepository.js";
 import { generatePlayerName } from "./playerNames.js";
 import { hasConsented, recordConsent } from "./database/participantRepository.js";
+import { loadReusableAnswers, reusableAnswerStore } from "./database/reusableAnswerRepository.js";
 import { findEmote } from "../shared/emotes.js";
+import { PROMPTS } from "./prompts.js";
+import { WORD_SET } from "./words.js";
+import { botSettings } from "./bots/botSettings.js";
+import { BotManager } from "./bots/botManager.js";
+import { loadPregeneratedPool, ReusableAnswerPool } from "./bots/answerSources.js";
+import { preferredHost } from "./bots/population.js";
+import { countVisitors, parseAdminIds, playerIdForToken, summarizeRoomForAdmin } from "./admin.js";
+import type { AdminState } from "./admin.js";
+import { recordAdminAction } from "./database/adminActionRepository.js";
 
 
 // ---- Setup ----
@@ -54,6 +64,20 @@ const EMOTE_SPAM_WINDOW_MS = 5_000;
 const EMOTE_SPAM_LIMIT = 3;
 const EMOTE_COOLDOWN_MS = 8_000;
 
+const ADMIN_PUSH_DELAY_MS = 300;
+const ADMIN_BLOCK_MS = 60 * 60_000;
+const ANNOUNCEMENT_MAX_LENGTH = 200;
+const { ids: ADMIN_IDS, invalid: invalidAdminIds } = parseAdminIds(process.env.ADMIN_IDS);
+if (invalidAdminIds.length > 0) {
+    // never echo the entries themselves: they may be session tokens
+    console.warn(`ADMIN_IDS: ignored ${invalidAdminIds.length} invalid entr${invalidAdminIds.length === 1 ? "y" : "ies"} (expected participant IDs or session UUIDs)`);
+}
+console.log(`Admin mode configured for ${ADMIN_IDS.size} participant(s)`);
+const hiddenAdmins = new Set<string>(); // admins who hid their tools, by participant id
+const spectatorRooms = new Map<string, string>(); // admin socket id -> room watched invisibly
+const roomBlocks = new Map<string, Map<string, number>>(); // room id -> player id -> blocked until
+let adminPushTimer: NodeJS.Timeout | null = null;
+
 let shuttingDown = false;
 const disconnectTimers = new Map<string, NodeJS.Timeout[]>();
 const emoteHistory = new Map<string, number[]>();
@@ -73,6 +97,55 @@ for (const code of ROOM_CODES) {
 }
 
 type Ack<T> = (response: T) => void;
+type ActionAck = Ack<{ ok: boolean; error?: string }>;
+
+const reusableAnswers = new ReusableAnswerPool(reusableAnswerStore);
+
+// Bots act through the same handlers as sockets, so they follow every rule humans do.
+function botAction(run: (acknowledge: ActionAck) => void): boolean {
+    let ok = false;
+    run(response => { ok = response.ok; });
+    return ok;
+}
+
+const bots = new BotManager({
+    rooms: () => rooms.values(),
+    usedNames: usedPlayerNames,
+    addPlayer: addBotToRoom,
+    removePlayer: (room, player) => {
+        removePlayerFromRoom(room, player);
+        if (advanceRoomAfterMembershipChange(room)) return;
+        commitRoomState(room);
+    },
+    transferHost: (room, playerId) => {
+        if (transferHost(room, playerId)) commitRoomState(room);
+    },
+    startRound: (room, player) => startRoundAs(room, player),
+    submitAnswer: (room, player, words, origin) =>
+        botAction(acknowledge => submitAnswerAs(room, player, words, acknowledge, origin)),
+    submitRanking: (room, player, answerIds) =>
+        botAction(acknowledge => submitRankingAs(room, player, answerIds, acknowledge)),
+    readyForNextRound: (room, player) =>
+        botAction(acknowledge => readyForNextRoundAs(room, player, acknowledge)),
+    resetGame: (room) => {
+        resetRoomGame(room);
+        for (const player of room.players.values()) {
+            room.game.recordPlayer(player.id, player.name, player.isBot === true);
+        }
+        setActivePlayersForLobby(room);
+        commitRoomState(room);
+    },
+    sendEmote: (room, player, emoteId) => {
+        const emote = findEmote(emoteId);
+        if (emote) broadcastEmote(room, player, emote);
+    },
+}, {
+    config: botSettings,
+    minPlayersToStart: MIN_PLAYERS_TO_START,
+    capacity: settings.maxPlayersPerRoom,
+    pregenerated: loadPregeneratedPool(WORD_SET, settings.wordsPerPlayer, PROMPTS),
+    reusable: reusableAnswers,
+});
 
 function safeAcknowledge<T>(fn: unknown): Ack<T> {  // if something passes non function, we ignore it, so that the server doesnt crash
     return typeof fn === "function" ? (fn as Ack<T>) : () => undefined;
@@ -83,10 +156,6 @@ function validSessionToken(token: unknown): string | undefined {
         && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(token)
         ? token
         : undefined;
-}
-
-function playerIdForToken(token: string): string {
-    return createHash("sha256").update(token).digest("hex");
 }
 
 function hasSocketConsent(socket: Socket, token: unknown): boolean {
@@ -117,6 +186,7 @@ async function checkConsent(
         socket.data.consentedPlayerId = playerId;
         // the stored id, so participants can quote it when asking to withdraw
         acknowledge({ ok: true, consented, participantId: playerId });
+        recognizeAdmin(socket);
     } catch (error) {
         console.error("Could not check participant consent:", error);
         acknowledge({ ok: false, consented: false, error: "Could not verify consent" });
@@ -139,6 +209,7 @@ async function giveConsent(
         await recordConsent(playerId);
         socket.data.consentedPlayerId = playerId;
         acknowledge({ ok: true, participantId: playerId });
+        recognizeAdmin(socket);
     } catch (error) {
         console.error("Could not record participant consent:", error);
         acknowledge({ ok: false, error: "Could not record consent" });
@@ -161,6 +232,7 @@ function roomSummaries(): RoomSummary[] {
 function commitRoomState(room: Room): void {
     persistRoomGame(room);
     pushState(room);
+    bots.onRoomCommitted(room);
 }
 
 function persistRoomGame(room: Room): void {
@@ -173,25 +245,32 @@ function pushRoomSummaries(): void {
     for (const socket of io.sockets.sockets.values()) {
         if (socket.data.consentedPlayerId) socket.emit("rooms", roomSummaries());
     }
+    scheduleAdminPush();
+}
+
+function roomView(room: Room, player: Player) {
+    return viewForPlayer(
+        room.game,
+        player,
+        room.players.values(),
+        room.readyPlayers,
+        room.activePlayerIds,
+        room.hostPlayerId,
+        room.locked,
+        room.stageEndsAt,
+        !bots.isDisabledByHost(room.id),
+    );
 }
 
 function pushState(room: Room): void {
     pushRoomSummaries();
 
-    for (const player of [...room.players.values()].filter(p => p.connected)) {
-        io.to(player.socketId).emit(
-            "state",
-            viewForPlayer(
-                room.game,
-                player,
-                room.players.values(),
-                room.readyPlayers,
-                room.activePlayerIds,
-                room.hostPlayerId,
-                room.locked,
-                room.stageEndsAt,
-            ),
-        );
+    for (const player of [...room.players.values()].filter(p => p.connected && !p.isBot)) {
+        io.to(player.socketId).emit("state", roomView(room, player));
+    }
+
+    for (const [socketId, roomId] of spectatorRooms) {
+        if (roomId === room.id) io.to(socketId).emit("state", spectatorView(room, socketId));
     }
 }
 
@@ -288,13 +367,75 @@ io.on("connection", (socket) => {
         setRoomLocked(socket, locked, safeAcknowledge(acknowledge));
     });
 
+    on("setBotsEnabled", (enabled, acknowledge) => {
+        setBotsEnabled(socket, enabled, safeAcknowledge(acknowledge));
+    });
+
     on("sendEmote", (emoteId, acknowledge) => {
         sendEmote(socket, emoteId, safeAcknowledge(acknowledge));
     });
 
     on("disconnect", () => {
+        stopSpectating(socket);
         disconnectPlayer(socket);
+        scheduleAdminPush();
     });
+
+    // ---- admin (every handler checks isAdmin itself) ----
+
+    on("admin:getState", () => {
+        if (isAdmin(socket)) pushAdminState([socket]);
+    });
+
+    on("admin:setHidden", (hidden, acknowledge) => {
+        adminSetHidden(socket, hidden, safeAcknowledge(acknowledge));
+    });
+
+    on("admin:spectate", (roomId, acknowledge) => {
+        adminSpectate(socket, roomId, safeAcknowledge(acknowledge));
+    });
+
+    on("admin:stopSpectating", (acknowledge) => {
+        const ack = safeAcknowledge<{ ok: boolean }>(acknowledge);
+        if (!isAdmin(socket)) return ack({ ok: false });
+        stopSpectating(socket);
+        ack({ ok: true });
+        scheduleAdminPush();
+    });
+
+    on("admin:kick", (roomId, playerId, block, acknowledge) => {
+        adminKick(socket, roomId, playerId, block === true, safeAcknowledge(acknowledge));
+    });
+
+    on("admin:transferHost", (roomId, playerId, acknowledge) => {
+        adminTransferHost(socket, roomId, playerId, safeAcknowledge(acknowledge));
+    });
+
+    on("admin:setLocked", (roomId, locked, acknowledge) => {
+        adminSetLocked(socket, roomId, locked, safeAcknowledge(acknowledge));
+    });
+
+    on("admin:startRound", (roomId, acknowledge) => {
+        adminStartRound(socket, roomId, safeAcknowledge(acknowledge));
+    });
+
+    on("admin:skipPhase", (roomId, acknowledge) => {
+        adminSkipPhase(socket, roomId, safeAcknowledge(acknowledge));
+    });
+
+    on("admin:returnToLobby", (roomId, acknowledge) => {
+        adminReturnToLobby(socket, roomId, safeAcknowledge(acknowledge));
+    });
+
+    on("admin:setBotsPaused", (roomId, paused, acknowledge) => {
+        adminSetBotsPaused(socket, roomId, paused, safeAcknowledge(acknowledge));
+    });
+
+    on("admin:announce", (roomId, message, acknowledge) => {
+        adminAnnounce(socket, roomId, message, safeAcknowledge(acknowledge));
+    });
+
+    scheduleAdminPush();
 });
 
 
@@ -329,8 +470,13 @@ function joinPlayer(
         return;
     }
 
-    if (room.locked) {
+    if (room.locked && !isAdmin(socket)) {
         acknowledge({ ok: false, error: "Room is locked" });
+        return;
+    }
+
+    if (isBlockedFromRoom(room, socket.data.consentedPlayerId)) {
+        acknowledge({ ok: false, error: "You cannot join this room right now" });
         return;
     }
 
@@ -348,15 +494,7 @@ function joinPlayer(
         return;
     }
 
-    const usedNames = new Set(
-        [...rooms.values()].flatMap(room =>
-            [...room.players.values()].map(player =>
-                player.name.toLowerCase()
-            )
-        )
-    );
-
-    const name = generatePlayerName(usedNames);
+    const name = generatePlayerName(usedPlayerNames());
 
     const player: Player = {
         id: createHash("sha256").update(token).digest("hex"),
@@ -371,9 +509,10 @@ function joinPlayer(
     if (room.game.state.phase === "lobby") {
         room.activePlayerIds.add(player.id);
     }
+    stopSpectating(socket);
     attachSocket(socket, room, player);
 
-    if (!room.hostPlayerId) {
+    if (!hasHumanHost(room)) {
         transferHost(room, player.id);
     }
 
@@ -431,12 +570,13 @@ function rejoinPlayer(
         detachSocket(previousSocket, foundRoom);
     }
 
+    stopSpectating(socket);
     attachSocket(socket, foundRoom, foundPlayer);
     if (foundRoom.game.state.phase === "lobby") {
         foundRoom.activePlayerIds.add(foundPlayer.id);
     }
 
-    if (!foundRoom.hostPlayerId) {
+    if (!hasHumanHost(foundRoom)) {
         transferHost(foundRoom, foundPlayer.id);
     }
 
@@ -452,6 +592,37 @@ function rejoinPlayer(
     }
 
     commitRoomState(foundRoom);
+}
+
+// A bot host only keeps the seat warm: any human taking part takes it over.
+function hasHumanHost(room: Room): boolean {
+    const host = room.hostPlayerId ? room.players.get(room.hostPlayerId) : undefined;
+    return host !== undefined && !host.isBot;
+}
+
+function usedPlayerNames(): Set<string> {
+    return new Set(
+        [...rooms.values()].flatMap(room =>
+            [...room.players.values()].map(player =>
+                player.name.toLowerCase()
+            )
+        )
+    );
+}
+
+function addBotToRoom(room: Room, bot: Player): void {
+    if (room.players.size >= settings.maxPlayersPerRoom) return;
+
+    room.players.set(bot.id, bot);
+    room.game.recordPlayer(bot.id, bot.name, true);
+    if (room.game.state.phase === "lobby") {
+        room.activePlayerIds.add(bot.id);
+    }
+    if (!room.hostPlayerId) {
+        transferHost(room, bot.id);
+    }
+
+    commitRoomState(room);
 }
 
 
@@ -474,7 +645,16 @@ function submitAnswer(
         return;
     }
 
-    const { player, room } = result;
+    submitAnswerAs(result.room, result.player, words, acknowledge);
+}
+
+function submitAnswerAs(
+    room: Room,
+    player: Player,
+    words: unknown,
+    acknowledge: ActionAck,
+    origin?: AnswerOrigin,
+): void {
     const game = room.game;
 
     if (expireStageIfDue(room, "answering")) {
@@ -508,6 +688,7 @@ function submitAnswer(
     const answer = game.submitAnswer(
         player.id,
         words,
+        player.isBot ? origin : undefined,
     );
 
     if (!answer) {
@@ -550,7 +731,15 @@ function submitRanking(
         return;
     }
 
-    const { player, room } = result;
+    submitRankingAs(result.room, result.player, rankedAnswerIds, acknowledge);
+}
+
+function submitRankingAs(
+    room: Room,
+    player: Player,
+    rankedAnswerIds: unknown,
+    acknowledge: ActionAck,
+): void {
     const game = room.game;
 
     if (expireStageIfDue(room, "ranking")) {
@@ -649,6 +838,7 @@ function submitRanking(
         {
             answerIds: rankedAnswerIds,
             receivedAt: new Date(),
+            ...(player.isBot ? { isBot: true as const } : {}),
         },
     );
 
@@ -680,7 +870,14 @@ function readyForNextRound(
         return;
     }
 
-    const { player, room } = result;
+    readyForNextRoundAs(result.room, result.player, acknowledge);
+}
+
+function readyForNextRoundAs(
+    room: Room,
+    player: Player,
+    acknowledge: ActionAck,
+): void {
     const game = room.game;
 
     if (game.state.phase !== "results") {
@@ -727,6 +924,8 @@ function leaveGame(
         error?: string;
     }) => void,
 ): void {
+    // Exit while watching invisibly just stops watching
+    if (stopSpectating(socket)) scheduleAdminPush();
     const result = getPlayerBySocket(socket);
 
     if (!result) {
@@ -772,10 +971,13 @@ function kickPlayer(
         return;
     }
 
-    io.to(target.socketId).emit("kicked");
-    removePlayerFromRoom(room, target);
-
     acknowledge({ ok: true });
+    kickFromRoom(room, target);
+}
+
+function kickFromRoom(room: Room, target: Player): void {
+    if (!target.isBot) io.to(target.socketId).emit("kicked");
+    removePlayerFromRoom(room, target);
 
     if (advanceRoomAfterMembershipChange(room)) {
         return;
@@ -798,6 +1000,11 @@ function transferHostFromSocket(
     const { player, room } = result;
     if (player.id !== room.hostPlayerId) {
         acknowledge({ ok: false, error: "Only the host can transfer host" });
+        return;
+    }
+
+    if (room.players.get(targetPlayerId)?.isBot) {
+        acknowledge({ ok: false, error: "Bots cannot be host" });
         return;
     }
 
@@ -832,12 +1039,38 @@ function setRoomLocked(
         return;
     }
 
-    if (locked && getConnectedRoomPlayers(room).length < MIN_PLAYERS_TO_LOCK_ROOM) {
-        acknowledge({ ok: false, error: "At least 3 connected players are required to lock the room" });
+    if (locked && getConnectedHumans(room).length < MIN_PLAYERS_TO_LOCK_ROOM) {
+        acknowledge({ ok: false, error: `At least ${MIN_PLAYERS_TO_LOCK_ROOM} connected human players are required to lock the room` });
         return;
     }
 
     room.locked = locked;
+    room.adminLocked = false;
+    acknowledge({ ok: true });
+    commitRoomState(room);
+}
+
+// Disabled bots leave between rounds, so a round in progress is always finished.
+function setBotsEnabled(socket: Socket, enabled: unknown, acknowledge: ActionAck): void {
+    const result = getPlayerBySocket(socket);
+    if (!result) {
+        acknowledge({ ok: false, error: "Player not found" });
+        return;
+    }
+
+    const { player, room } = result;
+    if (player.id !== room.hostPlayerId) {
+        acknowledge({ ok: false, error: "Only the host can change room settings" });
+        return;
+    }
+
+    if (typeof enabled !== "boolean") {
+        acknowledge({ ok: false, error: "Invalid bot setting" });
+        return;
+    }
+
+    bots.setDisabledByHost(room, !enabled);
+    console.log(`Room ${room.id}: host ${enabled ? "enabled" : "disabled"} bots`);
     acknowledge({ ok: true });
     commitRoomState(room);
 }
@@ -886,16 +1119,25 @@ function sendEmote(
 
     recentEmotes.push(now);
     emoteHistory.set(result.player.id, recentEmotes);
+    broadcastEmote(result.room, result.player, emote);
+    acknowledge({ ok: true });
+    bots.onPlayerEmote(result.room, result.player, emote.id);
+}
+
+function broadcastEmote(
+    room: Room,
+    player: Player,
+    emote: NonNullable<ReturnType<typeof findEmote>>,
+): void {
     const message = emote.messages[Math.floor(Math.random() * emote.messages.length)];
 
-    io.to(result.room.id).emit("emote", {
-        playerId: result.player.id,
-        playerName: result.player.name,
+    io.to(room.id).emit("emote", {
+        playerId: player.id,
+        playerName: player.name,
         emoteId: emote.id,
         icon: emote.icon,
         message,
     });
-    acknowledge({ ok: true });
 }
 function removePlayerFromRoom(
     room: Room,
@@ -914,15 +1156,10 @@ function removePlayerFromRoom(
     unlockRoomIfTooSmall(room);
 
     if (room.players.size === 0) {
-        // Archive the previous session before replacing the in-memory game.
-        clearStageTimer(room);
-        room.game.abandonCurrentRound();
-        persistRoomGame(room);
-        room.game = new Game();
-        room.readyPlayers.clear();
-        room.activePlayerIds.clear();
+        resetRoomGame(room);
         room.hostPlayerId = null;
         room.locked = false;
+        room.adminLocked = false;
         return;
     }
 
@@ -931,13 +1168,24 @@ function removePlayerFromRoom(
     }
 }
 
+function resetRoomGame(room: Room): void {
+    // Archive the previous session before replacing the in-memory game.
+    clearStageTimer(room);
+    bots.onRoomReset(room);
+    room.game.abandonCurrentRound();
+    persistRoomGame(room);
+    room.game = new Game();
+    room.readyPlayers.clear();
+    room.activePlayerIds.clear();
+}
+
 function transferHost(
     room: Room,
     nextHostPlayerId?: string,
 ): Player | undefined {
     const nextHost = nextHostPlayerId
         ? room.players.get(nextHostPlayerId)
-        : [...room.players.values()].find(candidate => candidate.connected);
+        : preferredHost(room.players.values());
 
     if (!nextHost || !nextHost.connected) {
         // a failed transfer to a specific player keeps the current host
@@ -1031,25 +1279,30 @@ function startRound(socket: Socket): void {
     const result = getPlayerBySocket(socket);
     if (!result) return;
 
-    const { player, room } = result;
+    startRoundAs(result.room, result.player);
+}
+
+function startRoundAs(room: Room, player: Player): boolean {
     const game = room.game;
 
-    if (player.id !== room.hostPlayerId) return;
-    if (game.state.phase !== "lobby") return;
+    if (player.id !== room.hostPlayerId) return false;
+    if (game.state.phase !== "lobby") return false;
 
     setActivePlayersForLobby(room);
-    if (room.activePlayerIds.size < MIN_PLAYERS_TO_START) return;
+    if (room.activePlayerIds.size < MIN_PLAYERS_TO_START) return false;
 
-    if (!game.startRound([...room.activePlayerIds])) return;
+    if (!game.startRound([...room.activePlayerIds])) return false;
 
     const round = game.currentRound();
 
-    if (!round) return;
+    if (!round) return false;
 
+    bots.onRoundStarted(room);
     scheduleStageTimer(room, "answering", ANSWER_TIME);
     console.log(`Room ${room.id} - round ${game.state.round} started`);
 
     commitRoomState(room);
+    return true;
 }
 
 
@@ -1190,6 +1443,7 @@ function finishRound(room: Room): void {
     round.completedAt = new Date();
     room.readyPlayers.clear();
     room.game.state.phase = "results";
+    bots.onRoundFinished(room);
 }
 function advanceRoomAfterMembershipChange(room: Room): boolean {
     tryStartVoting(room);
@@ -1220,6 +1474,11 @@ function tryReturnToLobbyIfReady(room: Room): boolean {
         return false;
     }
 
+    returnRoomToLobby(room);
+    return true;
+}
+
+function returnRoomToLobby(room: Room): void {
     clearStageTimer(room);
     room.game.abandonCurrentRound();
     room.game.state.phase = "lobby";
@@ -1228,7 +1487,6 @@ function tryReturnToLobbyIfReady(room: Room): boolean {
     console.log(`Room ${room.id} returned to lobby`);
 
     commitRoomState(room);
-    return true;
 }
 
 function setActivePlayersForLobby(room: Room): void {
@@ -1245,7 +1503,7 @@ function getRoundPlayers(room: Room): Player[] {
 }
 
 function unlockRoomIfTooSmall(room: Room): boolean {
-    if (!room.locked || getConnectedRoomPlayers(room).length >= MIN_PLAYERS_TO_LOCK_ROOM) {
+    if (!room.locked || room.adminLocked || getConnectedHumans(room).length >= MIN_PLAYERS_TO_LOCK_ROOM) {
         return false;
     }
 
@@ -1255,6 +1513,10 @@ function unlockRoomIfTooSmall(room: Room): boolean {
 }
 function getConnectedRoomPlayers(room: Room): Player[] {
     return [...room.players.values()].filter(player => player.connected);
+}
+// Locking keeps others out, so only humans count: bots must not lock a room against new humans.
+function getConnectedHumans(room: Room): Player[] {
+    return getConnectedRoomPlayers(room).filter(player => !player.isBot);
 }
 //  ---- Helpers ----
 
@@ -1302,15 +1564,326 @@ function getPlayerBySocket(socket: Socket): { player: Player, room: Room } | und
 function getPlayerByToken(token: string): { player: Player, room: Room } | undefined {
     for (const room of rooms.values()) {
         for (const player of room.players.values()) {
-            if (player.token === token) return { player, room };
+            if (!player.isBot && player.token === token) return { player, room };
         }
     }
 
     return undefined;
 }
+// ---- admin ----
+
+// Set only once the session token has passed the consent check and hashes to a configured id.
+function isAdmin(socket: Socket): boolean {
+    return socket.data.isAdmin === true;
+}
+
+function recognizeAdmin(socket: Socket): void {
+    const playerId = socket.data.consentedPlayerId;
+    if (!playerId || !ADMIN_IDS.has(playerId) || isAdmin(socket)) return;
+
+    socket.data.isAdmin = true;
+    console.log(`Admin connected: ${playerId.slice(0, 12)}`);
+    socket.emit("admin:hello");
+    pushAdminState([socket]);
+}
+
+function scheduleAdminPush(): void {
+    if (adminPushTimer || shuttingDown) return;
+    adminPushTimer = setTimeout(() => {
+        adminPushTimer = null;
+        try {
+            pushAdminState();
+        } catch (error) {
+            console.error("Could not send admin state:", error);
+        }
+    }, ADMIN_PUSH_DELAY_MS);
+}
+
+function pushAdminState(targets: Socket[] = [...io.sockets.sockets.values()].filter(isAdmin)): void {
+    if (targets.length === 0) return;
+
+    const spectatorCounts = new Map<string, number>();
+    for (const roomId of spectatorRooms.values()) {
+        spectatorCounts.set(roomId, (spectatorCounts.get(roomId) ?? 0) + 1);
+    }
+    const shared = {
+        serverNow: Date.now(),
+        botsPaused: bots.isPaused(),
+        totals: countVisitors(
+            [...io.sockets.sockets.values()].map(socket => socket.data),
+            rooms.values(),
+            ADMIN_IDS,
+        ),
+        rooms: [...rooms.values()].map(room => summarizeRoomForAdmin(room, {
+            background: bots.isBackgroundRoom(room),
+            botsPaused: bots.isPaused(room.id),
+            botsDisabledByHost: bots.isDisabledByHost(room.id),
+            spectators: spectatorCounts.get(room.id) ?? 0,
+        })),
+    };
+
+    for (const socket of targets) {
+        socket.emit("admin:state", {
+            ...shared,
+            hidden: hiddenAdmins.has(socket.data.consentedPlayerId),
+            spectating: spectatorRooms.get(socket.id) ?? null,
+        } satisfies AdminState);
+    }
+}
+
+function adminRoom(socket: Socket, roomId: unknown, acknowledge: ActionAck): Room | undefined {
+    if (!isAdmin(socket)) {
+        acknowledge({ ok: false, error: "Not allowed" });
+        return undefined;
+    }
+
+    const room = typeof roomId === "string" ? rooms.get(roomId) : undefined;
+    if (!room) acknowledge({ ok: false, error: "Room not found" });
+    return room;
+}
+
+function audit(
+    socket: Socket,
+    action: string,
+    room?: Room,
+    target?: Player,
+    details?: Record<string, unknown>,
+): void {
+    recordAdminAction({
+        adminId: socket.data.consentedPlayerId,
+        action,
+        ...(room ? { roomId: room.id } : {}),
+        ...(target ? { targetPlayerId: target.id } : {}),
+        ...(details ? { details } : {}),
+    });
+}
+
+// An observer outside room.players: the view shows the room, but nobody sees or counts them.
+function spectatorView(room: Room, socketId: string) {
+    return roomView(room, { id: "", token: "", socketId, name: "", connected: true });
+}
+
+function stopSpectating(socket: Socket): boolean {
+    const roomId = spectatorRooms.get(socket.id);
+    if (!roomId) return false;
+
+    spectatorRooms.delete(socket.id);
+    if (socket.data.roomId !== roomId) socket.leave(roomId);
+    return true;
+}
+
+function isBlockedFromRoom(room: Room, playerId: string | undefined): boolean {
+    const blocks = roomBlocks.get(room.id);
+    const until = playerId ? blocks?.get(playerId) : undefined;
+    if (until === undefined) return false;
+    if (until > Date.now()) return true;
+
+    blocks!.delete(playerId!);
+    return false;
+}
+
+function adminSetHidden(socket: Socket, hidden: unknown, acknowledge: ActionAck): void {
+    if (!isAdmin(socket) || typeof hidden !== "boolean") {
+        acknowledge({ ok: false, error: "Not allowed" });
+        return;
+    }
+
+    if (hidden) hiddenAdmins.add(socket.data.consentedPlayerId);
+    else hiddenAdmins.delete(socket.data.consentedPlayerId);
+    acknowledge({ ok: true });
+    scheduleAdminPush();
+}
+
+function adminSpectate(socket: Socket, roomId: unknown, acknowledge: ActionAck): void {
+    const room = adminRoom(socket, roomId, acknowledge);
+    if (!room) return;
+
+    if (getPlayerBySocket(socket)) {
+        acknowledge({ ok: false, error: "Leave your room before watching another one" });
+        return;
+    }
+
+    stopSpectating(socket);
+    spectatorRooms.set(socket.id, room.id);
+    socket.join(room.id); // receives the room's emotes and announcements too
+    audit(socket, "spectate", room);
+    acknowledge({ ok: true });
+    socket.emit("state", spectatorView(room, socket.id));
+    scheduleAdminPush();
+}
+
+function adminKick(
+    socket: Socket,
+    roomId: unknown,
+    playerId: unknown,
+    block: boolean,
+    acknowledge: ActionAck,
+): void {
+    const room = adminRoom(socket, roomId, acknowledge);
+    if (!room) return;
+
+    const target = typeof playerId === "string" ? room.players.get(playerId) : undefined;
+    if (!target) {
+        acknowledge({ ok: false, error: "Player not found" });
+        return;
+    }
+
+    if (block && !target.isBot) {
+        const blocks = roomBlocks.get(room.id) ?? new Map<string, number>();
+        blocks.set(target.id, Date.now() + ADMIN_BLOCK_MS);
+        roomBlocks.set(room.id, blocks);
+    }
+    audit(socket, block ? "kick_and_block" : "kick", room, target);
+    acknowledge({ ok: true });
+    kickFromRoom(room, target);
+}
+
+function adminTransferHost(socket: Socket, roomId: unknown, playerId: unknown, acknowledge: ActionAck): void {
+    const room = adminRoom(socket, roomId, acknowledge);
+    if (!room) return;
+
+    const target = typeof playerId === "string" ? room.players.get(playerId) : undefined;
+    if (!target?.connected) {
+        acknowledge({ ok: false, error: "Only a connected player can become host" });
+        return;
+    }
+    // the bot manager would hand it straight back to a human anyway
+    if (target.isBot && getConnectedHumans(room).length > 0) {
+        acknowledge({ ok: false, error: "Bots only host while no human is connected" });
+        return;
+    }
+
+    transferHost(room, target.id);
+    audit(socket, "transfer_host", room, target);
+    acknowledge({ ok: true });
+    commitRoomState(room);
+}
+
+function adminSetLocked(socket: Socket, roomId: unknown, locked: unknown, acknowledge: ActionAck): void {
+    const room = adminRoom(socket, roomId, acknowledge);
+    if (!room) return;
+
+    if (typeof locked !== "boolean") {
+        acknowledge({ ok: false, error: "Invalid lock setting" });
+        return;
+    }
+
+    // no minimum player count, and it stays locked until someone unlocks it
+    room.locked = locked;
+    room.adminLocked = locked;
+    audit(socket, locked ? "lock" : "unlock", room);
+    acknowledge({ ok: true });
+    commitRoomState(room);
+}
+
+function adminStartRound(socket: Socket, roomId: unknown, acknowledge: ActionAck): void {
+    const room = adminRoom(socket, roomId, acknowledge);
+    if (!room) return;
+
+    const host = room.hostPlayerId ? room.players.get(room.hostPlayerId) : undefined;
+    if (room.game.state.phase !== "lobby") {
+        acknowledge({ ok: false, error: "A round is already in progress" });
+        return;
+    }
+    if (!host || !startRoundAs(room, host)) {
+        acknowledge({ ok: false, error: `At least ${MIN_PLAYERS_TO_START} connected players and a host are needed` });
+        return;
+    }
+
+    audit(socket, "start_round", room);
+    acknowledge({ ok: true });
+}
+
+function adminSkipPhase(socket: Socket, roomId: unknown, acknowledge: ActionAck): void {
+    const room = adminRoom(socket, roomId, acknowledge);
+    if (!room) return;
+
+    const phase = room.game.state.phase;
+    if (phase === "lobby") {
+        acknowledge({ ok: false, error: "Nothing to skip in the lobby" });
+        return;
+    }
+
+    audit(socket, "skip_phase", room, undefined, { phase });
+    acknowledge({ ok: true });
+    // same as the timer running out: whoever has not acted yet sits out the rest of the round
+    if (phase === "results") returnRoomToLobby(room);
+    else expireStage(room, phase, room.game.state.round);
+}
+
+function adminReturnToLobby(socket: Socket, roomId: unknown, acknowledge: ActionAck): void {
+    const room = adminRoom(socket, roomId, acknowledge);
+    if (!room) return;
+
+    if (room.game.state.phase === "lobby") {
+        acknowledge({ ok: false, error: "The room is already in the lobby" });
+        return;
+    }
+
+    audit(socket, "return_to_lobby", room, undefined, { phase: room.game.state.phase });
+    acknowledge({ ok: true });
+    returnRoomToLobby(room);
+}
+
+function adminSetBotsPaused(socket: Socket, roomId: unknown, paused: unknown, acknowledge: ActionAck): void {
+    if (typeof paused !== "boolean") {
+        acknowledge({ ok: false, error: "Invalid bot setting" });
+        return;
+    }
+
+    if (roomId === null) {
+        if (!isAdmin(socket)) {
+            acknowledge({ ok: false, error: "Not allowed" });
+            return;
+        }
+        bots.setPaused(paused);
+        audit(socket, paused ? "pause_bots" : "resume_bots");
+    } else {
+        const room = adminRoom(socket, roomId, acknowledge);
+        if (!room) return;
+        bots.setPaused(paused, room);
+        audit(socket, paused ? "pause_bots" : "resume_bots", room);
+    }
+
+    acknowledge({ ok: true });
+    scheduleAdminPush();
+}
+
+function adminAnnounce(socket: Socket, roomId: unknown, message: unknown, acknowledge: ActionAck): void {
+    const text = typeof message === "string" ? message.trim().slice(0, ANNOUNCEMENT_MAX_LENGTH) : "";
+    if (!text) {
+        acknowledge({ ok: false, error: "Write a message first" });
+        return;
+    }
+
+    if (roomId === null) {
+        if (!isAdmin(socket)) {
+            acknowledge({ ok: false, error: "Not allowed" });
+            return;
+        }
+        for (const other of io.sockets.sockets.values()) {
+            if (other.data.consentedPlayerId) other.emit("announcement", { message: text });
+        }
+        audit(socket, "announce", undefined, undefined, { message: text });
+    } else {
+        const room = adminRoom(socket, roomId, acknowledge);
+        if (!room) return;
+        io.to(room.id).emit("announcement", { message: text });
+        audit(socket, "announce", room, undefined, { message: text });
+    }
+
+    acknowledge({ ok: true });
+}
+
 // ---- Startup and shutdown ----
 async function startServer(): Promise<void> {
     await connectToDatabase();
+    // answers whose words left words.txt can no longer be dealt
+    reusableAnswers.load((await loadReusableAnswers()).filter(answer =>
+        answer.words.length <= settings.wordsPerPlayer && answer.words.every(word => WORD_SET.has(word)),
+    ));
+    console.log(`Loaded ${reusableAnswers.size} reusable human answer(s) for bots`);
+    bots.start();
     httpServer.listen(PORT, HOST, () => {
         console.log(`Game server running on port ${PORT}`);
     });
@@ -1321,6 +1894,8 @@ async function shutdown(): Promise<void> {
     shuttingDown = true;
 
     try {
+        bots.stop();
+        if (adminPushTimer) clearTimeout(adminPushTimer);
         for (const playerId of disconnectTimers.keys()) {
             clearDisconnectTimers(playerId);
         }

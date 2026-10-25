@@ -1,0 +1,382 @@
+/* Admin tools; only loaded for sessions the server recognises as admins. */
+
+/* On :root because badges are also placed on the regular game screen. */
+:root {
+    --admin-accent: #7A4FB5;
+    --admin-accent-dark: #5D3A8C;
+    --admin-bot: #C2601F;
+}
+
+.admin-hidden .admin-open,
+.admin-hidden .admin-panel,
+.admin-hidden .admin-watch-banner {
+    display: none !important;
+}
+
+.admin-restore {
+    display: none;
+}
+
+/* A barely visible corner dot brings the tools back on phones, which have no keyboard shortcut. */
+.admin-hidden .admin-restore {
+    position: fixed;
+    z-index: 40;
+    bottom: calc(0.4rem + env(safe-area-inset-bottom));
+    left: 0.4rem;
+    display: block;
+    width: 1.1rem;
+    min-height: 1.1rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--cream-light);
+    box-shadow: none;
+    opacity: 0.12;
+}
+
+.admin-open {
+    position: fixed;
+    z-index: 40;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    left: 0.75rem;
+    padding: 0.5rem 0.8rem;
+    border: 1px solid var(--admin-accent-dark);
+    border-radius: 0.6rem;
+    background: var(--admin-accent);
+    box-shadow: 0 3px 0 var(--admin-accent-dark);
+    color: var(--cream-light);
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.admin-watch-banner {
+    position: fixed;
+    z-index: 35;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    left: 50%;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    max-width: calc(100vw - 9rem);
+    padding: 0.45rem 0.5rem 0.45rem 0.8rem;
+    border-radius: 0.6rem;
+    background: var(--admin-accent-dark);
+    color: var(--cream-light);
+    font-size: 0.8rem;
+    font-weight: 700;
+    transform: translateX(-50%);
+}
+
+.admin-panel {
+    position: fixed;
+    z-index: 45;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(26rem, 100vw);
+    padding: calc(0.9rem + env(safe-area-inset-top)) 0.9rem calc(1.5rem + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    border-right: 3px solid var(--admin-accent);
+    background: var(--cream-light);
+    box-shadow: 4px 0 24px rgb(50 62 47 / 30%);
+    color: var(--ink);
+    font-size: 0.85rem;
+    text-align: left;
+}
+
+.admin-panel h2,
+.admin-panel h3,
+.admin-panel h4 {
+    margin: 0;
+    color: var(--ink);
+}
+
+.admin-panel h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.admin-panel h4 {
+    margin: 0.9rem 0 0.4rem;
+    font-size: 0.85rem;
+}
+
+.admin-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-panel-header h2 {
+    flex: 1;
+    color: var(--admin-accent-dark);
+    font-size: 1.2rem;
+}
+
+.admin-close {
+    width: 2.2rem;
+    min-height: 2.2rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--muted-ink);
+    font-size: 1.5rem;
+}
+
+.admin-status {
+    min-height: 1.2rem;
+    margin: 0.4rem 0;
+    color: var(--success);
+    font-weight: 700;
+}
+
+.admin-status-error {
+    color: var(--error);
+}
+
+.admin-section {
+    margin-top: 0.9rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--tile-border);
+}
+
+.admin-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin: 0;
+}
+
+.admin-stat {
+    padding: 0.45rem 0.5rem;
+    border: 1px solid var(--tile-border);
+    border-radius: 0.5rem;
+    background: var(--tile);
+}
+
+.admin-stat dt {
+    color: var(--muted-ink);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.admin-stat dd {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-button {
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--blue-dark);
+    border-radius: 0.5rem;
+    background: var(--blue);
+    box-shadow: 0 2px 0 var(--blue-dark);
+    color: var(--cream-light);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.admin-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.admin-button-small {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.72rem;
+}
+
+.admin-button-active {
+    background: var(--admin-accent);
+    border-color: var(--admin-accent-dark);
+    box-shadow: 0 2px 0 var(--admin-accent-dark);
+}
+
+.admin-button-danger {
+    border-color: #8C2328;
+    background: var(--error);
+    box-shadow: 0 2px 0 #8C2328;
+}
+
+.admin-actions,
+.admin-player-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+/* The game styles every form, input and form button for its own screens; undo that here. */
+.admin-announce {
+    flex-direction: row;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+}
+
+.admin-announce input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--tile-border);
+    border-radius: 0.5rem;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.85rem;
+    text-align: left;
+}
+
+.admin-announce .admin-button {
+    width: auto;
+}
+
+.admin-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+    color: var(--muted-ink);
+    font-size: 0.8rem;
+}
+
+.admin-checkbox input {
+    width: auto;
+    margin: 0;
+    padding: 0;
+}
+
+.admin-room-list,
+.admin-players,
+.admin-answers {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.admin-room-row {
+    display: grid;
+    grid-template-columns: 3.5rem 5rem 1fr auto;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--tile-border);
+    border-radius: 0.5rem;
+    background: var(--tile);
+    box-shadow: none;
+    color: var(--ink);
+    font-size: 0.8rem;
+    text-align: left;
+}
+
+.admin-room-row-selected {
+    border-color: var(--admin-accent);
+    background: #EFE4F7;
+}
+
+.admin-room-phase,
+.admin-room-flags {
+    color: var(--muted-ink);
+}
+
+.admin-room-summary,
+.admin-prompt {
+    margin: 0.3rem 0 0.6rem;
+    color: var(--muted-ink);
+}
+
+.admin-prompt {
+    color: var(--ink);
+    font-style: italic;
+}
+
+.admin-players li,
+.admin-answers li {
+    display: grid;
+    gap: 0.4rem;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--tile-border);
+    border-radius: 0.5rem;
+    background: #fff;
+}
+
+.admin-player-away {
+    opacity: 0.6;
+}
+
+.admin-player-identity {
+    display: grid;
+    gap: 0.15rem;
+}
+
+.admin-player-name,
+.admin-answer-author {
+    font-weight: 800;
+}
+
+.admin-player-id {
+    color: var(--muted-ink);
+    font-size: 0.72rem;
+}
+
+.admin-player-status {
+    color: var(--muted-ink);
+    font-size: 0.75rem;
+}
+
+.admin-answer-words {
+    font-size: 0.9rem;
+}
+
+.admin-empty {
+    color: var(--muted-ink);
+}
+
+.admin-badge {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: 0.3rem;
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+}
+
+.admin-badge-bot {
+    background: var(--admin-bot);
+}
+
+.admin-badge-human {
+    background: var(--success);
+}
+
+.admin-badge-you {
+    background: var(--ink);
+}
+
+@media (max-width: 600px) {
+    .admin-panel {
+        top: auto;
+        right: 0;
+        width: 100vw;
+        max-height: 80vh;
+        border-top: 3px solid var(--admin-accent);
+        border-right: 0;
+        border-radius: 1rem 1rem 0 0;
+    }
+
+    .admin-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-watch-banner {
+        bottom: calc(3.75rem + env(safe-area-inset-bottom));
+        max-width: calc(100vw - 1.5rem);
+    }
+}

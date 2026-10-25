@@ -5,8 +5,13 @@ import { RankingPicker } from "./ranking.js";
 import { createSessionToken } from "./sessionToken.js";
 import { EMOTES, type EmoteId } from "../../shared/emotes.js";
 import type { PlayerView, RoomSummary } from "../../server/types.js";
+import type { AdminHooks } from "./admin.js";
 
 const socket = io({ autoConnect: false });
+
+// Loaded only when the server recognises this session as an admin; it checks every admin action itself.
+let admin: AdminHooks | null = null;
+let adminLoading = false;
 
 function setPageTitle(label: string, round?: number): void {
     const context = round === undefined ? label : `Round ${round} · ${label}`;
@@ -49,10 +54,14 @@ const emoteFeed = document.querySelector<HTMLElement>("#emote-feed")!;
 const emoteLauncher = document.querySelector<HTMLElement>("#emote-launcher")!;
 const emoteMenu = document.querySelector<HTMLElement>("#emote-menu")!;
 const emoteButton = document.querySelector<HTMLButtonElement>("#emote-button")!;
+const announcement = document.querySelector<HTMLElement>("#announcement")!;
+const announcementText = document.querySelector<HTMLElement>("#announcement-text")!;
+const announcementDismiss = document.querySelector<HTMLButtonElement>("#announcement-dismiss")!;
 
 const roomSettings = document.querySelector<HTMLDetailsElement>("#room-settings")!;
 const roomSettingsPlayers = document.querySelector<HTMLUListElement>("#room-settings-players")!;
 const roomLockToggle = document.querySelector<HTMLButtonElement>("#room-lock-toggle")!;
+const roomBotsToggle = document.querySelector<HTMLButtonElement>("#room-bots-toggle")!;
 const joinView = document.querySelector<HTMLElement>("#join-view")!;
 const lobbyView = document.querySelector<HTMLElement>("#lobby-view")!;
 const playingView = document.querySelector<HTMLElement>("#playing-view")!;
@@ -217,12 +226,45 @@ socket.on("emote", (emote: { playerId: string; playerName: string; emoteId: Emot
     showEmote(emote);
 });
 
+const ANNOUNCEMENT_DURATION = 15_000;
+let announcementTimer: number | undefined;
+
+socket.on("announcement", ({ message }: { message: string }) => {
+    announcementText.textContent = message;
+    announcement.hidden = false;
+    window.clearTimeout(announcementTimer);
+    announcementTimer = window.setTimeout(() => { announcement.hidden = true; }, ANNOUNCEMENT_DURATION);
+});
+announcementDismiss.addEventListener("click", () => {
+    announcement.hidden = true;
+});
+
+socket.on("admin:hello", () => {
+    if (admin || adminLoading) return;
+    adminLoading = true;
+    void import("./admin.js").then(module => {
+        admin = module.initAdmin({ socket, returnToRoomSelection, refreshRoomCards: renderRoomCards });
+        renderRoomCards();
+    }).finally(() => {
+        adminLoading = false;
+    });
+});
+
 roomLockToggle.addEventListener("click", () => {
     const locked = roomLockToggle.dataset.locked === "true";
     roomLockToggle.disabled = true;
     socket.emit("setRoomLocked", !locked, (response: { ok: boolean; error?: string }) => {
         roomLockToggle.disabled = false;
         if (!response.ok) showActionError(response.error ?? "Could not update room lock");
+    });
+});
+
+roomBotsToggle.addEventListener("click", () => {
+    const enabled = roomBotsToggle.dataset.enabled === "true";
+    roomBotsToggle.disabled = true;
+    socket.emit("setBotsEnabled", !enabled, (response: { ok: boolean; error?: string }) => {
+        roomBotsToggle.disabled = false;
+        if (!response.ok) showActionError(response.error ?? "Could not change the bot setting");
     });
 });
 
@@ -255,8 +297,9 @@ function render(view: PlayerView): void {
         renderResults(view);
         break;
     }
-    
+
     hasRenderedOnce = true;
+    admin?.afterRender(view);
 }
 
 
@@ -582,12 +625,13 @@ function renderRoomCards(): void {
         count.className = "room-player-count";
         count.textContent = `${room.playerCount} / ${room.capacity} players joined`;
         const full = room.playerCount >= room.capacity;
-        const locked = room.locked;
+        const locked = room.locked && !admin?.canBypassLock;
         const status = document.createElement("p");
         status.className = "room-card-status";
         status.textContent = locked ? "Room locked" : full ? "Room full" : room.phase !== "lobby"
             ? "Round in progress · Join to watch"
             : room.playerCount === 0 ? "Be the first to join" : "In the lobby · Come on in";
+        if (room.locked && !locked) status.textContent = "Locked · admins can still join";
 
         const button = document.createElement("button");
         button.type = "submit";
@@ -613,7 +657,7 @@ joinForm.addEventListener("submit", (event: SubmitEvent) => {
 */        
     if (!roomId || joiningRoomId !== null || !socket.connected) return;
     const room = rooms.find(candidate => candidate.id === roomId);
-    if (room?.locked) {
+    if (room?.locked && !admin?.canBypassLock) {
         window.alert(`Room ${roomId} is locked. Ask the host to unlock it before joining.`);
         return;
     }
@@ -686,7 +730,9 @@ function renderRoomOverview(view: PlayerView): void {
         const name = document.createElement("span");
         name.classList.add("leaderboard-name");
         name.textContent = player.name;
+        name.dataset.playerId = player.id;
         appendYouBadge(name, player.id === view.playerId);
+        appendBotBadge(name, player.isBot);
         identity.appendChild(name);
 
         const status = playerStatusText(player, view.phase);
@@ -747,15 +793,19 @@ function renderRoomSettings(view: PlayerView): void {
         return;
     }
 
-    const connectedPlayerCount = view.players.filter(player => player.connected).length;
-    const canLockRoom = connectedPlayerCount >= 3;
+    // bots do not count: locking keeps people out, and bots could otherwise hold a room on their own
+    const connectedHumanCount = view.players.filter(player => player.connected && !player.isBot).length;
+    const canLockRoom = connectedHumanCount >= 3;
+    roomBotsToggle.dataset.enabled = String(view.botsEnabled);
+    roomBotsToggle.textContent = view.botsEnabled ? "Disable bots" : "Enable bots";
+    roomBotsToggle.setAttribute("aria-pressed", String(!view.botsEnabled));
     roomLockToggle.dataset.locked = String(view.roomLocked);
     roomLockToggle.textContent = view.roomLocked ? "Unlock room" : "Lock room";
     roomLockToggle.setAttribute("aria-pressed", String(view.roomLocked));
     roomLockToggle.disabled = !view.roomLocked && !canLockRoom;
     roomLockToggle.title = canLockRoom || view.roomLocked
         ? ""
-        : "At least 3 connected players are required to lock the room.";
+        : "At least 3 connected human players are required to lock the room.";
 
     roomSettingsPlayers.replaceChildren();
     for (const player of view.players) {
@@ -764,6 +814,8 @@ function renderRoomSettings(view: PlayerView): void {
 
         const name = document.createElement("span");
         name.textContent = player.name;
+        name.dataset.playerId = player.id;
+        appendBotBadge(name, player.isBot);
 
         const status = document.createElement("span");
         status.className = "room-settings-player-status";
@@ -781,7 +833,7 @@ function renderRoomSettings(view: PlayerView): void {
         const transferButton = document.createElement("button");
         transferButton.type = "button";
         transferButton.textContent = "Transfer host";
-        transferButton.disabled = player.isHost || !player.connected;
+        transferButton.disabled = player.isHost || !player.connected || player.isBot;
         transferButton.addEventListener("click", () => emitHostPlayerAction("transferHost", player.id));
 
         controls.append(kickButton, transferButton);
@@ -868,6 +920,15 @@ function renderLobby(view: ViewOf<"lobby">): void {
     startRoundRequirement.textContent = view.lobbyCount < view.playerCount
         ? "Everyone must click Next before the next round can start."
         : `Min. ${settings.minPlayersToStart} Players to Start`;
+}
+
+function appendBotBadge(element: HTMLElement, isBot: boolean): void {
+    if (!isBot) return;
+    const badge = document.createElement("span");
+    badge.classList.add("bot-badge");
+    badge.textContent = "BOT";
+    badge.title = "Computer player";
+    element.appendChild(badge);
 }
 
 function appendYouBadge(element: HTMLElement, isYou: boolean): void {
@@ -996,9 +1057,11 @@ function renderRoundResults(
         const playerName = document.createElement("span");
         playerName.classList.add("result-player");
         playerName.textContent = `[${index + 1}] ${result.playerName}`;
+        playerName.dataset.playerId = result.playerId;
         const isYou = result.playerId === view.playerId;
         appendYouBadge(playerName, isYou);
-        playerName.setAttribute("aria-label", `Source ${index + 1}: ${result.playerName}${isYou ? " (you)" : ""}`);
+        appendBotBadge(playerName, result.isBot);
+        playerName.setAttribute("aria-label", `Source ${index + 1}: ${result.playerName}${isYou ? " (you)" : result.isBot ? " (bot)" : ""}`);
         
         const answer = document.createElement("span");
         answer.classList.add("result-answer");

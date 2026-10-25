@@ -4,6 +4,7 @@ import { PROMPTS } from "./prompts.js";
 
 import type {
     Answer,
+    AnswerOrigin,
     GameState,
     Ranking,
     RoundState,
@@ -23,7 +24,7 @@ export class Game {
         totals: new Map<string, number>()
     };
     
-    recordPlayer(playerId: string, name: string): void {
+    recordPlayer(playerId: string, name: string, isBot = false): void {
         if (this.state.players.has(playerId)) {
             return;
         }
@@ -32,7 +33,12 @@ export class Game {
             id: playerId,
             name,
             joinedAt: new Date(),
+            ...(isBot ? { isBot: true as const } : {}),
         });
+    }
+
+    isBot(playerId: string): boolean {
+        return this.state.players.get(playerId)?.isBot === true;
     }
 
     
@@ -54,17 +60,20 @@ startRound(playerIds: string[] = []): boolean {
 
     this.state.round++;
 
+    const uniquePlayerIds = [...new Set(playerIds)];
+    const botPlayerIds = uniquePlayerIds.filter(id => this.isBot(id));
     const round: RoundState = {
         status: "in_progress",
         startedAt: new Date(),
         completedAt: null,
         prompt: this.randomPrompt(),
         wordsAvailable: new Map(
-            [...new Set(playerIds)].map(id => [id, dealWords()]),
+            uniquePlayerIds.map(id => [id, dealWords()]),
         ),
-        playerIds: [...new Set(playerIds)],
+        playerIds: uniquePlayerIds,
         answers: [],
         rankings: new Map<string, Ranking>(),
+        ...(botPlayerIds.length > 0 ? { botPlayerIds } : {}),
     };
 
     this.state.rounds.set(this.state.round, round);
@@ -74,9 +83,26 @@ startRound(playerIds: string[] = []): boolean {
 }
     
     
+    // Replace a bot's hand before it answers, so its planned answer is made of dealt words.
+    redealHand(playerId: string, requiredWords: string[]): boolean {
+        const round = this.currentRound();
+        if (
+            this.state.phase !== "answering"
+            || !round
+            || !round.wordsAvailable.has(playerId)
+            || round.answers.some(answer => answer.playerId === playerId)
+        ) {
+            return false;
+        }
+
+        round.wordsAvailable.set(playerId, dealWords(requiredWords));
+        return true;
+    }
+
     submitAnswer(
         playerId: string,
         words: string[],
+        origin?: AnswerOrigin,
     ): Answer | undefined {
         if (this.state.phase !== "answering") {
             return undefined;
@@ -106,6 +132,7 @@ startRound(playerIds: string[] = []): boolean {
             playerId,
             words,
             receivedAt: new Date(),
+            ...origin,
         };
         
         round.answers.push(answer);
