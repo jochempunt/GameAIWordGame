@@ -50,7 +50,7 @@ test("the admin room summary tells bots from humans and shows answer provenance"
     r.game.redealHand("bot-1", ["the", "cat"]);
     r.game.submitAnswer("bot-1", ["the", "cat"], { provenance: "bot_pregenerated" });
 
-    const summary = summarizeRoomForAdmin(r, { background: false, botsPaused: false, spectators: 1 });
+    const summary = summarizeRoomForAdmin(r, { background: false, botsPaused: false, botsDisabledByHost: false, spectators: 1 });
     assert.deepEqual(summary.players.map(p => [p.id, p.isBot, p.isHost, p.answered]), [
         ["alice", false, true, true],
         ["bot-1", true, false, true],

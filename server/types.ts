@@ -93,6 +93,7 @@ export type GameState = {
 export type PlayerSummary = {
     id: string;
     name: string;
+    isBot: boolean;
     connected: boolean;
     isHost: boolean;
     isActive: boolean;
@@ -111,6 +112,7 @@ export type PlayerView = {
     isSpectator: boolean;
     players: PlayerSummary[];
     roomLocked: boolean;
+    botsEnabled: boolean; // the host's setting for this room
 } & (
     | {
         phase: "lobby";
@@ -126,6 +128,7 @@ export type PlayerView = {
         roundResults: {
             playerId: string;
             playerName: string;
+            isBot: boolean;
             words: string[];
             score: number;
         }[];

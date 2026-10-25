@@ -57,7 +57,8 @@ export type AdminRoom = {
     locked: boolean;
     stageEndsAt: number | null;
     background: boolean; // kept populated by bots while no humans are around
-    botsPaused: boolean;
+    botsPaused: boolean; // by an admin
+    botsDisabledByHost: boolean;
     spectators: number; // admins watching invisibly
     players: AdminPlayer[];
     answers: AdminAnswer[]; // current round, live
@@ -83,7 +84,7 @@ export type AdminState = {
 
 export function summarizeRoomForAdmin(
     room: Room,
-    extras: { background: boolean; botsPaused: boolean; spectators: number },
+    extras: { background: boolean; botsPaused: boolean; botsDisabledByHost: boolean; spectators: number },
 ): AdminRoom {
     const game = room.game;
     const round = game.currentRound();

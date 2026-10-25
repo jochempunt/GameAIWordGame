@@ -244,6 +244,22 @@ test("a bot sometimes greets back after a delay, less likely with each greeting 
     }
 });
 
+test("a host can turn bots off for their room until the room's session ends", () => {
+    const { rooms, manager, join, bots, advance } = setup(1, { ...CONFIG, backgroundRooms: fixed(0) });
+    const [room] = rooms;
+    join(room, human("alice"));
+    advance(40_000);
+    assert.equal(bots(room).length, 2);
+
+    manager.setDisabledByHost(room, true);
+    advance(40_000);
+    assert.equal(bots(room).length, 0, "bots leave even though alice cannot start alone");
+    assert.equal(manager.isPaused(room.id), false, "separate from an admin pause");
+
+    manager.onRoomReset(room);
+    assert.equal(manager.isDisabledByHost(room.id), false, "the next session starts with bots allowed");
+});
+
 test("paused bots leave between rounds and stop starting rounds, globally or per room", () => {
     const { rooms, manager, bots, advance } = setup(2, { ...CONFIG, backgroundRooms: fixed(2) });
     manager.start();

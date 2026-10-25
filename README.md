@@ -114,7 +114,9 @@ Credentials and deployment environment variables stay in `.env`.
 
 Bots are server-side virtual players (`isBot: true`, no socket) in `server/bots/`. They act through the
 same handlers as sockets, so answer validation, ranking validation, timers and scoring are unchanged.
-The client cannot tell them apart from humans.
+Players see a BOT badge next to every bot (lobby, room settings, results), and the host can
+turn bots off for their room in Room settings. Bots then leave between rounds and stay away
+until the room empties; an empty room starts with bots allowed again.
 
 - **Background rooms:** at startup, 3–4 random rooms are filled with bots. While no human is in them,
   bots mostly sit in the lobby, occasionally start and play a round, and their number drifts slowly.
@@ -123,7 +125,7 @@ The client cannot tell them apart from humans.
   with `minPlayersToStart` humans present, all of them leave. Bots only join or leave in the lobby,
   never during a round.
 - **Host:** a bot hosts only while no human is connected; a joining or reconnecting human takes over
-  immediately. Hosts cannot hand the role to a bot, and room locking counts humans only.
+  immediately. Hosts cannot hand the role to a bot, and locking a room needs 3 connected humans.
 - **Answers:** at round start each bot plans its answer and is dealt a hand containing those words.
   Sources: collected human answers from earlier rounds (preferred, least-used first, never by anyone in
   the room, not reused within the cooldown, never twice in one round), the preset pool in
@@ -209,7 +211,8 @@ The 🛡 Admin button (bottom left) opens the panel:
   (as if its timer ran out); abandon a round; pause bots in one room or everywhere.
 - **Announcements:** a banner message to one room or to everyone online.
 - **Locked rooms:** admins can join them from the room list.
-- **Badges:** while admin tools are shown, player lists and results mark each player as human or bot.
+- **Badges:** while admin tools are shown, humans get a HUMAN badge, and bot answers in the
+  results show where they came from (preset, random words or reused human answer).
 - **Hide admin tools** removes the panel, badges and lock bypass from the screen, for demos.
   Bring them back with the faint dot in the bottom-left corner or **Ctrl+Shift+A**.
   The server remembers the choice until it restarts.

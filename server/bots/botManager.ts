@@ -36,7 +36,8 @@ type BotAction = { fireAt: number; timer: NodeJS.Timeout };
 
 type RoomBotState = {
     background: boolean;
-    paused: boolean;
+    paused: boolean; // by an admin
+    hostDisabled: boolean;
     backgroundTarget: number;
     assistTarget: number;
     nextRetargetAt: number;
@@ -78,6 +79,15 @@ export class BotManager {
     setPaused(paused: boolean, room?: Room): void {
         if (room) this.state(room).paused = paused;
         else this.paused = paused;
+    }
+
+    /** The host's choice for their room; unlike an admin pause it ends with the room's session. */
+    isDisabledByHost(roomId: string): boolean {
+        return this.states.get(roomId)?.hostDisabled ?? false;
+    }
+
+    setDisabledByHost(room: Room, disabled: boolean): void {
+        this.state(room).hostDisabled = disabled;
     }
 
     start(): void {
@@ -261,6 +271,7 @@ export class BotManager {
         this.clearActions(state);
         state.plans = null;
         state.greetingsBy.clear();
+        state.hostDisabled = false;
     }
 
 
@@ -268,7 +279,7 @@ export class BotManager {
 
     private evaluate(room: Room, now: number): void {
         const state = this.state(room);
-        const botsAllowed = !this.paused && !state.paused;
+        const botsAllowed = !this.paused && !state.paused && !state.hostDisabled;
         const players = [...room.players.values()];
         const humans = players.filter(player => !player.isBot);
         const bots = players.filter(player => player.isBot);
@@ -481,6 +492,7 @@ export class BotManager {
             state = {
                 background: false,
                 paused: false,
+                hostDisabled: false,
                 backgroundTarget: randomInRange(this.config.backgroundBotsPerRoom, this.random),
                 assistTarget: randomInRange(this.config.assistTargetPlayers, this.random),
                 nextRetargetAt: now + randomInRange(this.config.backgroundRetargetIntervalMs, this.random),

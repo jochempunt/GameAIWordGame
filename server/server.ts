@@ -258,6 +258,7 @@ function roomView(room: Room, player: Player) {
         room.hostPlayerId,
         room.locked,
         room.stageEndsAt,
+        !bots.isDisabledByHost(room.id),
     );
 }
 
@@ -364,6 +365,10 @@ io.on("connection", (socket) => {
 
     on("setRoomLocked", (locked, acknowledge) => {
         setRoomLocked(socket, locked, safeAcknowledge(acknowledge));
+    });
+
+    on("setBotsEnabled", (enabled, acknowledge) => {
+        setBotsEnabled(socket, enabled, safeAcknowledge(acknowledge));
     });
 
     on("sendEmote", (emoteId, acknowledge) => {
@@ -998,16 +1003,14 @@ function transferHostFromSocket(
         return;
     }
 
-    // Worded like a passing hiccup: a refusal must not reveal that the target is a bot.
-    const transferFailed = "Host transfer failed. Please try again later.";
     if (room.players.get(targetPlayerId)?.isBot) {
-        acknowledge({ ok: false, error: transferFailed });
+        acknowledge({ ok: false, error: "Bots cannot be host" });
         return;
     }
 
     const nextHost = transferHost(room, targetPlayerId);
     if (!nextHost) {
-        acknowledge({ ok: false, error: transferFailed });
+        acknowledge({ ok: false, error: "Could not transfer host" });
         return;
     }
 
@@ -1037,13 +1040,37 @@ function setRoomLocked(
     }
 
     if (locked && getConnectedHumans(room).length < MIN_PLAYERS_TO_LOCK_ROOM) {
-        // only humans count here, so naming the requirement would reveal how many players are bots
-        acknowledge({ ok: false, error: "The room can't be locked right now. Please try again later." });
+        acknowledge({ ok: false, error: `At least ${MIN_PLAYERS_TO_LOCK_ROOM} connected human players are required to lock the room` });
         return;
     }
 
     room.locked = locked;
     room.adminLocked = false;
+    acknowledge({ ok: true });
+    commitRoomState(room);
+}
+
+// Disabled bots leave between rounds, so a round in progress is always finished.
+function setBotsEnabled(socket: Socket, enabled: unknown, acknowledge: ActionAck): void {
+    const result = getPlayerBySocket(socket);
+    if (!result) {
+        acknowledge({ ok: false, error: "Player not found" });
+        return;
+    }
+
+    const { player, room } = result;
+    if (player.id !== room.hostPlayerId) {
+        acknowledge({ ok: false, error: "Only the host can change room settings" });
+        return;
+    }
+
+    if (typeof enabled !== "boolean") {
+        acknowledge({ ok: false, error: "Invalid bot setting" });
+        return;
+    }
+
+    bots.setDisabledByHost(room, !enabled);
+    console.log(`Room ${room.id}: host ${enabled ? "enabled" : "disabled"} bots`);
     acknowledge({ ok: true });
     commitRoomState(room);
 }
@@ -1590,6 +1617,7 @@ function pushAdminState(targets: Socket[] = [...io.sockets.sockets.values()].fil
         rooms: [...rooms.values()].map(room => summarizeRoomForAdmin(room, {
             background: bots.isBackgroundRoom(room),
             botsPaused: bots.isPaused(room.id),
+            botsDisabledByHost: bots.isDisabledByHost(room.id),
             spectators: spectatorCounts.get(room.id) ?? 0,
         })),
     };

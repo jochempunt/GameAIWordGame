@@ -11,6 +11,7 @@ export function viewForPlayer(
     hostPlayerId: string | null,
     roomLocked: boolean,
     stageEndsAt: number | null,
+    botsEnabled: boolean,
 ): PlayerView {
     const roomPlayers = [...players];
     const connectedPlayers = roomPlayers.filter(player => player.connected);
@@ -43,6 +44,7 @@ export function viewForPlayer(
         isSpectator,
         players: playerSummaries,
         roomLocked,
+        botsEnabled,
     };
     const lobbyView = (): PlayerView => ({
         ...base,
@@ -108,6 +110,7 @@ export function viewForPlayer(
                     playerName: roomPlayers.find(player => player.id === answer.playerId)?.name
                         ?? game.state.players.get(answer.playerId)?.name
                         ?? "Unknown player",
+                    isBot: game.isBot(answer.playerId),
                     words: answer.words,
                     score: round.scores?.get(answer.id) ?? 0,
                 }))
@@ -170,6 +173,7 @@ function summarizePlayers(
         return {
             id: player.id,
             name: player.name,
+            isBot: player.isBot === true,
             connected: player.connected,
             isHost: player.id === hostPlayerId,
             isActive: isLobbyPhase || activePlayerIds.has(player.id),

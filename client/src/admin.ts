@@ -295,7 +295,7 @@ export function initAdmin(context: AdminContext): AdminHooks {
                 element("span", "admin-room-flags", [
                     room.locked ? "🔒" : "",
                     room.spectators > 0 ? "👁" : "",
-                    room.botsPaused ? "⏸" : "",
+                    room.botsPaused || room.botsDisabledByHost ? "⏸" : "",
                     room.background ? "bg" : "",
                 ].filter(Boolean).join(" ")),
             );
@@ -321,6 +321,7 @@ export function initAdmin(context: AdminContext): AdminHooks {
             summary.append(" · ", timer);
         }
         if (room.background) summary.append(" · background bot room");
+        if (room.botsDisabledByHost) summary.append(" · host turned bots off");
         if (room.spectators > 0) summary.append(` · ${room.spectators} admin${room.spectators === 1 ? "" : "s"} watching`);
 
         detailBody.append(heading, summary);
@@ -478,12 +479,14 @@ export function initAdmin(context: AdminContext): AdminHooks {
             const player = players.get(target.dataset.playerId ?? "");
             if (!player) continue;
 
+            // everyone already sees BOT badges; admins also see humans marked and where bot answers came from
+            const source = provenance.get(player.id);
+            const inResults = target.closest("#round-results") !== null;
+            if (player.isBot && !(source && inResults)) continue;
+
             const mark = badge(player);
             mark.classList.add("admin-game-badge");
-            const source = provenance.get(player.id);
-            if (player.isBot && source && target.closest("#round-results")) {
-                mark.textContent = `BOT · ${PROVENANCE_LABELS[source]}`;
-            }
+            if (player.isBot && source) mark.textContent = PROVENANCE_LABELS[source];
             target.append(mark);
         }
     }
